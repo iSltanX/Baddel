@@ -1,41 +1,59 @@
-use tauri::{
-    image::Image,
-    menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
-    RunEvent,
-};
-use tauri_plugin_autostart::MacosLauncher;
+mod controller;
+mod state;
+mod sys;
+mod tray;
 
-const TRAY_ICON: &[u8] = include_bytes!("../icons/tray.png");
+use std::thread;
+use std::time::Duration;
+
+use tauri::{Emitter, RunEvent};
+use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+
+use controller::Command;
+use state::AppState;
+use sys::permissions;
+
+const DEFAULT_SHORTCUT: &str = "Alt+Shift+Space";
+/// How often we look for a change in the Accessibility permission.
+const PERMISSION_POLL: Duration = Duration::from_secs(2);
 
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            None::<Vec<&str>>,
-        ))
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None::<Vec<&str>>))
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .manage(AppState::default())
         .setup(|app| {
             // Menu bar utility: no Dock icon, no app menu.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            let quit = MenuItem::with_id(app, "quit", "إنهاء بدّل", true, Some("Cmd+Q"))?;
-            let menu = Menu::with_items(app, &[&quit])?;
+            let commands = controller::spawn(app.handle().clone());
+            let tray = tray::build(app, commands.clone())?;
+            // Asks macOS to show its permission dialog on first run.
+            let mut trusted = permissions::is_trusted(true);
+            tray.show_permission(trusted);
 
-            TrayIconBuilder::with_id("main")
-                .icon(Image::from_bytes(TRAY_ICON)?)
-                .icon_as_template(true)
-                .tooltip("بدّل")
-                .menu(&menu)
-                .on_menu_event(|app, event| {
-                    if event.id() == "quit" {
-                        app.exit(0);
-                    }
-                })
-                .build(app)?;
+            let handle = app.handle().clone();
+            thread::Builder::new().name("baddel-permission".into()).spawn(move || loop {
+                thread::sleep(PERMISSION_POLL);
+                let now = permissions::is_trusted(false);
+                if now != trusted {
+                    trusted = now;
+                    tray.show_permission(now);
+                    let _ = handle.emit("permission", now);
+                }
+            })?;
+
+            // Act on release: by then the hotkey's own keys are on their way up and cannot
+            // combine with the keys we synthesize.
+            app.global_shortcut().on_shortcut(DEFAULT_SHORTCUT, move |_app, _shortcut, event| {
+                if event.state() == ShortcutState::Released {
+                    let _ = commands.send(Command::Convert);
+                }
+            })?;
 
             Ok(())
         })
