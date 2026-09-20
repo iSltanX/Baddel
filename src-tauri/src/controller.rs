@@ -6,17 +6,20 @@
 
 use std::collections::HashSet;
 use std::sync::mpsc::{self, Sender};
+use std::sync::Mutex;
 use std::thread::{self, sleep};
 use std::time::{Duration, Instant};
 
 use baddel_core::{detect_direction, Direction, LayoutMap};
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::state::AppState;
+use crate::menu_text;
+use crate::settings::{AppState, Language};
 use crate::sys::input_source::Snapshot as Layouts;
 use crate::sys::keysynth::{self, KEY_LEFT, KEY_RIGHT};
 use crate::sys::text_access::{Focused, Selection};
-use crate::sys::{frontmost, input_source, on_main, pasteboard, permissions, text_access};
+use crate::sys::{frontmost, input_source, on_main, pasteboard, permissions, sound, text_access};
+use crate::{hud, tray};
 
 // ── Timings ──────────────────────────────────────────────────────────────────
 /// How long we wait for the user to release the hotkey's modifiers.
@@ -54,6 +57,16 @@ macro_rules! trace {
 pub enum Command {
     Convert,
     Undo,
+}
+
+/// The channel into the conversion thread. Held in Tauri state so the menu and the
+/// global shortcuts can reach it from wherever they run.
+pub struct Commands(Mutex<Sender<Command>>);
+
+impl Commands {
+    pub fn send(&self, command: Command) {
+        let _ = self.0.lock().unwrap().send(command);
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -94,7 +107,7 @@ struct LastOp {
     at: Instant,
 }
 
-pub fn spawn(app: AppHandle) -> Sender<Command> {
+pub fn spawn(app: AppHandle) -> Commands {
     let (tx, rx) = mpsc::channel();
     thread::Builder::new()
         .name("baddel-controller".into())
@@ -109,11 +122,14 @@ pub fn spawn(app: AppHandle) -> Sender<Command> {
                 #[cfg(debug_assertions)]
                 eprintln!("[baddel] {outcome:?} in {:?}", started.elapsed());
                 let _ = started;
+                controller.announce(outcome);
+                // The event carries the outcome and nothing else: no converted text
+                // ever crosses into a webview.
                 let _ = controller.app.emit("conversion", outcome);
             }
         })
         .expect("failed to start the controller thread");
-    tx
+    Commands(Mutex::new(tx))
 }
 
 struct Controller {
@@ -182,7 +198,10 @@ impl Controller {
         if frontmost::bundle_id().is_some_and(|id| settings.excluded_apps.contains(&id)) {
             return Outcome::Excluded;
         }
-        let Some(layouts) = on_main(&self.app, input_source::snapshot) else { return Outcome::Failed };
+        let (arabic, latin) = (settings.arabic_layout.clone(), settings.latin_layout.clone());
+        let Some(layouts) = on_main(&self.app, move || input_source::snapshot(&arabic, &latin)) else {
+            return Outcome::Failed;
+        };
         let map = build_map(&layouts);
         if map.is_empty() {
             return Outcome::NoLayouts;
@@ -426,6 +445,63 @@ impl Controller {
     }
 }
 
+impl Controller {
+    /// Shows the outcome: the notice panel, and the menu's record of the last
+    /// conversion. Both are native and read the text straight out of memory — it is
+    /// never written anywhere, nor handed to a webview.
+    fn announce(&self, outcome: Outcome) {
+        let settings = self.app.state::<AppState>().settings.lock().unwrap().clone();
+        let text = menu_text::strings(settings.language);
+        let rtl = settings.language == Language::Ar;
+
+        match outcome {
+            Outcome::Converted | Outcome::Extended => {
+                if let Some(last) = &self.last {
+                    tray::set_last_conversion(&self.app, Some((last.original.clone(), last.result.clone())));
+                }
+                if settings.sound {
+                    on_main(&self.app, sound::click);
+                }
+            }
+            Outcome::Undone => tray::set_last_conversion(&self.app, None),
+            _ => {}
+        }
+
+        if !settings.show_hud {
+            return;
+        }
+        let notice = match outcome {
+            Outcome::Converted | Outcome::Extended => self.last.as_ref().map(|last| hud::Notice {
+                kind: hud::Kind::Success,
+                text: hud::conversion_line(&last.original, &last.result, rtl),
+                badge: settings.switch_input_source.then(|| badge(last.direction).to_string()),
+            }),
+            Outcome::Undone => Some(notice(hud::Kind::Undone, text.hud_undone)),
+            Outcome::Blocked => Some(notice(hud::Kind::Blocked, text.hud_blocked)),
+            Outcome::TooLong => Some(notice(hud::Kind::TooLong, text.hud_too_long)),
+            Outcome::NoText | Outcome::Unchanged => Some(notice(hud::Kind::NoText, text.hud_no_text)),
+            // Paused, excluded, missing permission: the menu already says so, and a
+            // notice on every keypress would be noise.
+            _ => None,
+        };
+        if let Some(notice) = notice {
+            hud::show(&self.app, notice);
+        }
+    }
+}
+
+/// The input source the conversion switched to.
+fn badge(direction: Direction) -> &'static str {
+    match direction {
+        Direction::ArabicToLatin => "EN",
+        Direction::LatinToArabic => "ع",
+    }
+}
+
+fn notice(kind: hud::Kind, text: &str) -> hud::Notice {
+    hud::Notice { kind, text: text.to_string(), badge: None }
+}
+
 impl LastOp {
     fn new(original: String, result: String, direction: Direction, start: Option<usize>, words: usize) -> Self {
         // Walking back over the result: Latin text runs left to right, Arabic right to left.
@@ -596,7 +672,7 @@ fn utf16_len(s: &str) -> usize {
     s.encode_utf16().count()
 }
 
-fn build_map(layouts: &Layouts) -> LayoutMap {
+pub fn build_map(layouts: &Layouts) -> LayoutMap {
     match (&layouts.arabic, &layouts.latin) {
         (Some(arabic), Some(latin)) => LayoutMap::build(arabic, latin),
         // No Arabic layout enabled: the bundled macOS "Arabic" is the best guess.

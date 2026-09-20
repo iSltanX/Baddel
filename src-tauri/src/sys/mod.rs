@@ -5,12 +5,15 @@
 //! main thread — use [`on_main`]. Accessibility, CGEvent and NSPasteboard calls
 //! are made from the conversion worker thread.
 
+pub mod app_icons;
 pub mod carbon;
+pub mod chrome;
 pub mod frontmost;
 pub mod input_source;
 pub mod keysynth;
 pub mod pasteboard;
 pub mod permissions;
+pub mod sound;
 pub mod text_access;
 
 use std::sync::mpsc;

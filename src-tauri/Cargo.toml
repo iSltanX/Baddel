@@ -21,6 +21,7 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-store = "2"
 tauri-plugin-process = "2"
+tauri-plugin-dialog = "2"
 # Linked now, registered in phase 5: the plugin refuses to start without a signing pubkey.
 tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
@@ -31,5 +32,40 @@ accessibility-sys = "0.1"
 core-foundation = "0.10"
 core-graphics = "0.24"
 objc2 = "0.6"
-objc2-foundation = { version = "0.3", features = ["NSString", "NSArray", "NSData"] }
-objc2-app-kit = { version = "0.3", features = ["NSPasteboard", "NSPasteboardItem", "NSWorkspace", "NSRunningApplication"] }
+objc2-foundation = { version = "0.3", features = [
+    "NSString",
+    "NSArray",
+    "NSData",
+    "NSDictionary",
+    "NSURL",
+    "NSGeometry",
+    "NSValue",
+] }
+objc2-app-kit = { version = "0.3", features = [
+    "NSPasteboard",
+    "NSPasteboardItem",
+    "NSWorkspace",
+    "NSRunningApplication",
+    # App icons for the exceptions list.
+    "NSImage",
+    "NSImageRep",
+    "NSBitmapImageRep",
+    "NSGraphics",
+    "NSGraphicsContext",
+    # The native conversion notice (src/hud.rs).
+    "NSAccessibility",
+    "NSAppearance",
+    "NSBezierPath",
+    "NSColor",
+    "NSControl",
+    "NSFont",
+    "NSImageView",
+    "NSPanel",
+    "NSResponder",
+    "NSScreen",
+    "NSSound",
+    "NSTextField",
+    "NSView",
+    "NSVisualEffectView",
+    "NSWindow",
+] }

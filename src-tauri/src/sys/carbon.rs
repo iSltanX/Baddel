@@ -19,6 +19,7 @@ pub const optionKey: u32 = 0x0800;
 #[link(name = "Carbon", kind = "framework")]
 extern "C" {
     pub static kTISPropertyInputSourceID: CFStringRef;
+    pub static kTISPropertyLocalizedName: CFStringRef;
     pub static kTISPropertyInputSourceType: CFStringRef;
     pub static kTISPropertyUnicodeKeyLayoutData: CFStringRef;
     pub static kTISTypeKeyboardLayout: CFStringRef;

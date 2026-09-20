@@ -1,0 +1,154 @@
+{
+  "menu": {
+    "name": "بدّل",
+    "status": {
+      "ready": "جاهز",
+      "needsPermission": "تحتاج صلاحية",
+      "paused": "متوقف مؤقتًا"
+    },
+    "hint": "حوّل التحديد أو آخر كلمة",
+    "undo": "تراجع",
+    "grantPermission": "امنح الصلاحية…",
+    "switchLayoutAfterConvert": "بدّل لغة لوحة المفاتيح بعد التحويل",
+    "pause": "أوقف بدّل مؤقتًا",
+    "resume": "استأنف بدّل",
+    "settings": "الإعدادات…",
+    "checkForUpdates": "تحقّق من التحديثات…",
+    "quit": "إنهاء بدّل"
+  },
+  "settings": {
+    "panes": {
+      "general": "عام",
+      "shortcuts": "الاختصارات",
+      "layouts": "التخطيطات",
+      "exceptions": "الاستثناءات",
+      "about": "حول"
+    },
+    "general": {
+      "launchAtLogin": "تشغيل عند تسجيل الدخول",
+      "showMenuBarIcon": "أظهر أيقونة بدّل في شريط القوائم",
+      "showMenuBarIconDescription": "يبقى الاختصار يعمل حتى لو أخفيت الأيقونة",
+      "uiLanguage": "لغة الواجهة",
+      "uiLanguageOptions": {
+        "ar": "العربية",
+        "en": "English"
+      },
+      "switchLayoutAfterConvert": "بدّل لغة لوحة المفاتيح بعد التحويل",
+      "showConversionNotification": "أظهر إشعار التحويل",
+      "previewNotification": "معاينة",
+      "softSoundOnConvert": "صوت خافت عند التحويل",
+      "autoCheckUpdates": "تحقّق من التحديثات تلقائيًا",
+      "checkNow": "تحقق الآن"
+    },
+    "shortcuts": {
+      "rows": {
+        "convert": "حوّل التحديد أو آخر كلمة",
+        "undo": "تراجع عن آخر تحويل",
+        "pause": "أوقف بدّل مؤقتًا"
+      },
+      "footnote": "الضغط مرة ثانية خلال ثانيتين يمدّ التحويل كلمةً أخرى للخلف."
+    },
+    "layouts": {
+      "arabicLayout": "التخطيط العربي",
+      "latinLayout": "التخطيط اللاتيني",
+      "syncedBadge": "متزامن مع macOS",
+      "keyboardMap": {
+        "title": "خريطة المفاتيح",
+        "multiCharKeyCaption": "مفتاح واحد يكتب حرفين — بدّل يتعامل معه تلقائيًا."
+      },
+      "emptyState": {
+        "message": "لم نجد تخطيطًا عربيًا مفعّلًا",
+        "action": "افتح إعدادات لوحة المفاتيح"
+      }
+    },
+    "exceptions": {
+      "description": "لن يعمل بدّل داخل هذه التطبيقات.",
+      "addApp": "أضف تطبيقًا…",
+      "emptyState": "لا استثناءات بعد"
+    },
+    "about": {
+      "appName": "بدّل · Baddel",
+      "version": "الإصدار {version}",
+      "tagline": "اكتب، ونحن نبدّل.",
+      "sourceOnGithub": "المصدر على GitHub",
+      "reportIssue": "أبلغ عن مشكلة",
+      "license": "الرخصة MIT",
+      "fromSameMaker": "من الصانع نفسه",
+      "makerApps": {
+        "raff": "رفّ",
+        "luma": "Luma",
+        "nafidh": "نفّذ"
+      },
+      "showWelcome": "أعد عرض شاشة الترحيب"
+    }
+  },
+  "onboarding": {
+    "skip": "تخطَّ",
+    "next": "التالي",
+    "start": "ابدأ",
+    "openSystemSettings": "افتح إعدادات النظام",
+    "step1": {
+      "title": "كتبتها باللغة الخطأ؟ بدّلها.",
+      "body": "اختصار واحد يصحّح ما كتبته بتخطيط لوحة المفاتيح الخطأ — في أي تطبيق.",
+      "sample1From": "اثممخ",
+      "sample1To": "hello",
+      "sample2From": "sghl",
+      "sample2To": "سلام"
+    },
+    "step2": {
+      "title": "صلاحية واحدة فقط",
+      "body": "يحتاج بدّل صلاحية «تسهيلات الاستخدام» ليقرأ النص المحدَّد ويستبدله.",
+      "reassurance": {
+        "noKeylogging": "لا يراقب ما تكتبه",
+        "noInternet": "لا يتصل بالإنترنت",
+        "noTextStorage": "لا يحفظ أي نص"
+      }
+    },
+    "step3": {
+      "title": "جرّبها الآن",
+      "recorderCaption": "يمكنك تغييره متى شئت",
+      "practiceText": "اثممخ",
+      "practiceHelper": "ضع المؤشر بعد الكلمة واضغط الاختصار",
+      "successText": "hello",
+      "successMessage": "أحسنت — هكذا يعمل بدّل"
+    }
+  },
+  "hud": {
+    "success": "{from} ← {to}",
+    "undo": "تم التراجع",
+    "blocked": "حقل محمي — لم يُحوَّل شيء",
+    "tooLong": "التحديد طويل جدًا",
+    "noSelection": "لا يوجد نص لتحويله"
+  },
+  "permission": {
+    "granted": "الصلاحية ممنوحة",
+    "missing": "بدّل يحتاج صلاحية تسهيلات الاستخدام",
+    "checking": "جارٍ التحقق…",
+    "openSystemSettings": "افتح إعدادات النظام"
+  },
+  "shortcut": {
+    "recorder": {
+      "empty": "سجّل اختصارًا",
+      "recording": "اضغط المفاتيح…",
+      "conflict": "هذا الاختصار مستخدم في تطبيق آخر"
+    },
+    "names": {
+      "convert": "حوّل التحديد أو آخر كلمة",
+      "undo": "تراجع عن آخر تحويل",
+      "pause": "أوقف بدّل مؤقتًا"
+    }
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "ok": "حسنًا",
+    "remove": "إزالة",
+    "add": "إضافة",
+    "keys": {
+      "option": "Option",
+      "shift": "Shift",
+      "space": "Space",
+      "command": "Command",
+      "control": "Control"
+    }
+  }
+}

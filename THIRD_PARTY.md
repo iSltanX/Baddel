@@ -306,3 +306,46 @@ and Australian word list.  It is under the following copyright:
   OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
   SUCH DAMAGE.
 ```
+
+## Fonts (`src/assets/fonts/`)
+
+The UI ships two typefaces locally so the app makes no network requests at
+runtime. Both are sourced from the official Google Fonts repository
+(https://github.com/google/fonts).
+
+### Cairo (`Cairo-SemiBold.{woff2,ttf}`, `Cairo-Bold.{woff2,ttf}`)
+
+- **Name / source:** Cairo
+- **Homepage / repository:** https://github.com/google/fonts/tree/main/ofl/cairo
+  (upstream project: https://github.com/Gue3bara/Cairo)
+- **Authors:** The Cairo Project Authors
+- **License:** SIL Open Font License, Version 1.1. Full text at
+  `src/assets/fonts/OFL-Cairo.txt`.
+- **Weights included:** 600 (SemiBold) and 700 (Bold) only, used for
+  headings.
+- **Processing steps applied:** Google Fonts distributes Cairo as a single
+  variable font (`Cairo[slnt,wght].ttf`, axes `wght` 200–1000 and `slnt`
+  -11–11). Two static instances were extracted with `fonttools
+  varLib.instancer` at `wght=600, slnt=0` and `wght=700, slnt=0`
+  (`--update-name-table`, which also sets `OS/2.usWeightClass` to 600/700
+  and the family/subfamily name records to `Cairo`/`SemiBold` and
+  `Cairo`/`Bold`). Each static TTF was then compressed to WOFF2 with
+  `fonttools ttLib.woff2`. The original variable font file was discarded
+  after extraction; the two static `.ttf` files are kept alongside the
+  `.woff2` files as source/backup.
+
+### Almarai (`Almarai-Regular.{woff2,ttf}`, `Almarai-Bold.{woff2,ttf}`)
+
+- **Name / source:** Almarai
+- **Homepage / repository:** https://github.com/google/fonts/tree/main/ofl/almarai
+  (upstream project: https://github.com/JuergenWillrodt/Almarai)
+- **Authors:** The Almarai Project Authors
+- **License:** SIL Open Font License, Version 1.1. Full text at
+  `src/assets/fonts/OFL-Almarai.txt`.
+- **Weights included:** 400 (Regular) and 700 (Bold) only, used for body
+  text. (Almarai has no 500 or 600 weight upstream, so none is bundled.)
+- **Processing steps applied:** `Almarai-Regular.ttf` and `Almarai-Bold.ttf`
+  are already static in the source repository and were downloaded
+  unmodified. Each was additionally compressed to WOFF2 with `fonttools
+  ttLib.woff2` for use in the app; the original `.ttf` files are kept
+  alongside as source/backup.

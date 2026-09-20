@@ -60,6 +60,15 @@ pub struct Snapshot {
     pub current_is_arabic: bool,
 }
 
+/// One enabled keyboard layout, for the layouts pane.
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Entry {
+    pub id: String,
+    pub name: String,
+    pub arabic: bool,
+}
+
 /// Owned reference to a TIS input source.
 struct Source(CFType);
 
@@ -71,6 +80,13 @@ impl Source {
     fn id(&self) -> Option<String> {
         // SAFETY: valid source; the property, when present, is a CFString owned by the source.
         let ptr = unsafe { TISGetInputSourceProperty(self.raw(), kTISPropertyInputSourceID) };
+        (!ptr.is_null()).then(|| unsafe { CFString::wrap_under_get_rule(ptr.cast()) }.to_string())
+    }
+
+    /// The name macOS shows for this layout in the input menu, in the user's language.
+    fn name(&self) -> Option<String> {
+        // SAFETY: valid source; the property, when present, is a CFString owned by the source.
+        let ptr = unsafe { TISGetInputSourceProperty(self.raw(), kTISPropertyLocalizedName) };
         (!ptr.is_null()).then(|| unsafe { CFString::wrap_under_get_rule(ptr.cast()) }.to_string())
     }
 
@@ -122,13 +138,34 @@ fn types_arabic(layout: &LiveLayout) -> Option<bool> {
     }
 }
 
-pub fn snapshot() -> Snapshot {
+/// The enabled layouts we can map between, in the order macOS lists them.
+pub fn list() -> Vec<Entry> {
+    enabled_layouts()
+        .iter()
+        .filter_map(|source| {
+            let layout = source.layout()?;
+            let arabic = types_arabic(&layout)?;
+            Some(Entry { name: source.name().unwrap_or_else(|| layout.id.clone()), id: layout.id, arabic })
+        })
+        .collect()
+}
+
+/// The layouts to convert between. `preferred_*` are input source ids chosen in the
+/// settings; an empty or no-longer-enabled one falls back to the first of that script,
+/// which is what "follow macOS" means.
+pub fn snapshot(preferred_arabic: &str, preferred_latin: &str) -> Snapshot {
     let mut snap = Snapshot { arabic: None, latin: None, current_is_arabic: false };
     for layout in enabled_layouts().iter().filter_map(Source::layout) {
-        match types_arabic(&layout) {
-            Some(true) if snap.arabic.is_none() => snap.arabic = Some(layout),
-            Some(false) if snap.latin.is_none() => snap.latin = Some(layout),
-            _ => {}
+        let (wanted, slot) = match types_arabic(&layout) {
+            Some(true) => (preferred_arabic, &mut snap.arabic),
+            Some(false) => (preferred_latin, &mut snap.latin),
+            None => continue,
+        };
+        // The chosen layout wins wherever it appears in the list; otherwise the first
+        // of its script stands in for it. Ids are unique, so a choice already taken
+        // is never overwritten.
+        if layout.id == wanted || slot.is_none() {
+            *slot = Some(layout);
         }
     }
     // SAFETY: create rule; null when no layout is active (should not happen).

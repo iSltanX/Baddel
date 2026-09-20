@@ -26,6 +26,13 @@ pub fn open_settings() {
         .spawn();
 }
 
+/// Opens System Settings › Keyboard, where input sources are added.
+pub fn open_keyboard_settings() {
+    let _ = Command::new("/usr/bin/open")
+        .arg("x-apple.systempreferences:com.apple.Keyboard-Settings.extension")
+        .spawn();
+}
+
 /// Password fields and some terminals turn this on; synthetic input must stay out.
 pub fn secure_input_enabled() -> bool {
     // SAFETY: no preconditions.

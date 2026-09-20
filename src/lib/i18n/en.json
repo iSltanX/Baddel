@@ -1,0 +1,154 @@
+{
+  "menu": {
+    "name": "Baddel",
+    "status": {
+      "ready": "Ready",
+      "needsPermission": "Needs Permission",
+      "paused": "Paused"
+    },
+    "hint": "Convert the selection or last word",
+    "undo": "Undo",
+    "grantPermission": "Grant Permission…",
+    "switchLayoutAfterConvert": "Switch keyboard layout after converting",
+    "pause": "Pause Baddel",
+    "resume": "Resume Baddel",
+    "settings": "Settings…",
+    "checkForUpdates": "Check for Updates…",
+    "quit": "Quit Baddel"
+  },
+  "settings": {
+    "panes": {
+      "general": "General",
+      "shortcuts": "Shortcuts",
+      "layouts": "Layouts",
+      "exceptions": "Exceptions",
+      "about": "About"
+    },
+    "general": {
+      "launchAtLogin": "Launch at Login",
+      "showMenuBarIcon": "Show Baddel icon in the menu bar",
+      "showMenuBarIconDescription": "The shortcut keeps working even if you hide the icon",
+      "uiLanguage": "Interface Language",
+      "uiLanguageOptions": {
+        "ar": "العربية",
+        "en": "English"
+      },
+      "switchLayoutAfterConvert": "Switch keyboard layout after converting",
+      "showConversionNotification": "Show conversion notification",
+      "previewNotification": "Preview",
+      "softSoundOnConvert": "Soft sound on conversion",
+      "autoCheckUpdates": "Automatically check for updates",
+      "checkNow": "Check Now"
+    },
+    "shortcuts": {
+      "rows": {
+        "convert": "Convert selection or last word",
+        "undo": "Undo last conversion",
+        "pause": "Pause Baddel"
+      },
+      "footnote": "Pressing it again within two seconds extends the conversion one more word back."
+    },
+    "layouts": {
+      "arabicLayout": "Arabic Layout",
+      "latinLayout": "Latin Layout",
+      "syncedBadge": "Synced with macOS",
+      "keyboardMap": {
+        "title": "Key Map",
+        "multiCharKeyCaption": "One key types two characters — Baddel handles it automatically."
+      },
+      "emptyState": {
+        "message": "No active Arabic layout found",
+        "action": "Open Keyboard Settings"
+      }
+    },
+    "exceptions": {
+      "description": "Baddel won't work inside these apps.",
+      "addApp": "Add an App…",
+      "emptyState": "No exceptions yet"
+    },
+    "about": {
+      "appName": "Baddel · بدّل",
+      "version": "Version {version}",
+      "tagline": "Type, and we'll switch it.",
+      "sourceOnGithub": "Source on GitHub",
+      "reportIssue": "Report an Issue",
+      "license": "MIT License",
+      "fromSameMaker": "From the same maker",
+      "makerApps": {
+        "raff": "رفّ",
+        "luma": "Luma",
+        "nafidh": "نفّذ"
+      },
+      "showWelcome": "Show the welcome window again"
+    }
+  },
+  "onboarding": {
+    "skip": "Skip",
+    "next": "Next",
+    "start": "Get Started",
+    "openSystemSettings": "Open System Settings",
+    "step1": {
+      "title": "Typed it in the wrong language? Switch it.",
+      "body": "One shortcut fixes text typed with the wrong keyboard layout — in any app.",
+      "sample1From": "اثممخ",
+      "sample1To": "hello",
+      "sample2From": "sghl",
+      "sample2To": "سلام"
+    },
+    "step2": {
+      "title": "Just one permission",
+      "body": "Baddel needs Accessibility permission to read and replace the selected text.",
+      "reassurance": {
+        "noKeylogging": "Doesn't monitor what you type",
+        "noInternet": "Doesn't connect to the internet",
+        "noTextStorage": "Doesn't save any text"
+      }
+    },
+    "step3": {
+      "title": "Try it now",
+      "recorderCaption": "You can change this anytime",
+      "practiceText": "اثممخ",
+      "practiceHelper": "Place the cursor after the word and press the shortcut",
+      "successText": "hello",
+      "successMessage": "Nicely done — that's how Baddel works"
+    }
+  },
+  "hud": {
+    "success": "{from} → {to}",
+    "undo": "Undone",
+    "blocked": "Protected field — nothing converted",
+    "tooLong": "Selection is too long",
+    "noSelection": "No text to convert"
+  },
+  "permission": {
+    "granted": "Permission granted",
+    "missing": "Baddel needs Accessibility permission",
+    "checking": "Checking…",
+    "openSystemSettings": "Open System Settings"
+  },
+  "shortcut": {
+    "recorder": {
+      "empty": "Record Shortcut",
+      "recording": "Press keys…",
+      "conflict": "This shortcut is used by another app"
+    },
+    "names": {
+      "convert": "Convert selection or last word",
+      "undo": "Undo last conversion",
+      "pause": "Pause Baddel"
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "ok": "OK",
+    "remove": "Remove",
+    "add": "Add",
+    "keys": {
+      "option": "Option",
+      "shift": "Shift",
+      "space": "Space",
+      "command": "Command",
+      "control": "Control"
+    }
+  }
+}

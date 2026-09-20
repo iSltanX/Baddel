@@ -1,0 +1,166 @@
+/* Design tokens for Baddel. Values come from docs/baddel-figma-prompt-pro.md (PROMPT 0).
+   Fonts are bundled — never requested over the network. */
+
+/* ── Fonts ─────────────────────────────────────────────────────────────────── */
+/* Cairo: headings only, 600/700. Almarai: everything else, 400/700 (it has no 500/600). */
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url('../assets/fonts/Cairo-SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('../assets/fonts/Cairo-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/Almarai-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('../assets/fonts/Almarai-Bold.woff2') format('woff2');
+}
+
+/* ── Color ─────────────────────────────────────────────────────────────────── */
+:root {
+  --bg-window: #f6f4ef;
+  --bg-surface: #ffffff;
+  --bg-sunken: #edeae3;
+  --border-subtle: #e2ded5;
+  --text-primary: #1c1917;
+  --text-secondary: #6b665e;
+  --accent-primary: #3f5673;
+  --accent-soft: #e4eaf1;
+  --state-success: #5f7f52;
+  --state-warning: #b67f2e;
+  --state-danger: #a8493b;
+
+  /* Derived. `--accent-on` is the text colour that sits on a filled accent surface;
+     it flips in dark mode because the accent itself does. */
+  --accent-on: #ffffff;
+  --keycap-edge: #afa8a0;
+  --overlay-hover: rgb(28 25 23 / 5%);
+  --overlay-pressed: rgb(28 25 23 / 10%);
+  --track-off: #d5d0c6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-window: #1b1c1f;
+    --bg-surface: #25272b;
+    --bg-sunken: #16171a;
+    --border-subtle: #34373c;
+    --text-primary: #f2f0eb;
+    --text-secondary: #a19d95;
+    --accent-primary: #8fa9c9;
+    --accent-soft: #2a3644;
+    --state-success: #93b585;
+    --state-warning: #d9a95a;
+    --state-danger: #d98476;
+
+    --accent-on: #1b1c1f;
+    --keycap-edge: #101114;
+    --overlay-hover: rgb(242 240 235 / 6%);
+    --overlay-pressed: rgb(242 240 235 / 12%);
+    --track-off: #4a4d53;
+  }
+}
+
+/* ── Type scale ────────────────────────────────────────────────────────────── */
+/* Arabic reads optically smaller than Latin at the same size, so the scale sits
+   1–2pt above the macOS defaults (HIG · Right to left). */
+:root {
+  --font-heading: 'Cairo', system-ui, sans-serif;
+  --font-body: 'Almarai', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'IBM Plex Mono', monospace;
+
+  --size-large: 26px;   --leading-large: 36px;
+  --size-title: 20px;   --leading-title: 30px;
+  --size-section: 15px; --leading-section: 24px;
+  --size-body: 14px;    --leading-body: 22px;
+  --size-small: 12px;   --leading-small: 19px;
+  --size-caption: 11px; --leading-caption: 17px;
+}
+
+/* ── Metrics ───────────────────────────────────────────────────────────────── */
+:root {
+  --row-height: 44px;
+  --window-pad: 20px;
+  --group-gap: 16px;
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+html {
+  height: 100%;
+}
+
+/* The body is left to size itself: the settings window measures it to decide how
+   tall each pane needs the window to be. */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-window);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  /* A utility window is chrome, not a document: nothing here is selectable text. */
+  user-select: none;
+  cursor: default;
+  overflow: hidden;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  margin: 0;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Keyboard navigation is a first-class path: every interactive element shows this ring.
+   `:focus-visible` keeps it off mouse clicks. */
+:focus { outline: none; }
+:focus-visible {
+  outline: var(--focus-width) solid var(--accent-primary);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--radius-control);
+}
+
+/* Latin runs inside Arabic rows (shortcuts, samples, layout names) must not be
+   reordered by the paragraph direction. */
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
