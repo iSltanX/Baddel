@@ -131,6 +131,20 @@ struct Target {
     saved: Option<pasteboard::Snapshot>,
 }
 
+/// What to do with a line read through the keyboard: keep its first `keep` bytes, replace the rest.
+struct LineEdit {
+    keep: usize,
+    converted: String,
+    direction: Direction,
+}
+
+enum KeyEdit {
+    Done { original: String, result: String, direction: Direction },
+    /// Nothing usable on this side of the caret.
+    NothingHere,
+    Failed,
+}
+
 /// Result of trying to continue the previous conversion one word further back.
 enum Extension {
     Done(Outcome),
@@ -179,6 +193,12 @@ impl Controller {
             if layouts.current_is_arabic { Direction::ArabicToLatin } else { Direction::LatinToArabic };
         let cx = Context { map: &map, layouts: &layouts, expected, switch_input_source: settings.switch_input_source };
         let mut target = Target { focused: self.focused_element(), method: Method::Accessibility, saved: None };
+        // Debug aid: exercise the key-based path in apps that would never need it.
+        #[cfg(debug_assertions)]
+        if std::env::var_os("BADDEL_FORCE_KEYS").is_some() {
+            target.focused = None;
+            target.method = Method::Pasteboard;
+        }
         let outcome = self.convert_in(&mut target, &cx);
         if let Some(saved) = &target.saved {
             pasteboard::restore(saved);
@@ -192,10 +212,13 @@ impl Controller {
             return Some(focused);
         }
         let pid = frontmost::pid()?;
-        if !self.woken.insert(pid) || !text_access::enable_accessibility(pid) {
+        if !self.woken.insert(pid) {
             return None;
         }
-        trace!("asked pid {pid} to enable accessibility");
+        // Chromium reports an error for this request and honours it anyway, so the answer
+        // tells us nothing: just watch for the tree to appear.
+        let accepted = text_access::enable_accessibility(pid);
+        trace!("asked pid {pid} to enable accessibility (accepted: {accepted})");
         let deadline = Instant::now() + AX_WAKE_TIMEOUT;
         while Instant::now() < deadline {
             sleep(Duration::from_millis(50));
@@ -270,20 +293,22 @@ impl Controller {
             Direction::LatinToArabic => [KEY_LEFT, KEY_RIGHT],
         };
         for arrow in arrows {
-            let Some(text) = target.select_tail_with_keys(arrow, last_word_and_trailing_space) else { continue };
-            let direction = detect_direction(&text).unwrap_or(cx.expected);
-            let result = cx.map.convert_as(&text, direction);
-            if result == text {
-                keysynth::arrow(opposite(arrow));
-                return Outcome::Unchanged;
+            let edit = target.edit_line_with_keys(arrow, |line| {
+                let tail = last_word_and_trailing_space(line)?;
+                let direction = detect_direction(tail).unwrap_or(cx.expected);
+                let converted = cx.map.convert_as(tail, direction);
+                (converted != tail).then(|| LineEdit { keep: line.len() - tail.len(), converted, direction })
+            });
+            match edit {
+                KeyEdit::Done { original, result, direction } => {
+                    let mut op = LastOp::new(original, result, direction, None, 1);
+                    op.back_arrow = arrow;
+                    self.finish(op, cx);
+                    return Outcome::Converted;
+                }
+                KeyEdit::Failed => return Outcome::Failed,
+                KeyEdit::NothingHere => continue,
             }
-            if !target.write(&text, &result) {
-                return Outcome::Failed;
-            }
-            let mut op = LastOp::new(text, result, direction, None, 1);
-            op.back_arrow = arrow;
-            self.finish(op, cx);
-            return Outcome::Converted;
         }
         Outcome::NoText
     }
@@ -319,31 +344,29 @@ impl Controller {
             return Extension::Done(Outcome::Extended);
         }
 
-        // Key-based: reselect what we produced plus the word before it, and convert that word.
+        // Key-based: re-read the line; our text must still end it, then convert the word before.
         trace!("extend: key path");
-        let produced = last.result.clone();
-        let tail = target.select_tail_with_keys(last.back_arrow, move |line| {
+        let edit = target.edit_line_with_keys(last.back_arrow, |line| {
             let end = line.trim_end().len();
-            let start = end.checked_sub(produced.len()).filter(|&i| line.is_char_boundary(i) && line[i..end] == produced)?;
+            let start = end.checked_sub(last.result.trim_end().len())?;
+            if !line.is_char_boundary(start) || line[start..end] != *last.result.trim_end() {
+                return None;
+            }
             let word = last_word_and_trailing_space(&line[..start])?;
-            Some(&line[start - word.len()..])
+            let keep = start - word.len();
+            let converted = format!("{}{}", cx.map.convert_as(word, last.direction), &line[start..]);
+            (converted != line[keep..]).then_some(LineEdit { keep, converted, direction: last.direction })
         });
-        let Some(tail) = tail else { return Extension::Unknown };
-        let head_len = tail.trim_end().len() - last.result.len();
-        let (head, rest) = tail.split_at(head_len);
-        let result = format!("{}{rest}", cx.map.convert_as(head, last.direction));
-        if result == tail {
-            keysynth::arrow(opposite(last.back_arrow));
-            return Extension::Done(Outcome::Unchanged);
+        match edit {
+            KeyEdit::Done { original, result, direction } => {
+                let mut op = LastOp::new(original, result, direction, None, last.words + 1);
+                op.back_arrow = last.back_arrow;
+                self.finish(op, cx);
+                Extension::Done(Outcome::Extended)
+            }
+            KeyEdit::Failed => Extension::Done(Outcome::Failed),
+            KeyEdit::NothingHere => Extension::Unknown,
         }
-        if !target.write(&tail, &result) {
-            return Extension::Done(Outcome::Failed);
-        }
-        let original = format!("{head}{}", last.original);
-        let mut op = LastOp::new(original, result, last.direction, None, last.words + 1);
-        op.back_arrow = last.back_arrow;
-        self.finish(op, cx);
-        Extension::Done(Outcome::Extended)
     }
 
     fn finish(&mut self, op: LastOp, cx: &Context) {
@@ -386,11 +409,11 @@ impl Controller {
             return if target.replace_range(&word, &last.original, caret) { Outcome::Undone } else { Outcome::Failed };
         }
 
-        let chars = last.result.chars().count();
-        if chars > MAX_UNDO_CHARS {
+        let stops = caret_stops(&last.result);
+        if stops > MAX_UNDO_CHARS {
             return Outcome::Failed;
         }
-        for _ in 0..chars {
+        for _ in 0..stops {
             keysynth::select_char(last.back_arrow);
         }
         match target.await_selection_where(|s| s == last.result) {
@@ -453,39 +476,41 @@ impl Target {
     fn await_selection_where(&mut self, done: impl Fn(&str) -> bool) -> Option<String> {
         sleep(SELECTION_SETTLE);
         let deadline = Instant::now() + SELECTION_TIMEOUT;
+        let mut retried = false;
         loop {
             let selection = self.read_selection();
             let settled = selection.as_deref().is_some_and(&done);
-            if settled || self.method == Method::Pasteboard || Instant::now() >= deadline {
+            // On the pasteboard path every read is a ⌘C: allow one retry (a busy app can miss
+            // the copy timeout), not a polling loop.
+            let out_of_tries = self.method == Method::Pasteboard && (selection.is_some() || retried);
+            if settled || out_of_tries || Instant::now() >= deadline {
                 return selection;
             }
+            retried = self.method == Method::Pasteboard;
             sleep(Duration::from_millis(15));
         }
     }
 
-    /// Key-based selection of the end of the current line. Selects back to the line's edge to
-    /// read it, lets `pick` choose the suffix to work on, then selects exactly that suffix
-    /// character by character. Word-selection keys are useless here: wrongly typed Arabic is
-    /// full of `;` `,` `[` `'`, which those keys treat as word breaks.
-    fn select_tail_with_keys(&mut self, arrow: u16, pick: impl Fn(&str) -> Option<&str>) -> Option<String> {
+    /// Key-based edit of the text between the line's edge and the caret: select it, read it,
+    /// let `plan` decide what its tail becomes, and paste the line back with that tail replaced.
+    ///
+    /// Deliberately coarse. Word-selection keys stop at `;` `,` `[` `'` — which wrongly typed
+    /// Arabic is full of — and walking back character by character goes astray in
+    /// mixed-direction text. The line's edge is the one selection that is reliable everywhere.
+    fn edit_line_with_keys(&mut self, arrow: u16, plan: impl Fn(&str) -> Option<LineEdit>) -> KeyEdit {
         keysynth::select_to_line_edge(arrow);
         let line = self.await_selection();
         trace!("key path: line read = {:?} chars", line.as_ref().map(|l| l.chars().count()));
-        let line = line?;
-        keysynth::arrow(opposite(arrow)); // collapse back onto the caret
-        let tail = pick(&line)?.to_string();
-        trace!("key path: selecting a tail of {} caret stops", caret_stops(&tail));
-        for _ in 0..caret_stops(&tail) {
-            keysynth::select_char(arrow);
+        let Some(line) = line else { return KeyEdit::NothingHere };
+        let Some(edit) = plan(&line) else {
+            keysynth::arrow(opposite(arrow)); // collapse back onto the caret
+            return KeyEdit::NothingHere;
+        };
+        let replacement = format!("{}{}", &line[..edit.keep], edit.converted);
+        if !self.write(&line, &replacement) {
+            return KeyEdit::Failed;
         }
-        match self.await_selection_where(|s| s == tail) {
-            Some(selected) if selected == tail => Some(tail),
-            other => {
-                trace!("key path: tail mismatch, got {:?} chars", other.as_ref().map(|s| s.chars().count()));
-                keysynth::arrow(opposite(arrow));
-                None
-            }
-        }
+        KeyEdit::Done { original: line[edit.keep..].to_string(), result: edit.converted, direction: edit.direction }
     }
 
     /// Selects `word` through the text range, replaces it, and puts the caret back where it
