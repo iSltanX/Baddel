@@ -1,0 +1,10 @@
+[package]
+name = "baddel-core"
+description = "Keyboard-layout text conversion (Arabic ⇄ Latin) — pure Rust, no platform dependencies."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
