@@ -8,3 +8,8 @@ pub fn bundle_id() -> Option<String> {
         Some(app.bundleIdentifier()?.to_string())
     })
 }
+
+/// Process id of the app that has keyboard focus.
+pub fn pid() -> Option<i32> {
+    autoreleasepool(|_| Some(NSWorkspace::sharedWorkspace().frontmostApplication()?.processIdentifier()))
+}

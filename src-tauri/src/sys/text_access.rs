@@ -5,10 +5,11 @@ use std::ptr;
 use accessibility_sys::{
     kAXErrorSuccess, kAXFocusedUIElementAttribute, kAXSelectedTextAttribute, kAXSelectedTextRangeAttribute,
     kAXStringForRangeParameterizedAttribute, kAXValueTypeCFRange, AXUIElementCopyAttributeValue,
-    AXUIElementCopyParameterizedAttributeValue, AXUIElementCreateSystemWide, AXUIElementRef,
+    AXUIElementCopyParameterizedAttributeValue, AXUIElementCreateApplication, AXUIElementCreateSystemWide, AXUIElementRef,
     AXUIElementSetAttributeValue, AXUIElementSetMessagingTimeout, AXValueCreate, AXValueGetValue, AXValueRef,
 };
 use core_foundation::base::{CFRange, CFType, TCFType};
+use core_foundation::boolean::CFBoolean;
 use core_foundation::string::CFString;
 
 /// Seconds to wait for the target app to answer an accessibility request.
@@ -113,6 +114,34 @@ impl Focused {
         };
         status == kAXErrorSuccess
     }
+}
+
+/// Chromium and Electron apps keep their accessibility tree switched off until an assistive
+/// client asks for it. `AXManualAccessibility` is Electron's switch for exactly this;
+/// `AXEnhancedUserInterface` is the one Chrome listens to. Returns whether either was accepted;
+/// the tree then builds asynchronously.
+pub fn enable_accessibility(pid: i32) -> bool {
+    // SAFETY: create rule; a stale pid just yields an element whose calls fail.
+    let app = unsafe {
+        let raw = AXUIElementCreateApplication(pid);
+        if raw.is_null() {
+            return false;
+        }
+        AXUIElementSetMessagingTimeout(raw, AX_TIMEOUT);
+        CFType::wrap_under_create_rule(raw.cast())
+    };
+    ["AXManualAccessibility", "AXEnhancedUserInterface"].into_iter().any(|name| {
+        let attribute = CFString::new(name);
+        // SAFETY: valid element and CF objects, all alive for the call.
+        let status = unsafe {
+            AXUIElementSetAttributeValue(
+                app.as_CFTypeRef() as AXUIElementRef,
+                attribute.as_concrete_TypeRef(),
+                CFBoolean::true_value().as_CFTypeRef(),
+            )
+        };
+        status == kAXErrorSuccess
+    })
 }
 
 fn ax_range(location: usize, length: usize) -> Option<CFType> {

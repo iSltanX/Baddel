@@ -4,6 +4,7 @@
 //! is ever logged or written to disk — the last operation lives in memory only,
 //! for undo and for extending the conversion one word further back.
 
+use std::collections::HashSet;
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, sleep};
 use std::time::{Duration, Instant};
@@ -15,7 +16,7 @@ use crate::state::AppState;
 use crate::sys::input_source::Snapshot as Layouts;
 use crate::sys::keysynth::{self, KEY_LEFT, KEY_RIGHT};
 use crate::sys::text_access::{Focused, Selection};
-use crate::sys::{frontmost, input_source, on_main, pasteboard, permissions};
+use crate::sys::{frontmost, input_source, on_main, pasteboard, permissions, text_access};
 
 // ── Timings ──────────────────────────────────────────────────────────────────
 /// How long we wait for the user to release the hotkey's modifiers.
@@ -29,6 +30,8 @@ const SELECTION_SETTLE: Duration = Duration::from_millis(40);
 const SELECTION_TIMEOUT: Duration = Duration::from_millis(300);
 /// Time for an app to consume ⌘V before we put the user's pasteboard back.
 const PASTE_SETTLE: Duration = Duration::from_millis(200);
+/// How long a Chromium/Electron app gets to build its accessibility tree after we ask for it.
+const AX_WAKE_TIMEOUT: Duration = Duration::from_millis(600);
 /// Pressing the hotkey again within this window extends the last conversion.
 const EXTEND_WINDOW: Duration = Duration::from_secs(2);
 /// Undo is offered for this long after a conversion.
@@ -96,7 +99,7 @@ pub fn spawn(app: AppHandle) -> Sender<Command> {
     thread::Builder::new()
         .name("baddel-controller".into())
         .spawn(move || {
-            let mut controller = Controller { app, last: None };
+            let mut controller = Controller { app, last: None, woken: HashSet::new() };
             for command in rx {
                 let started = Instant::now();
                 let outcome = match command {
@@ -116,6 +119,8 @@ pub fn spawn(app: AppHandle) -> Sender<Command> {
 struct Controller {
     app: AppHandle,
     last: Option<LastOp>,
+    /// Apps we already asked to switch their accessibility tree on.
+    woken: HashSet<i32>,
 }
 
 /// How the current text was obtained, and therefore how to write it back.
@@ -173,12 +178,32 @@ impl Controller {
         let expected =
             if layouts.current_is_arabic { Direction::ArabicToLatin } else { Direction::LatinToArabic };
         let cx = Context { map: &map, layouts: &layouts, expected, switch_input_source: settings.switch_input_source };
-        let mut target = Target { focused: Focused::get(), method: Method::Accessibility, saved: None };
+        let mut target = Target { focused: self.focused_element(), method: Method::Accessibility, saved: None };
         let outcome = self.convert_in(&mut target, &cx);
         if let Some(saved) = &target.saved {
             pasteboard::restore(saved);
         }
         outcome
+    }
+
+    /// The focused element, waking the app's accessibility tree the first time it has none.
+    fn focused_element(&mut self) -> Option<Focused> {
+        if let Some(focused) = Focused::get() {
+            return Some(focused);
+        }
+        let pid = frontmost::pid()?;
+        if !self.woken.insert(pid) || !text_access::enable_accessibility(pid) {
+            return None;
+        }
+        trace!("asked pid {pid} to enable accessibility");
+        let deadline = Instant::now() + AX_WAKE_TIMEOUT;
+        while Instant::now() < deadline {
+            sleep(Duration::from_millis(50));
+            if let Some(focused) = Focused::get() {
+                return Some(focused);
+            }
+        }
+        None
     }
 
     fn convert_in(&mut self, target: &mut Target, cx: &Context) -> Outcome {
@@ -444,15 +469,19 @@ impl Target {
     /// full of `;` `,` `[` `'`, which those keys treat as word breaks.
     fn select_tail_with_keys(&mut self, arrow: u16, pick: impl Fn(&str) -> Option<&str>) -> Option<String> {
         keysynth::select_to_line_edge(arrow);
-        let line = self.await_selection()?;
+        let line = self.await_selection();
+        trace!("key path: line read = {:?} chars", line.as_ref().map(|l| l.chars().count()));
+        let line = line?;
         keysynth::arrow(opposite(arrow)); // collapse back onto the caret
         let tail = pick(&line)?.to_string();
+        trace!("key path: selecting a tail of {} caret stops", caret_stops(&tail));
         for _ in 0..caret_stops(&tail) {
             keysynth::select_char(arrow);
         }
         match self.await_selection_where(|s| s == tail) {
             Some(selected) if selected == tail => Some(tail),
-            _ => {
+            other => {
+                trace!("key path: tail mismatch, got {:?} chars", other.as_ref().map(|s| s.chars().count()));
                 keysynth::arrow(opposite(arrow));
                 None
             }
