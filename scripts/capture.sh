@@ -22,6 +22,23 @@ notices=(success undone blocked too-long no-text)
 [ -x "$app" ] || { echo "build first: ./scripts/dev-build.sh" >&2; exit 1; }
 mkdir -p "$out" "$(dirname "$store")"
 
+# The captures rewrite the settings file and stop any running Baddel. Put both back
+# afterwards: the user's own settings, and their Baddel relaunched in the background.
+running=$(pgrep -x baddel | head -1 | xargs -r ps -o comm= -p || true)
+backup=$(mktemp -t baddel-settings)
+[ -f "$store" ] && cp "$store" "$backup"
+restore() {
+  pkill -x baddel 2>/dev/null || true
+  if [ -s "$backup" ]; then cp "$backup" "$store"; else rm -f "$store"; fi
+  rm -f "$backup"
+  if [ -n "$running" ]; then
+    for _ in $(seq 40); do pgrep -x baddel >/dev/null || break; sleep 0.25; done
+    open -g "${running%/Contents/MacOS/*}"
+    echo "relaunched ${running%/Contents/MacOS/*}"
+  fi
+}
+trap restore EXIT
+
 launch() { # launch <appearance> <window> [capture-path]
   # Wait for the previous run to be gone: its window lingers for a moment after the
   # signal, and the capture would otherwise photograph the wrong screen.
@@ -57,5 +74,4 @@ for language in ar en; do
   done
 done
 
-pkill -x baddel 2>/dev/null || true
 echo "screenshots in $out"

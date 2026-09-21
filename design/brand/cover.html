@@ -1,0 +1,172 @@
+<!doctype html>
+<!--
+  Repository cover and social preview for Baddel.
+  Rendered to PNG by design/brand/render.sh — edit here, never the PNGs.
+  Query: ?theme=light|dark  &kind=cover|social
+  The composition follows the Figma cover (page 00 · Cover of the approved file):
+  icon stage on one side, title + conversion sample + promise on the other.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Baddel cover</title>
+<style>
+  @font-face { font-family: 'Cairo'; font-weight: 600; src: url('../../src/assets/fonts/Cairo-SemiBold.woff2') format('woff2'); }
+  @font-face { font-family: 'Cairo'; font-weight: 700; src: url('../../src/assets/fonts/Cairo-Bold.woff2') format('woff2'); }
+  @font-face {
+    font-family: 'Almarai'; font-weight: 400; src: url('../../src/assets/fonts/Almarai-Regular.woff2') format('woff2');
+    unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
+  }
+  @font-face {
+    font-family: 'Almarai'; font-weight: 700; src: url('../../src/assets/fonts/Almarai-Bold.woff2') format('woff2');
+    unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
+  }
+
+  /* Tokens: the app's own (src/lib/theme.css). */
+  :root {
+    --bg-window: #f6f4ef; --bg-sunken: #edeae3; --bg-surface: #ffffff;
+    --border-subtle: #e2ded5; --border-strong: #cfc9bd;
+    --text-primary: #1c1917; --text-secondary: #6b665e; --text-tertiary: #989288;
+    --accent: #3f5673; --keycap-top: #ffffff; --keycap-edge: #bdb6ab;
+    --success: #5f7f52;
+    --card-shadow: 0 1px 2px rgb(28 25 23 / 6%), 0 8px 24px rgb(28 25 23 / 6%);
+  }
+  :root[data-theme="dark"] {
+    --bg-window: #1b1c1f; --bg-sunken: #16171a; --bg-surface: #25272b;
+    --border-subtle: #34373c; --border-strong: #474a51;
+    --text-primary: #f2f0eb; --text-secondary: #a19d95; --text-tertiary: #76736d;
+    --accent: #8fa9c9; --keycap-top: #2e3035; --keycap-edge: #101114;
+    --success: #93b585;
+    --card-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 25%);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: var(--h); overflow: hidden; }
+  :root { --foot-room: 64px; --h: 560px; --stage: 470px; --icon: 290px; --title: 84px; --tagline: 30px; --sample: 26px; --pad: 72px; }
+  :root[data-kind="social"] { --foot-room: 0px; --h: 640px; --stage: 500px; --icon: 330px; --title: 100px; --tagline: 36px; --sample: 30px; --pad: 76px; }
+
+  body {
+    display: grid;
+    grid-template-columns: 1fr var(--stage); /* RTL: copy on the right, stage on the left */
+    background: var(--bg-window);
+    color: var(--text-primary);
+    font-family: 'Almarai', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Copy ───────────────────────────────────────────────────────────── */
+  .copy {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 var(--pad) var(--foot-room);
+    position: relative;
+  }
+  .eyebrow { font-weight: 700; font-size: 16px; color: var(--accent); letter-spacing: 0; }
+  h1 {
+    font-family: 'Cairo', system-ui, sans-serif; font-weight: 700;
+    font-size: var(--title); line-height: 1.12; margin-top: 6px;
+    letter-spacing: -0.5px;
+  }
+  h1 .latin { font-weight: 700; }
+  .tagline {
+    font-family: 'Cairo', system-ui, sans-serif; font-weight: 600;
+    font-size: var(--tagline); line-height: 1.3; color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .sample {
+    align-self: flex-start;
+    display: flex; align-items: center; gap: 22px;
+    margin-top: 34px;
+    padding: 18px 26px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+  }
+  .keys { display: flex; gap: 6px; direction: ltr; }
+  .key {
+    min-width: 34px; height: 32px; padding: 0 10px;
+    display: grid; place-items: center;
+    font: 500 15px/1 system-ui, -apple-system, sans-serif;
+    color: var(--text-primary);
+    background: var(--keycap-top);
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    border-bottom-color: var(--keycap-edge);
+    border-radius: 7px;
+  }
+  .key.sym { font-size: 16px; }
+  .divider { width: 1px; align-self: stretch; background: var(--border-subtle); }
+  .from { font-weight: 700; font-size: var(--sample); color: var(--text-secondary); }
+  .arrow { width: 22px; height: 22px; color: var(--text-tertiary); }
+  .to {
+    font: 700 var(--sample)/1 system-ui, -apple-system, sans-serif;
+    color: var(--accent); direction: ltr; unicode-bidi: isolate;
+  }
+
+  .promise { margin-top: 26px; font-size: 16px; color: var(--text-secondary); }
+  .promise b { color: var(--text-tertiary); font-weight: 400; padding: 0 6px; }
+
+  .foot {
+    position: absolute; inset-inline: var(--pad); bottom: 30px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 16px; border-top: 1px solid var(--border-subtle);
+    font-size: 14px; color: var(--text-secondary);
+  }
+  .foot strong { color: var(--text-primary); font-weight: 700; margin-inline-start: 6px; }
+  .repo { direction: ltr; font: 400 14px system-ui, -apple-system, sans-serif; color: var(--accent); }
+
+  /* ── Icon stage ─────────────────────────────────────────────────────── */
+  .stage {
+    background: var(--bg-sunken);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px;
+  }
+  .stage img { width: var(--icon); height: var(--icon); }
+  .caption {
+    direction: ltr;
+    font: 500 12px system-ui, -apple-system, sans-serif;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--text-tertiary);
+  }
+
+  :root[data-kind="social"] .foot { display: none; }
+  :root[data-kind="social"] .promise { font-size: 19px; }
+  :root[data-kind="social"] .eyebrow { font-size: 19px; }
+  :root[data-kind="social"] .key { min-width: 40px; height: 38px; font-size: 17px; }
+  :root[data-kind="social"] .caption { font-size: 14px; }
+</style>
+</head>
+<body>
+  <main class="copy">
+    <p class="eyebrow">أداة شريط قوائم لنظام macOS</p>
+    <h1>بدّل — <span class="latin">Baddel</span></h1>
+    <p class="tagline">كتبتها باللغة الخطأ؟ بدّلها.</p>
+
+    <div class="sample" aria-label="اثممخ تصير hello باختصار واحد">
+      <div class="keys"><span class="key sym">⌥</span><span class="key sym">⇧</span><span class="key">Space</span></div>
+      <span class="divider"></span>
+      <span class="from">اثممخ</span>
+      <svg class="arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>
+      <span class="to">hello</span>
+    </div>
+
+    <p class="promise">محلي بالكامل<b>·</b>بلا حساب<b>·</b>لا يراقب ما تكتب<b>·</b>صلاحية واحدة فقط</p>
+
+    <footer class="foot">
+      <span>تصميم وتطوير<strong>سلطان</strong></span>
+      <span class="repo">github.com/iSltanX/Baddel</span>
+    </footer>
+  </main>
+
+  <aside class="stage">
+    <img src="../icon/icon-macos-1024.png" alt="">
+    <p class="caption">Arabic ⇄ English · macOS 13+</p>
+  </aside>
+
+  <script>
+    const q = new URLSearchParams(location.search);
+    document.documentElement.dataset.theme = q.get('theme') === 'dark' ? 'dark' : 'light';
+    document.documentElement.dataset.kind = q.get('kind') === 'social' ? 'social' : 'cover';
+  </script>
+</body>
+</html>
