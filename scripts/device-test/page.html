@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>baddel-test</title>
+<style>body{font:16px -apple-system;padding:20px} textarea,input,div[contenteditable]{display:block;width:500px;margin:10px 0;font-size:16px} div[contenteditable]{border:1px solid #999;min-height:40px;padding:4px}</style>
+</head><body>
+<textarea id="ta" rows="3" autofocus></textarea>
+<div id="ce" contenteditable="true"></div>
+<input id="pw" type="password">
+<script>
+const focusId = location.hash.slice(1) || 'ta';
+window.addEventListener('load', () => document.getElementById(focusId).focus());
+</script>
+</body></html>

@@ -172,10 +172,9 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 /// The hint line, with the shortcut the user actually has bound.
 fn hint(app: &AppHandle, text: &str) -> String {
     let settings = app.state::<AppState>().get();
-    let Some((_, rest)) = text.split_once(" — ") else { return text.to_string() };
     match crate::shortcuts::glyphs(&settings.shortcut_convert) {
-        Some(glyphs) => format!("{glyphs} — {rest}"),
-        None => rest.to_string(),
+        Some(glyphs) => format!("{glyphs} — {text}"),
+        None => text.to_string(),
     }
 }
 

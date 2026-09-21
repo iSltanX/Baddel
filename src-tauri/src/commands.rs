@@ -172,7 +172,15 @@ pub fn convert_text(app: AppHandle, text: String) -> Option<String> {
 #[tauri::command]
 pub fn excluded_apps(app: AppHandle) -> Vec<AppInfo> {
     let ids = app.state::<AppState>().get().excluded_apps;
-    on_main(&app, move || ids.iter().map(|id| app_icons::info(id)).collect()).unwrap_or_default()
+    // A default entry for an app that is not installed stays in force (the app may be installed
+    // later) but is not listed: a dozen bare identifiers would bury the user's own entries.
+    on_main(&app, move || {
+        ids.iter()
+            .map(|id| app_icons::info(id))
+            .filter(|info| info.icon.is_some() || !settings::is_default_excluded(&info.id))
+            .collect()
+    })
+    .unwrap_or_default()
 }
 
 #[tauri::command]

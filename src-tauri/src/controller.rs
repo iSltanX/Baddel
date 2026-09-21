@@ -5,7 +5,7 @@
 //! for undo and for extending the conversion one word further back.
 
 use std::collections::HashSet;
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::sync::Mutex;
 use std::thread::{self, sleep};
 use std::time::{Duration, Instant};
@@ -112,8 +112,23 @@ pub fn spawn(app: AppHandle) -> Commands {
     thread::Builder::new()
         .name("baddel-controller".into())
         .spawn(move || {
-            let mut controller = Controller { app, last: None, woken: HashSet::new() };
-            for command in rx {
+            let mut controller = Controller { app, last: None, shown: None, woken: HashSet::new() };
+            loop {
+                // While a conversion is remembered, wake up when its undo window closes so the
+                // text leaves memory and the menu on time, not whenever the next command comes.
+                let next = match controller.last.as_ref().map(|l| UNDO_WINDOW.saturating_sub(l.at.elapsed())) {
+                    Some(left) => rx.recv_timeout(left),
+                    None => rx.recv().map_err(|_| RecvTimeoutError::Disconnected),
+                };
+                let command = match next {
+                    Ok(command) => command,
+                    Err(RecvTimeoutError::Timeout) => {
+                        controller.last = None;
+                        controller.sync_menu();
+                        continue;
+                    }
+                    Err(RecvTimeoutError::Disconnected) => break,
+                };
                 let started = Instant::now();
                 let outcome = match command {
                     Command::Convert => controller.convert(),
@@ -122,6 +137,7 @@ pub fn spawn(app: AppHandle) -> Commands {
                 #[cfg(debug_assertions)]
                 eprintln!("[baddel] {outcome:?} in {:?}", started.elapsed());
                 let _ = started;
+                controller.sync_menu();
                 controller.announce(outcome);
                 // The event carries the outcome and nothing else: no converted text
                 // ever crosses into a webview.
@@ -135,6 +151,8 @@ pub fn spawn(app: AppHandle) -> Commands {
 struct Controller {
     app: AppHandle,
     last: Option<LastOp>,
+    /// Which conversion the menu currently shows (by its time), so it is redrawn only on change.
+    shown: Option<Instant>,
     /// Apps we already asked to switch their accessibility tree on.
     woken: HashSet<i32>,
 }
@@ -446,25 +464,27 @@ impl Controller {
 }
 
 impl Controller {
-    /// Shows the outcome: the notice panel, and the menu's record of the last
-    /// conversion. Both are native and read the text straight out of memory — it is
-    /// never written anywhere, nor handed to a webview.
+    /// Makes the menu's "last conversion" item match what undo can still act on: shown while
+    /// it is remembered, gone once it is undone, expired, or lost to a failed undo.
+    fn sync_menu(&mut self) {
+        let current = self.last.as_ref().map(|l| l.at);
+        if current != self.shown {
+            self.shown = current;
+            let last = self.last.as_ref().map(|l| (l.original.clone(), l.result.clone()));
+            tray::set_last_conversion(&self.app, last);
+        }
+    }
+
+    /// Shows the outcome: the notice panel and the click sound. The panel is native and
+    /// reads the text straight out of memory — it is never written anywhere, nor handed
+    /// to a webview.
     fn announce(&self, outcome: Outcome) {
         let settings = self.app.state::<AppState>().settings.lock().unwrap().clone();
         let text = menu_text::strings(settings.language);
         let rtl = settings.language == Language::Ar;
 
-        match outcome {
-            Outcome::Converted | Outcome::Extended => {
-                if let Some(last) = &self.last {
-                    tray::set_last_conversion(&self.app, Some((last.original.clone(), last.result.clone())));
-                }
-                if settings.sound {
-                    on_main(&self.app, sound::click);
-                }
-            }
-            Outcome::Undone => tray::set_last_conversion(&self.app, None),
-            _ => {}
+        if matches!(outcome, Outcome::Converted | Outcome::Extended) && settings.sound {
+            on_main(&self.app, sound::click);
         }
 
         if !settings.show_hud {
@@ -632,9 +652,28 @@ impl Target {
         if self.saved.is_none() {
             self.saved = Some(pasteboard::snapshot());
         }
+        // Where the app reports its selection, the paste can be seen landing: the selected
+        // original gives way to the caret. Only then is it safe to put the user's pasteboard back.
+        let watched = self
+            .focused
+            .as_ref()
+            .filter(|f| matches!(f.selection(), Selection::Text(t) if t == original));
         pasteboard::write_transient(result);
         let pasted = keysynth::paste();
-        sleep(PASTE_SETTLE);
+        match watched {
+            Some(focused) => {
+                let deadline = Instant::now() + PASTE_SETTLE;
+                while Instant::now() < deadline {
+                    sleep(Duration::from_millis(10));
+                    match focused.selection() {
+                        Selection::Empty => break,
+                        Selection::Text(t) if t != original => break,
+                        _ => {}
+                    }
+                }
+            }
+            None => sleep(PASTE_SETTLE),
+        }
         pasted
     }
 }

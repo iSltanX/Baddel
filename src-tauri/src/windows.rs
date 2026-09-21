@@ -153,12 +153,14 @@ fn show_notice_repeatedly(app: &AppHandle, kind: String) {
             static WAITED: std::sync::Once = std::sync::Once::new();
             WAITED.call_once(|| std::thread::sleep(std::time::Duration::from_secs(seconds)));
         }
-        let rtl = app.state::<AppState>().get().language == crate::settings::Language::Ar;
+        let language = app.state::<AppState>().get().language;
+        let rtl = language == crate::settings::Language::Ar;
+        let strings = crate::menu_text::strings(language);
         let (kind, text, badge) = match kind.as_str() {
-            "undone" => (hud::Kind::Undone, "تم التراجع".into(), None),
-            "blocked" => (hud::Kind::Blocked, "حقل محمي — لم يُحوَّل شيء".into(), None),
-            "too-long" => (hud::Kind::TooLong, "التحديد طويل جدًا".into(), None),
-            "no-text" => (hud::Kind::NoText, "لا يوجد نص لتحويله".into(), None),
+            "undone" => (hud::Kind::Undone, strings.hud_undone.into(), None),
+            "blocked" => (hud::Kind::Blocked, strings.hud_blocked.into(), None),
+            "too-long" => (hud::Kind::TooLong, strings.hud_too_long.into(), None),
+            "no-text" => (hud::Kind::NoText, strings.hud_no_text.into(), None),
             _ => (hud::Kind::Success, hud::conversion_line("اثممخ", "hello", rtl), Some("EN".to_string())),
         };
         hud::show_pinned(&app, hud::Notice { kind, text, badge });

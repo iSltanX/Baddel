@@ -104,7 +104,6 @@
     "skip": "Skip",
     "next": "Next",
     "start": "Get Started",
-    "openSystemSettings": "Open System Settings",
     "step1": {
       "title": "Typed it in the wrong language? Switch it.",
       "body": "One shortcut fixes text typed with the wrong keyboard layout — in any app.",
@@ -128,7 +127,6 @@
       "recorderCaption": "You can change this anytime",
       "practiceText": "اثممخ",
       "practiceHelper": "Place the cursor after the word and press the shortcut",
-      "successText": "hello",
       "successMessage": "Nicely done — that's how Baddel works",
       "body": "The word below was typed in the wrong layout. Fix it with your shortcut.",
       "recorderLabel": "Your shortcut"
@@ -156,24 +154,9 @@
       "empty": "Record Shortcut",
       "recording": "Press keys…",
       "conflict": "This shortcut is used by another app"
-    },
-    "names": {
-      "convert": "Convert selection or last word",
-      "undo": "Undo last conversion",
-      "pause": "Pause Baddel"
     }
   },
   "common": {
-    "cancel": "Cancel",
-    "ok": "OK",
-    "remove": "Remove",
-    "add": "Add",
-    "keys": {
-      "option": "Option",
-      "shift": "Shift",
-      "space": "Space",
-      "command": "Command",
-      "control": "Control"
-    }
+    "remove": "Remove"
   }
 }

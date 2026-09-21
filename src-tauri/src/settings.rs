@@ -11,13 +11,28 @@ use tauri_plugin_store::StoreExt;
 
 /// Apps where the hotkey does nothing: terminals (the selection keys mean something
 /// else there) and password managers.
-const DEFAULT_EXCLUDED: [&str; 5] = [
+const DEFAULT_EXCLUDED: [&str; 14] = [
+    // Terminals
     "com.apple.Terminal",
     "com.googlecode.iterm2",
+    "dev.warp.Warp-Stable",
+    "com.mitchellh.ghostty",
+    "net.kovidgoyal.kitty",
+    "org.alacritty",
+    "com.github.wez.wezterm",
+    // Password managers
     "com.apple.keychainaccess",
+    "com.apple.Passwords",
     "com.1password.1password",
     "com.agilebits.onepassword7",
+    "com.bitwarden.desktop",
+    "org.keepassxc.keepassxc",
+    "in.sinew.Enpass-Desktop",
 ];
+
+pub fn is_default_excluded(bundle_id: &str) -> bool {
+    DEFAULT_EXCLUDED.contains(&bundle_id)
+}
 
 pub const DEFAULT_SHORTCUT: &str = "Alt+Shift+Space";
 

@@ -104,7 +104,6 @@
     "skip": "تخطَّ",
     "next": "التالي",
     "start": "ابدأ",
-    "openSystemSettings": "افتح إعدادات النظام",
     "step1": {
       "title": "كتبتها باللغة الخطأ؟ بدّلها.",
       "body": "اختصار واحد يصحّح ما كتبته بتخطيط لوحة المفاتيح الخطأ — في أي تطبيق.",
@@ -128,7 +127,6 @@
       "recorderCaption": "يمكنك تغييره متى شئت",
       "practiceText": "اثممخ",
       "practiceHelper": "ضع المؤشر بعد الكلمة واضغط الاختصار",
-      "successText": "hello",
       "successMessage": "أحسنت — هكذا يعمل بدّل",
       "body": "الكلمة أدناه مكتوبة بالتخطيط الخطأ. صحّحها باختصارك.",
       "recorderLabel": "اختصارك"
@@ -156,24 +154,9 @@
       "empty": "سجّل اختصارًا",
       "recording": "اضغط المفاتيح…",
       "conflict": "هذا الاختصار مستخدم في تطبيق آخر"
-    },
-    "names": {
-      "convert": "حوّل التحديد أو آخر كلمة",
-      "undo": "تراجع عن آخر تحويل",
-      "pause": "أوقف بدّل مؤقتًا"
     }
   },
   "common": {
-    "cancel": "إلغاء",
-    "ok": "حسنًا",
-    "remove": "إزالة",
-    "add": "إضافة",
-    "keys": {
-      "option": "Option",
-      "shift": "Shift",
-      "space": "Space",
-      "command": "Command",
-      "control": "Control"
-    }
+    "remove": "إزالة"
   }
 }

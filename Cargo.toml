@@ -15,3 +15,9 @@ lto = true
 opt-level = "s"
 panic = "abort"
 strip = true
+
+# Proc-macros and build scripts are dylibs/executables the compiler loads. Stripped by the
+# macOS 27 toolchain they fail to load ("mis-aligned LINKEDIT string pool"), so strip only
+# what ships.
+[profile.release.build-override]
+strip = false
