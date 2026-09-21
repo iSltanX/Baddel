@@ -145,7 +145,14 @@ pub fn close_windows_after(app: &AppHandle) {
 fn show_notice_repeatedly(app: &AppHandle, kind: String) {
     use crate::hud;
     let app = app.clone();
+    // `BADDEL_HUD_DELAY=<seconds>` holds the first notice back, so the focus check can put
+    // another app in front first: a notice at launch is not what a user ever sees.
+    let delay = std::env::var("BADDEL_HUD_DELAY").ok().and_then(|s| s.parse::<u64>().ok());
     std::thread::spawn(move || loop {
+        if let Some(seconds) = delay {
+            static WAITED: std::sync::Once = std::sync::Once::new();
+            WAITED.call_once(|| std::thread::sleep(std::time::Duration::from_secs(seconds)));
+        }
         let rtl = app.state::<AppState>().get().language == crate::settings::Language::Ar;
         let (kind, text, badge) = match kind.as_str() {
             "undone" => (hud::Kind::Undone, "تم التراجع".into(), None),

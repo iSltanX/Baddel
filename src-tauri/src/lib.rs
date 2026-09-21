@@ -58,6 +58,8 @@ pub fn run() {
             // Menu bar utility: no Dock icon, no app menu, until a window opens.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            #[cfg(target_os = "macos")]
+            sys::chrome::resign_activation();
 
             let handle = app.handle().clone();
             let stored = settings::load(&handle);
@@ -65,6 +67,7 @@ pub fn run() {
 
             app.manage(controller::spawn(handle.clone()));
             tray::build(&handle)?;
+            hud::prime(&handle);
             // Asks macOS to show its permission dialog on first run.
             let mut trusted = permissions::is_trusted(true);
             tray::set_trusted(&handle, trusted);

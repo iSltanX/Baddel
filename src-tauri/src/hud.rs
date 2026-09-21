@@ -19,7 +19,7 @@ use objc2_app_kit::{
     NSScreen, NSTextField, NSView, NSWindowCollectionBehavior, NSWindowStyleMask, NSWorkspace,
 };
 use objc2_foundation::{NSDictionary, NSPoint, NSRect, NSSize, NSString};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::sys::on_main;
 
@@ -44,6 +44,9 @@ const HOLD: Duration = Duration::from_millis(900);
 const FADE_OUT: Duration = Duration::from_millis(200);
 const FADE_IN_STEPS: u32 = 6;
 const FADE_OUT_STEPS: u32 = 8;
+/// How long, and how often, the launch-time watch looks for a stray activation (3s in all).
+const PRIME_CHECKS: u32 = 30;
+const PRIME_INTERVAL: Duration = Duration::from_millis(100);
 
 /// Isolates a bidirectional run so the two sides of a conversion keep their own
 /// direction inside one line, whichever scripts they are.
@@ -96,6 +99,44 @@ static GENERATION: AtomicU64 = AtomicU64::new(0);
 pub fn conversion_line(from: &str, to: &str, rtl: bool) -> String {
     let (open, arrow) = if rtl { (RLI, '←') } else { (LRI, '→') };
     format!("{open}{FSI}{from}{PDI} {arrow} {FSI}{to}{PDI}{PDI}")
+}
+
+/// Puts the (fully transparent) panel on screen once at launch, so the notice never has
+/// to be the app's first window.
+///
+/// macOS activates an app the first time one of its windows appears if an activation is
+/// still pending from launch (see `sys::chrome::resign_activation`), and it does so about
+/// a second *after* the window shows. Left to the first real notice, that lands in the
+/// middle of the user's typing. Here it lands at launch instead, where a short, bounded
+/// watch hands the activation straight back — unless a window of ours wants it.
+pub fn prime(app: &AppHandle) {
+    on_main(app, || {
+        with_panel(|hud| {
+            hud.panel.setAlphaValue(0.0);
+            hud.panel.orderFrontRegardless();
+        })
+    });
+    let app = app.clone();
+    thread::Builder::new()
+        .name("baddel-hud-prime".into())
+        .spawn(move || {
+            for _ in 0..PRIME_CHECKS {
+                thread::sleep(PRIME_INTERVAL);
+                let windows_open = !app.webview_windows().is_empty();
+                on_main(&app, move || {
+                    if !windows_open && crate::sys::chrome::is_active() {
+                        crate::sys::chrome::resign_activation();
+                    }
+                });
+            }
+            // Nothing has been shown since: take the invisible panel back off screen.
+            on_main(&app, || {
+                if GENERATION.load(Ordering::SeqCst) == 0 {
+                    with_panel(|hud| hud.panel.orderOut(None));
+                }
+            });
+        })
+        .ok();
 }
 
 /// Shows `notice` for about a second. Safe to call from any thread.
@@ -297,11 +338,18 @@ fn build(mtm: MainThreadMarker) -> Hud {
     panel.setOpaque(false);
     panel.setHasShadow(true);
     panel.setIgnoresMouseEvents(true);
+    // Explicit rather than left to NSPanel's defaults: the app is inactive whenever a
+    // notice shows, so the panel must not hide with it, and it must never ask to be key.
+    panel.setHidesOnDeactivate(false);
+    panel.setFloatingPanel(true);
+    panel.setBecomesKeyOnlyIfNeeded(true);
     panel.setBackgroundColor(Some(&NSColor::clearColor()));
     // Above ordinary windows and full-screen apps, but below the menu bar.
     panel.setLevel(FLOATING_WINDOW_LEVEL);
     panel.setCollectionBehavior(
-        NSWindowCollectionBehavior::CanJoinAllSpaces | NSWindowCollectionBehavior::FullScreenAuxiliary,
+        NSWindowCollectionBehavior::CanJoinAllSpaces
+            | NSWindowCollectionBehavior::FullScreenAuxiliary
+            | NSWindowCollectionBehavior::IgnoresCycle,
     );
     // The notice is dark in both appearances (PROMPT 5), so it does not follow the theme.
     panel.setAppearance(NSAppearance::appearanceNamed(unsafe { NSAppearanceNameVibrantDark }).as_deref());

@@ -1,9 +1,10 @@
-//! Window chrome measurements. **Main thread only** — call through [`super::on_main`].
+//! Window chrome and app activation. **Main thread only** — call through [`super::on_main`].
 
 use std::ffi::c_void;
 use std::ptr::NonNull;
 
-use objc2_app_kit::NSWindow;
+use objc2::MainThreadMarker;
+use objc2_app_kit::{NSApplication, NSWindow};
 
 /// The height of a window's title bar, in points.
 ///
@@ -16,4 +17,20 @@ pub fn title_bar_height(ns_window: *mut c_void) -> f64 {
     // and is only read here, on the main thread, while that window exists.
     let window = unsafe { window.as_ref() };
     (window.frame().size.height - window.contentLayoutRect().size.height).max(0.0)
+}
+
+/// Gives the app's activation back to whatever the user was using.
+///
+/// tao calls `activateIgnoringOtherApps` as the app finishes launching, and Tauri has no
+/// switch for it. A menu bar app has no window to come forward with, so macOS keeps the
+/// request pending and honours it the first time *any* window appears — which would be
+/// the conversion notice, pulling the whole app in front of the one being typed in.
+/// A window that really wants focus asks for it itself, in `windows::focus`.
+pub fn resign_activation() {
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    NSApplication::sharedApplication(mtm).deactivate();
+}
+
+pub fn is_active() -> bool {
+    MainThreadMarker::new().is_some_and(|mtm| NSApplication::sharedApplication(mtm).isActive())
 }

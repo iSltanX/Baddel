@@ -55,6 +55,8 @@ objc2-app-kit = { version = "0.3", features = [
     # The native conversion notice (src/hud.rs).
     "NSAccessibility",
     "NSAppearance",
+    # Giving back the launch activation (src/sys/chrome.rs).
+    "NSApplication",
     "NSBezierPath",
     "NSColor",
     "NSControl",
