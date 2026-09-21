@@ -14,7 +14,8 @@
     "resume": "استأنف بدّل",
     "settings": "الإعدادات…",
     "checkForUpdates": "تحقّق من التحديثات…",
-    "quit": "إنهاء بدّل"
+    "quit": "إنهاء بدّل",
+    "installUpdate": "ثبّت التحديث {version}…"
   },
   "settings": {
     "panes": {
@@ -45,7 +46,15 @@
         "updates": "التحديثات",
         "permission": "الصلاحية"
       },
-      "switchLayoutAfterConvertDescription": "ينتقل التخطيط إلى لغة النص المحوَّل لتكمل الكتابة مباشرة"
+      "switchLayoutAfterConvertDescription": "ينتقل التخطيط إلى لغة النص المحوَّل لتكمل الكتابة مباشرة",
+      "update": {
+        "checking": "جارٍ التحقق…",
+        "lastChecked": "الإصدار {version} · آخر تحقق {time}",
+        "available": "الإصدار {version} متاح",
+        "installing": "جارٍ تثبيت الإصدار {version}…",
+        "failed": "الإصدار {version} · تعذّر التحقق",
+        "install": "ثبّت التحديث"
+      }
     },
     "shortcuts": {
       "rows": {
@@ -158,5 +167,16 @@
   },
   "common": {
     "remove": "إزالة"
+  },
+  "updateDialog": {
+    "availableTitle": "يتوفر إصدار جديد من بدّل",
+    "availableBody": "الإصدار {version} متاح، ولديك {current}. يُعاد تشغيل بدّل بعد التثبيت.",
+    "installAndRestart": "ثبّت وأعد التشغيل",
+    "later": "لاحقًا",
+    "upToDateTitle": "بدّل محدَّث",
+    "upToDateBody": "لديك أحدث إصدار ({current}).",
+    "checkFailedTitle": "تعذّر التحقق من التحديثات",
+    "installFailedTitle": "تعذّر تثبيت التحديث",
+    "failedBody": "تحقّق من اتصالك بالإنترنت، ثم حاول مرة أخرى."
   }
 }

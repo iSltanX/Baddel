@@ -31,6 +31,15 @@ pub fn resign_activation() {
     NSApplication::sharedApplication(mtm).deactivate();
 }
 
+/// Brings the app forward for a dialog it shows with no window of its own (the update
+/// prompts), so the alert does not open behind the app the user was in.
+pub fn activate() {
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    // `activate()` needs macOS 14; the app supports 13.
+    #[allow(deprecated)]
+    NSApplication::sharedApplication(mtm).activateIgnoringOtherApps(true);
+}
+
 pub fn is_active() -> bool {
     MainThreadMarker::new().is_some_and(|mtm| NSApplication::sharedApplication(mtm).isActive())
 }

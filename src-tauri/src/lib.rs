@@ -7,6 +7,7 @@ mod shortcuts;
 mod sync;
 mod sys;
 mod tray;
+mod updater;
 mod windows;
 
 use std::thread;
@@ -30,8 +31,10 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .manage(TrayState::default())
+        .manage(updater::UpdateState::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::set_settings,
@@ -46,6 +49,9 @@ pub fn run() {
             commands::add_excluded_app,
             commands::remove_excluded_app,
             commands::app_version,
+            commands::update_status,
+            commands::check_for_updates,
+            commands::install_update,
             commands::preview_hud,
             commands::open_onboarding,
             commands::finish_onboarding,
@@ -76,6 +82,7 @@ pub fn run() {
                 use tauri_plugin_autostart::ManagerExt;
                 let _ = handle.autolaunch().enable();
             }
+            updater::start(&handle);
             if !stored.welcomed {
                 windows::open_onboarding(&handle)?;
             }

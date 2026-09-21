@@ -12,7 +12,7 @@ use crate::controller;
 use crate::settings::{self, AppState, Binding, Settings};
 use crate::sys::app_icons::AppInfo;
 use crate::sys::{app_icons, chrome, input_source, on_main, permissions};
-use crate::{hud, shortcuts, sync, windows};
+use crate::{hud, shortcuts, sync, updater, windows};
 
 /// The three letter rows of a Mac keyboard, by virtual keycode. The keyboard is a
 /// real-world object, so this row order is never mirrored for a right-to-left UI.
@@ -217,6 +217,24 @@ pub fn remove_excluded_app(app: AppHandle, id: String) -> Vec<AppInfo> {
     let next = settings::update(&app, |s| s.excluded_apps.retain(|existing| *existing != id));
     sync::apply(&app, &previous, &next);
     excluded_apps(app)
+}
+
+// ── Updates ──────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn update_status(app: AppHandle) -> updater::Status {
+    updater::status(&app)
+}
+
+/// The Settings button. Its answer arrives as the `update` event, not as a dialog.
+#[tauri::command]
+pub fn check_for_updates(app: AppHandle) {
+    updater::check_in_background(&app, updater::Trigger::Settings);
+}
+
+#[tauri::command]
+pub fn install_update(app: AppHandle) {
+    updater::install_in_background(&app);
 }
 
 // ── Windows and odds and ends ────────────────────────────────────────────────

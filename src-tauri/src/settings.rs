@@ -10,28 +10,32 @@ use tauri::{AppHandle, Manager, Runtime};
 use tauri_plugin_store::StoreExt;
 
 /// Apps where the hotkey does nothing: terminals (the selection keys mean something
-/// else there) and password managers.
-const DEFAULT_EXCLUDED: [&str; 14] = [
+/// else there) and password managers. Each entry records the defaults version that
+/// introduced it, so an existing install picks up later additions exactly once.
+const DEFAULT_EXCLUDED: [(&str, u32); 14] = [
     // Terminals
-    "com.apple.Terminal",
-    "com.googlecode.iterm2",
-    "dev.warp.Warp-Stable",
-    "com.mitchellh.ghostty",
-    "net.kovidgoyal.kitty",
-    "org.alacritty",
-    "com.github.wez.wezterm",
+    ("com.apple.Terminal", 1),
+    ("com.googlecode.iterm2", 1),
+    ("dev.warp.Warp-Stable", 2),
+    ("com.mitchellh.ghostty", 2),
+    ("net.kovidgoyal.kitty", 2),
+    ("org.alacritty", 2),
+    ("com.github.wez.wezterm", 2),
     // Password managers
-    "com.apple.keychainaccess",
-    "com.apple.Passwords",
-    "com.1password.1password",
-    "com.agilebits.onepassword7",
-    "com.bitwarden.desktop",
-    "org.keepassxc.keepassxc",
-    "in.sinew.Enpass-Desktop",
+    ("com.apple.keychainaccess", 1),
+    ("com.apple.Passwords", 2),
+    ("com.1password.1password", 1),
+    ("com.agilebits.onepassword7", 1),
+    ("com.bitwarden.desktop", 2),
+    ("org.keepassxc.keepassxc", 2),
+    ("in.sinew.Enpass-Desktop", 2),
 ];
 
+/// Bump when entries are added to [`DEFAULT_EXCLUDED`].
+const DEFAULTS_VERSION: u32 = 2;
+
 pub fn is_default_excluded(bundle_id: &str) -> bool {
-    DEFAULT_EXCLUDED.contains(&bundle_id)
+    DEFAULT_EXCLUDED.iter().any(|(id, _)| *id == bundle_id)
 }
 
 pub const DEFAULT_SHORTCUT: &str = "Alt+Shift+Space";
@@ -83,6 +87,16 @@ pub struct Settings {
     pub paused: bool,
     /// Set once the welcome window has been completed or skipped.
     pub welcomed: bool,
+    /// When updates were last checked, in milliseconds since the Unix epoch.
+    pub last_update_check: Option<u64>,
+    /// The [`DEFAULTS_VERSION`] these settings have seen. Files written before it
+    /// existed had the first set of defaults, hence 1 there, not the current version.
+    #[serde(default = "first_defaults")]
+    pub defaults_version: u32,
+}
+
+fn first_defaults() -> u32 {
+    1
 }
 
 impl Default for Settings {
@@ -100,9 +114,11 @@ impl Default for Settings {
             shortcut_pause: String::new(),
             arabic_layout: String::new(),
             latin_layout: String::new(),
-            excluded_apps: DEFAULT_EXCLUDED.map(String::from).to_vec(),
+            excluded_apps: DEFAULT_EXCLUDED.iter().map(|(id, _)| id.to_string()).collect(),
             paused: false,
             welcomed: false,
+            last_update_check: None,
+            defaults_version: DEFAULTS_VERSION,
         }
     }
 }
@@ -140,10 +156,31 @@ impl AppState {
 /// or unreadable. A corrupt store must never stop the app from starting.
 pub fn load<R: Runtime>(app: &AppHandle<R>) -> Settings {
     let Ok(store) = app.store(STORE_FILE) else { return Settings::default() };
-    store
-        .get(STORE_KEY)
-        .and_then(|value| serde_json::from_value(value).ok())
-        .unwrap_or_default()
+    let Some(mut settings) = store.get(STORE_KEY).and_then(|value| serde_json::from_value::<Settings>(value).ok())
+    else {
+        return Settings::default();
+    };
+    if settings.adopt_new_defaults() {
+        save(app, &settings);
+    }
+    settings
+}
+
+impl Settings {
+    /// Adds the default exceptions introduced since these settings were written. One the
+    /// user removed after it arrived is not brought back: each is offered only once.
+    fn adopt_new_defaults(&mut self) -> bool {
+        if self.defaults_version >= DEFAULTS_VERSION {
+            return false;
+        }
+        for (id, since) in DEFAULT_EXCLUDED {
+            if since > self.defaults_version && !self.excluded_apps.iter().any(|e| e == id) {
+                self.excluded_apps.push(id.to_string());
+            }
+        }
+        self.defaults_version = DEFAULTS_VERSION;
+        true
+    }
 }
 
 /// Writes the preferences out. Failures are not fatal: the in-memory settings stay
@@ -169,4 +206,32 @@ where
     };
     save(app, &updated);
     updated
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_file_from_before_the_defaults_version_gets_the_new_exceptions_once() {
+        let json = serde_json::json!({ "excludedApps": ["com.apple.Terminal", "com.example.mine"] });
+        let mut settings: Settings = serde_json::from_value(json).unwrap();
+        assert_eq!(settings.defaults_version, 1);
+        assert!(settings.adopt_new_defaults());
+        assert!(settings.excluded_apps.contains(&"com.apple.Passwords".to_string()));
+        assert!(settings.excluded_apps.contains(&"com.example.mine".to_string()));
+        // Entries from version 1 that the user had removed stay removed.
+        assert!(!settings.excluded_apps.contains(&"com.googlecode.iterm2".to_string()));
+
+        settings.excluded_apps.retain(|id| id != "com.apple.Passwords");
+        assert!(!settings.adopt_new_defaults());
+        assert!(!settings.excluded_apps.contains(&"com.apple.Passwords".to_string()));
+    }
+
+    #[test]
+    fn fresh_settings_are_current() {
+        let mut settings = Settings::default();
+        assert!(!settings.adopt_new_defaults());
+        assert_eq!(settings.excluded_apps.len(), DEFAULT_EXCLUDED.len());
+    }
 }

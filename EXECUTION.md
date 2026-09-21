@@ -186,7 +186,7 @@ cargo clippy -p baddel-core -- -D warnings
 ## المرحلة 5 — الأيقونة والتوقيع والتحديث
 
 **الهدف:** حزمة قابلة للتوزيع تتحدّث تلقائيًا دون أن تفقد صلاحية Accessibility.
-**يتوقف على المستخدم:** قرار التوقيع + اعتماد تصميم الأيقونة.
+**يتوقف على المستخدم:** قرار التوقيع + اعتماد تصميم الأيقونة. **حُسم التوقيع 2026-09-21: شهادة ذاتية ثابتة** (لا اشتراك Developer ID). التفاصيل في [docs/signing.md](docs/signing.md).
 
 **الخطوات**
 1. **الأيقونة:** ✅ **أُنجزت قبل المرحلة (2026-09-21) واعتمدها المستخدم.** مصدرها الوحيد صفحة `03 · App Icon` في ملف Figma المعتمد، وكل ما في `design/icon/` مُصدَّر منها (انظر [design/icon/README.md](design/icon/README.md)): `icon-macos-1024.png` ← `tauri icon` ← `.icns`، وطبقات `0-background` · `1-keycap-back` · `2-keycap-front`، وأيقونات tray الثلاث بصيغة template. **لا تُرسم من الكود.** يبقى للمرحلة 5 التحقق من الأيقونة داخل حزمة release فقط.
@@ -204,8 +204,8 @@ cargo clippy -p baddel-core -- -D warnings
 **معيار القبول**
 - `./scripts/release.sh 0.9.1` ينتج DMG يُثبَّت ويعمل على حساب مستخدم نظيف.
 - اختبار التحديث في الخطوة 5 ناجح والصلاحية باقية. (الخطوة 5 والتثبيت على حساب نظيف يمسّان الجهاز، فيُضافان إلى طابور المرحلة 7 إن لم يُنفَّذا بحضور المستخدم.)
-- `spctl -a -vv Baddel.app` يعطي `accepted` (في حالة Developer ID).
-- لا أسرار في المستودع: `git grep -iE "BEGIN (EC|PRIVATE)|password|secret key"` فارغ.
+- `spctl -a -vv Baddel.app` يعطي `accepted` (في حالة Developer ID فقط؛ مع الشهادة الذاتية المتوقع `rejected`، والبديل: `codesign --verify --deep --strict` ينجح، والـdesignated requirement مربوط ببصمة الشهادة).
+- لا أسرار في المستودع: لا يظهر فيه أي مفتاح خاص (`git grep -nE "BEGIN .*PRIVATE|encrypted secret key" -- ':!EXECUTION.md'` فارغ) ولا أي قيمة من `~/.baddel/secrets.env`. (الأمر الأصلي `password|secret key` لا يمكن أن يعود فارغًا: الكلمة في قائمة الكلمات الإنجليزية وفي أسماء المتغيرات.)
 
 ---
 

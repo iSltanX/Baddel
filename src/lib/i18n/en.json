@@ -14,7 +14,8 @@
     "resume": "Resume Baddel",
     "settings": "Settings…",
     "checkForUpdates": "Check for Updates…",
-    "quit": "Quit Baddel"
+    "quit": "Quit Baddel",
+    "installUpdate": "Install Update {version}…"
   },
   "settings": {
     "panes": {
@@ -45,7 +46,15 @@
         "updates": "Updates",
         "permission": "Permission"
       },
-      "switchLayoutAfterConvertDescription": "The layout follows the converted text so you can keep typing"
+      "switchLayoutAfterConvertDescription": "The layout follows the converted text so you can keep typing",
+      "update": {
+        "checking": "Checking…",
+        "lastChecked": "Version {version} · Last checked {time}",
+        "available": "Version {version} is available",
+        "installing": "Installing version {version}…",
+        "failed": "Version {version} · Couldn’t check",
+        "install": "Install Update"
+      }
     },
     "shortcuts": {
       "rows": {
@@ -158,5 +167,16 @@
   },
   "common": {
     "remove": "Remove"
+  },
+  "updateDialog": {
+    "availableTitle": "A New Version of Baddel Is Available",
+    "availableBody": "Version {version} is available — you have {current}. Baddel restarts after installing.",
+    "installAndRestart": "Install and Restart",
+    "later": "Later",
+    "upToDateTitle": "Baddel Is Up to Date",
+    "upToDateBody": "You have the latest version ({current}).",
+    "checkFailedTitle": "Couldn’t Check for Updates",
+    "installFailedTitle": "Couldn’t Install the Update",
+    "failedBody": "Check your internet connection, then try again."
   }
 }

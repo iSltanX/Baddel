@@ -58,6 +58,16 @@ export interface AppInfo {
   icon: string | null
 }
 
+export type UpdatePhase = 'idle' | 'checking' | 'upToDate' | 'available' | 'installing' | 'failed'
+
+export interface UpdateStatus {
+  phase: UpdatePhase
+  /** The version on offer, while available or installing. */
+  version: string | null
+  /** Milliseconds since the Unix epoch. */
+  lastChecked: number | null
+}
+
 const bundles: Record<Language, Record<string, unknown>> = { ar, en }
 
 /**
@@ -70,6 +80,7 @@ let invoke: <T>(command: string, args?: Record<string, unknown>) => Promise<T> =
 export const app = $state({
   settings: null as Settings | null,
   permission: false,
+  update: { phase: 'idle', version: null, lastChecked: null } as UpdateStatus,
 })
 
 /** Loads the initial state and subscribes to changes made elsewhere. */
@@ -79,12 +90,16 @@ export async function start(): Promise<void> {
   }
   app.settings = await invoke<Settings>('get_settings')
   app.permission = await invoke<boolean>('permission_granted')
+  app.update = await invoke<UpdateStatus>('update_status')
   if (!('__TAURI_INTERNALS__' in window)) return
   await listen<Settings>('settings', (event) => {
     app.settings = event.payload
   })
   await listen<boolean>('permission', (event) => {
     app.permission = event.payload
+  })
+  await listen<UpdateStatus>('update', (event) => {
+    app.update = event.payload
   })
 }
 
@@ -134,6 +149,9 @@ export const convertText = (text: string) => invoke<string | null>('convert_text
 export const requestPermission = () => invoke<void>('request_permission')
 export const openKeyboardSettings = () => invoke<void>('open_keyboard_settings')
 export const appVersion = () => invoke<string>('app_version')
+/** The answer arrives as the `update` event. */
+export const checkForUpdates = () => invoke<void>('check_for_updates')
+export const installUpdate = () => invoke<void>('install_update')
 export const previewHud = () => invoke<void>('preview_hud')
 export const openOnboarding = () => invoke<void>('open_onboarding')
 export const finishOnboarding = () => invoke<void>('finish_onboarding')

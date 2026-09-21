@@ -5,13 +5,50 @@
   import PermissionCard from '../components/PermissionCard.svelte'
   import Select from '../components/Select.svelte'
   import Switch from '../components/Switch.svelte'
-  import { app, appVersion, previewHud, save, t, type Settings } from '../state.svelte'
+  import {
+    app,
+    appVersion,
+    checkForUpdates,
+    installUpdate,
+    language,
+    previewHud,
+    save,
+    t,
+    type Settings,
+  } from '../state.svelte'
 
   const settings = $derived(app.settings as Settings)
 
   let version = $state('')
   $effect(() => {
     void appVersion().then((value) => (version = value))
+  })
+
+  const update = $derived(app.update)
+  const busy = $derived(update.phase === 'checking' || update.phase === 'installing')
+
+  function checkedAt(ms: number): string {
+    // Latin digits, matching the version number beside it.
+    const locale = language() === 'ar' ? 'ar-u-nu-latn' : 'en'
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(ms)
+  }
+
+  const updateLine = $derived.by(() => {
+    if (!version) return undefined
+    switch (update.phase) {
+      case 'checking':
+        return t('settings.general.update.checking')
+      case 'available':
+        return t('settings.general.update.available', { version: update.version ?? '' })
+      case 'installing':
+        return t('settings.general.update.installing', { version: update.version ?? '' })
+      case 'failed':
+        return t('settings.general.update.failed', { version })
+      default:
+        return update.lastChecked
+          ? t('settings.general.update.lastChecked', { version, time: checkedAt(update.lastChecked) })
+          : t('settings.about.version', { version })
+    }
   })
 </script>
 
@@ -89,10 +126,15 @@
     first
     icon="refresh"
     title={t('settings.general.autoCheckUpdates')}
-    description={version ? t('settings.about.version', { version }) : undefined}
+    description={updateLine}
   >
-    <!-- The updater itself is wired up in phase 5, with its signing key. -->
-    <Button disabled>{t('settings.general.checkNow')}</Button>
+    {#if update.phase === 'available' || update.phase === 'installing'}
+      <Button variant="primary" loading={update.phase === 'installing'} onclick={() => void installUpdate()}>
+        {t('settings.general.update.install')}
+      </Button>
+    {:else}
+      <Button loading={busy} onclick={() => void checkForUpdates()}>{t('settings.general.checkNow')}</Button>
+    {/if}
     <Switch
       checked={settings.autoUpdate}
       label={t('settings.general.autoCheckUpdates')}

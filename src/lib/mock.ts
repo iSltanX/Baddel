@@ -104,6 +104,12 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
     }
     case 'app_version':
       return answer('1.0.0')
+    // `?update=available` (or checking, installing, failed) reviews the other states.
+    case 'update_status': {
+      const phase = new URLSearchParams(location.search).get('update') ?? 'upToDate'
+      const version = phase === 'available' || phase === 'installing' ? '1.1.0' : null
+      return answer({ phase, version, lastChecked: Date.now() - 2 * 60 * 60 * 1000 })
+    }
     default:
       return answer(undefined)
   }

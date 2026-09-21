@@ -17,7 +17,7 @@ use crate::controller::{Command, Commands};
 use crate::menu_text;
 use crate::settings::AppState;
 use crate::sys::permissions;
-use crate::{settings, sync, windows};
+use crate::{settings, sync, updater, windows};
 
 const TRAY_ID: &str = "main";
 const TRAY_ICON: &[u8] = include_bytes!("../icons/tray.png");
@@ -162,8 +162,10 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
     menu.append(&MenuItem::with_id(app, "settings", text.settings, true, Some("Cmd+,"))?)?;
-    // Wired up in phase 5, together with the updater plugin and its signing key.
-    menu.append(&item(app, "updates", text.check_updates, false)?)?;
+    match crate::updater::available_version(app) {
+        Some(version) => menu.append(&item(app, "install-update", &text.install_update.replace("{version}", &version), true)?)?,
+        None => menu.append(&item(app, "updates", text.check_updates, true)?)?,
+    }
     menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&MenuItem::with_id(app, "quit", text.quit, true, Some("Cmd+Q"))?)?;
     Ok(menu)
@@ -199,6 +201,8 @@ fn on_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "settings" => {
             let _ = windows::open_settings(app);
         }
+        "updates" => updater::check_in_background(app, updater::Trigger::Menu),
+        "install-update" => updater::install_in_background(app),
         _ => {}
     }
 }
