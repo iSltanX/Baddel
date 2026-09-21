@@ -38,7 +38,14 @@
       "previewNotification": "معاينة",
       "softSoundOnConvert": "صوت خافت عند التحويل",
       "autoCheckUpdates": "تحقّق من التحديثات تلقائيًا",
-      "checkNow": "تحقق الآن"
+      "checkNow": "تحقق الآن",
+      "groups": {
+        "startup": "التشغيل",
+        "conversion": "التحويل",
+        "updates": "التحديثات",
+        "permission": "الصلاحية"
+      },
+      "switchLayoutAfterConvertDescription": "ينتقل التخطيط إلى لغة النص المحوَّل لتكمل الكتابة مباشرة"
     },
     "shortcuts": {
       "rows": {
@@ -46,7 +53,9 @@
         "undo": "تراجع عن آخر تحويل",
         "pause": "أوقف بدّل مؤقتًا"
       },
-      "footnote": "الضغط مرة ثانية خلال ثانيتين يمدّ التحويل كلمةً أخرى للخلف."
+      "footnote": "الضغط مرة ثانية خلال ثانيتين يمدّ التحويل كلمةً أخرى للخلف.",
+      "groupTitle": "اختصارات عامة تعمل في كل التطبيقات",
+      "restoreDefaults": "استعد الافتراضي"
     },
     "layouts": {
       "arabicLayout": "التخطيط العربي",
@@ -58,13 +67,19 @@
       },
       "emptyState": {
         "message": "لم نجد تخطيطًا عربيًا مفعّلًا",
-        "action": "افتح إعدادات لوحة المفاتيح"
-      }
+        "action": "افتح إعدادات لوحة المفاتيح",
+        "description": "أضف تخطيطًا عربيًا في إعدادات النظام ليعمل التحويل."
+      },
+      "groupTitle": "تخطيطات الإدخال",
+      "needsSetupBadge": "يحتاج إعدادًا",
+      "unavailable": "غير متوفر"
     },
     "exceptions": {
-      "description": "لن يعمل بدّل داخل هذه التطبيقات.",
+      "description": "لن يعمل بدّل داخل هذه التطبيقات، مثل مديري كلمات المرور والطرفيات.",
       "addApp": "أضف تطبيقًا…",
-      "emptyState": "لا استثناءات بعد"
+      "emptyState": "لا استثناءات بعد",
+      "emptyStateDescription": "يعمل بدّل الآن في كل التطبيقات.",
+      "notInstalled": "غير مثبَّت على هذا الجهاز"
     },
     "about": {
       "appName": "بدّل · Baddel",
@@ -72,14 +87,17 @@
       "tagline": "اكتب، ونحن نبدّل.",
       "sourceOnGithub": "المصدر على GitHub",
       "reportIssue": "أبلغ عن مشكلة",
-      "license": "الرخصة MIT",
+      "license": "الرخصة",
       "fromSameMaker": "من الصانع نفسه",
       "makerApps": {
         "raff": "رفّ",
         "luma": "Luma",
         "nafidh": "نفّذ"
       },
-      "showWelcome": "أعد عرض شاشة الترحيب"
+      "showWelcome": "أعد عرض شاشة الترحيب",
+      "madeByLabel": "تصميم وتطوير",
+      "madeByName": "سلطان",
+      "promise": "محلي بالكامل · بلا حساب · بلا إنترنت · صلاحية واحدة فقط"
     }
   },
   "onboarding": {
@@ -93,7 +111,8 @@
       "sample1From": "اثممخ",
       "sample1To": "hello",
       "sample2From": "sghl",
-      "sample2To": "سلام"
+      "sample2To": "سلام",
+      "shortcutLabel": "اختصار واحد"
     },
     "step2": {
       "title": "صلاحية واحدة فقط",
@@ -110,8 +129,11 @@
       "practiceText": "اثممخ",
       "practiceHelper": "ضع المؤشر بعد الكلمة واضغط الاختصار",
       "successText": "hello",
-      "successMessage": "أحسنت — هكذا يعمل بدّل"
-    }
+      "successMessage": "أحسنت — هكذا يعمل بدّل",
+      "body": "الكلمة أدناه مكتوبة بالتخطيط الخطأ. صحّحها باختصارك.",
+      "recorderLabel": "اختصارك"
+    },
+    "back": "السابق"
   },
   "hud": {
     "success": "{from} ← {to}",
@@ -124,7 +146,10 @@
     "granted": "الصلاحية ممنوحة",
     "missing": "بدّل يحتاج صلاحية تسهيلات الاستخدام",
     "checking": "جارٍ التحقق…",
-    "openSystemSettings": "افتح إعدادات النظام"
+    "openSystemSettings": "افتح إعدادات النظام",
+    "grantedDescription": "تسهيلات الاستخدام — بدّل جاهز في كل التطبيقات",
+    "missingDescription": "لن يعمل الاختصار قبل منحها",
+    "checkingDescription": "فعّل «بدّل» في قائمة تسهيلات الاستخدام"
   },
   "shortcut": {
     "recorder": {

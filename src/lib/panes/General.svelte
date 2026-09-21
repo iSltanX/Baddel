@@ -5,12 +5,22 @@
   import PermissionCard from '../components/PermissionCard.svelte'
   import Select from '../components/Select.svelte'
   import Switch from '../components/Switch.svelte'
-  import { app, previewHud, save, t, type Settings } from '../state.svelte'
+  import { app, appVersion, previewHud, save, t, type Settings } from '../state.svelte'
 
   const settings = $derived(app.settings as Settings)
+
+  let version = $state('')
+  $effect(() => {
+    void appVersion().then((value) => (version = value))
+  })
 </script>
 
-<GroupCard>
+<!-- A missing permission is the one thing that stops the app working, so it leads the pane. -->
+{#if !app.permission}
+  <PermissionCard />
+{/if}
+
+<GroupCard title={t('settings.general.groups.startup')}>
   <FormRow first icon="power" title={t('settings.general.launchAtLogin')}>
     <Switch
       checked={settings.launchAtLogin}
@@ -19,7 +29,7 @@
     />
   </FormRow>
   <FormRow
-    icon="sidebar"
+    icon="menubar"
     title={t('settings.general.showMenuBarIcon')}
     description={t('settings.general.showMenuBarIconDescription')}
   >
@@ -42,8 +52,13 @@
   </FormRow>
 </GroupCard>
 
-<GroupCard>
-  <FormRow first icon="swap" title={t('settings.general.switchLayoutAfterConvert')}>
+<GroupCard title={t('settings.general.groups.conversion')}>
+  <FormRow
+    first
+    icon="swap"
+    title={t('settings.general.switchLayoutAfterConvert')}
+    description={t('settings.general.switchLayoutAfterConvertDescription')}
+  >
     <Switch
       checked={settings.switchInputSource}
       label={t('settings.general.switchLayoutAfterConvert')}
@@ -69,8 +84,13 @@
   </FormRow>
 </GroupCard>
 
-<GroupCard>
-  <FormRow first icon="refresh" title={t('settings.general.autoCheckUpdates')}>
+<GroupCard title={t('settings.general.groups.updates')}>
+  <FormRow
+    first
+    icon="refresh"
+    title={t('settings.general.autoCheckUpdates')}
+    description={version ? t('settings.about.version', { version }) : undefined}
+  >
     <!-- The updater itself is wired up in phase 5, with its signing key. -->
     <Button disabled>{t('settings.general.checkNow')}</Button>
     <Switch
@@ -81,4 +101,30 @@
   </FormRow>
 </GroupCard>
 
-<PermissionCard />
+<!-- Once granted it is only a reassurance, so it closes the pane quietly. -->
+{#if app.permission}
+  <section class="permission">
+    <h2>{t('settings.general.groups.permission')}</h2>
+    <PermissionCard />
+  </section>
+{/if}
+
+<style>
+  .permission {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  h2 {
+    display: flex;
+    align-items: center;
+    min-height: 22px;
+    padding-inline: 16px;
+    font-family: var(--font-body);
+    font-size: var(--size-small);
+    line-height: var(--leading-small);
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+</style>

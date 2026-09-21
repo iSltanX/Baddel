@@ -38,7 +38,14 @@
       "previewNotification": "Preview",
       "softSoundOnConvert": "Soft sound on conversion",
       "autoCheckUpdates": "Automatically check for updates",
-      "checkNow": "Check Now"
+      "checkNow": "Check Now",
+      "groups": {
+        "startup": "Startup",
+        "conversion": "Conversion",
+        "updates": "Updates",
+        "permission": "Permission"
+      },
+      "switchLayoutAfterConvertDescription": "The layout follows the converted text so you can keep typing"
     },
     "shortcuts": {
       "rows": {
@@ -46,7 +53,9 @@
         "undo": "Undo last conversion",
         "pause": "Pause Baddel"
       },
-      "footnote": "Pressing it again within two seconds extends the conversion one more word back."
+      "footnote": "Pressing it again within two seconds extends the conversion one more word back.",
+      "groupTitle": "Global shortcuts that work in every app",
+      "restoreDefaults": "Restore Defaults"
     },
     "layouts": {
       "arabicLayout": "Arabic Layout",
@@ -58,13 +67,19 @@
       },
       "emptyState": {
         "message": "No active Arabic layout found",
-        "action": "Open Keyboard Settings"
-      }
+        "action": "Open Keyboard Settings",
+        "description": "Add an Arabic layout in System Settings so conversion can work."
+      },
+      "groupTitle": "Input layouts",
+      "needsSetupBadge": "Needs setup",
+      "unavailable": "Unavailable"
     },
     "exceptions": {
-      "description": "Baddel won't work inside these apps.",
+      "description": "Baddel stays out of these apps — password managers, terminals and the like.",
       "addApp": "Add an App…",
-      "emptyState": "No exceptions yet"
+      "emptyState": "No exceptions yet",
+      "emptyStateDescription": "Baddel currently works in every app.",
+      "notInstalled": "Not installed on this Mac"
     },
     "about": {
       "appName": "Baddel · بدّل",
@@ -72,14 +87,17 @@
       "tagline": "Type, and we'll switch it.",
       "sourceOnGithub": "Source on GitHub",
       "reportIssue": "Report an Issue",
-      "license": "MIT License",
+      "license": "License",
       "fromSameMaker": "From the same maker",
       "makerApps": {
         "raff": "رفّ",
         "luma": "Luma",
         "nafidh": "نفّذ"
       },
-      "showWelcome": "Show the welcome window again"
+      "showWelcome": "Show the welcome window again",
+      "madeByLabel": "Designed & developed by",
+      "madeByName": "Sultan",
+      "promise": "Fully local · No account · No internet · One permission"
     }
   },
   "onboarding": {
@@ -93,7 +111,8 @@
       "sample1From": "اثممخ",
       "sample1To": "hello",
       "sample2From": "sghl",
-      "sample2To": "سلام"
+      "sample2To": "سلام",
+      "shortcutLabel": "One shortcut"
     },
     "step2": {
       "title": "Just one permission",
@@ -110,8 +129,11 @@
       "practiceText": "اثممخ",
       "practiceHelper": "Place the cursor after the word and press the shortcut",
       "successText": "hello",
-      "successMessage": "Nicely done — that's how Baddel works"
-    }
+      "successMessage": "Nicely done — that's how Baddel works",
+      "body": "The word below was typed in the wrong layout. Fix it with your shortcut.",
+      "recorderLabel": "Your shortcut"
+    },
+    "back": "Back"
   },
   "hud": {
     "success": "{from} → {to}",
@@ -124,7 +146,10 @@
     "granted": "Permission granted",
     "missing": "Baddel needs Accessibility permission",
     "checking": "Checking…",
-    "openSystemSettings": "Open System Settings"
+    "openSystemSettings": "Open System Settings",
+    "grantedDescription": "Accessibility — Baddel is ready in every app",
+    "missingDescription": "The shortcut won’t work until it’s granted",
+    "checkingDescription": "Turn on “Baddel” in the Accessibility list"
   },
   "shortcut": {
     "recorder": {

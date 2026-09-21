@@ -1,8 +1,14 @@
 # مرجع التصميم
 
-> **المرجع البصري الأول للمرحلة 3 هو «الملف ج — تصميم Stitch»** (آخر هذا الملف): صمّمه المستخدم وأعجبه. ملفا Make (أ وب) مرجعان ثانويان لتفاصيل المكوّنات وهندسة الأيقونة. وعند أي تعارض في **البنية أو النصوص أو القواعد** تُقدَّم المواصفة `baddel-figma-prompt-pro.md` وثوابت `CLAUDE.md`.
+## الملف المعتمد
 
-## ملفا Figma Make
+**الرابط:** https://www.figma.com/design/le5J63MNuS9wV7kN8tYpsX/Badeel
+هذا هو **ملف التصميم المعتمد الوحيد**. كل ما يلي في هذا المستند أفكار مستخلصة من مسودات سابقة (Make وStitch) حُذفت روابطها عمدًا: تُؤخذ منها **الأفكار فقط**، وتُطبَّق في الملف المعتمد. وعند أي تعارض في **البنية أو النصوص أو القواعد** تُقدَّم المواصفة `baddel-figma-prompt-pro.md` وثوابت `CLAUDE.md`.
+
+**بنية الملف:** `00 Cover` · `01 Foundations` (متغيرات `Color` بوضعي Light/Dark + `Metrics`، أنماط نصوص وظلال) · `02 Components` (11 مجموعة) · `03 App Icon` (Master 1024، نسخة ≤32، رمز شريط القوائم، شبكة البناء) · `04 Menu Bar & HUD` · `05 Onboarding` · `06 Settings` · `Archive · v1 draft`.
+أسماء المتغيرات تحمل code syntax مطابقًا لـ`theme.css` (`var(--bg-window)`…)، فالنقل إلى الكود مباشر. فروق التصميم عن الكود مسجّلة في آخر [STATUS.md](../STATUS.md).
+
+## مسودتا Figma Make (أفكار فقط)
 
 ملفان أنتجهما Figma Make قبل إلغاء مرحلة Figma. كلاهما **مرجع بصري لا مصدر**: عند أي تعارض تُقدَّم المواصفة [baddel-figma-prompt-pro.md](baddel-figma-prompt-pro.md) وثوابت [CLAUDE.md](../CLAUDE.md).
 
@@ -17,9 +23,7 @@
 
 # الملف أ — مكتبة المكوّنات
 
-**الرابط:** https://www.figma.com/make/5qqYuuDrB9sRPhRuvrjdOH/Baddel-macOS-Utility-Design
 **ما هو:** ناتج «البرومبت 1» من [baddel-figma-prompt-pro.md](baddel-figma-prompt-pro.md): مكتبة المكوّنات الـ11 في ملف React واحد (`src/App.tsx`، أنماط inline، فاتح وداكن، RTL مع LTR لبعض المكوّنات). توقّف Make بعده، فلا توجد شاشات.
-**الوصول إلى الكود:** عبر موصل Figma: `get_design_context` بـ`fileKey=5qqYuuDrB9sRPhRuvrjdOH` و`nodeId=0:1`، ثم قراءة المورد `src/App.tsx`. أو من Make نفسه عبر Code ← Download.
 
 > يُستخدم في **المرحلة 3** مرجعًا بصريًا عند بناء مكوّنات Svelte. هو **مرجع لا مصدر**: عند أي تعارض تُقدَّم المواصفة `baddel-figma-prompt-pro.md`.
 
@@ -58,8 +62,6 @@ _راجعت الكود المصدري فقط. لم أرَ العرض المرئ�
 
 # الملف ب — الشاشات الكاملة
 
-**الرابط:** https://www.figma.com/make/HYc9rl0cOHoe1AGjIM4wnm/Implement-feature
-**الوصول إلى الكود:** `get_design_context` بـ`fileKey=HYc9rl0cOHoe1AGjIM4wnm` و`nodeId=0:1`، ثم الموارد `src/App.tsx` و`src/index.css` و`public/assets/87689.svg` (سهم الأيقونة).
 **ما هو:** نموذج تفاعلي بتبويبات (الغلاف · شريط القوائم · الإعداد الأوّلي · الإعدادات · HUD · الأيقونة) مع مبدّل فاتح/داكن. الألوان فيه متغيرات CSS على `:root` و`.dark`، وهي مطابقة للمواصفة وأقرب لما سنكتبه في `theme.css`.
 
 ## ما يُؤخذ منه
@@ -98,12 +100,9 @@ _راجعت الكود المصدري فقط. لم أرَ العرض المرئ�
 
 ---
 
-# الملف ج — تصميم Stitch (المرجع البصري الأول)
+# الملف ج — مسودة Stitch (أفكار فقط)
 
-**الرابط:** https://www.figma.com/design/Ox6yabKFxO5mO7QcfVonAJ/Untitled?node-id=1-2 (الصفحة `1:2`)
 **اللقطات محفوظة في:** [`docs/design/stitch/`](design/stitch/) — `settings-general.png` · `settings-layouts.png` · `onboarding.png` · `menu-hud.png` · `app-icon.png`
-**اللوحات:** `1:3` الأيقونة · `1:932` إعدادات «عام» · `1:1160` التخطيطات · `1:1557` الترحيب · `1:1681` القائمة وHUD. هذه النسخ «المصقولة»، والنسخ الأولى `1:18` و`1:232` و`1:597` و`1:825` تُهمل.
-**الوصول إلى الكود والقيم:** موصل Figma البعيد، `get_design_context` بـ`fileKey=Ox6yabKFxO5mO7QcfVonAJ` ومعرّف اللوحة.
 
 ## ما يُعتمد منه
 

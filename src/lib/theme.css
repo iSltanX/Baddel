@@ -9,6 +9,8 @@
   font-weight: 600;
   font-display: block;
   src: url('../assets/fonts/Cairo-SemiBold.woff2') format('woff2');
+  /* Arabic only: Latin runs fall through to the system font, as the design draws them. */
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
 }
 @font-face {
   font-family: 'Cairo';
@@ -16,6 +18,8 @@
   font-weight: 700;
   font-display: block;
   src: url('../assets/fonts/Cairo-Bold.woff2') format('woff2');
+  /* Arabic only: Latin runs fall through to the system font, as the design draws them. */
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
 }
 @font-face {
   font-family: 'Almarai';
@@ -23,6 +27,8 @@
   font-weight: 400;
   font-display: block;
   src: url('../assets/fonts/Almarai-Regular.woff2') format('woff2');
+  /* Arabic only: Latin runs fall through to the system font, as the design draws them. */
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
 }
 @font-face {
   font-family: 'Almarai';
@@ -30,50 +36,77 @@
   font-weight: 700;
   font-display: block;
   src: url('../assets/fonts/Almarai-Bold.woff2') format('woff2');
+  /* Arabic only: Latin runs fall through to the system font, as the design draws them. */
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
 }
 
 /* ── Color ─────────────────────────────────────────────────────────────────── */
 :root {
   --bg-window: #f6f4ef;
+  --bg-chrome: #fbfaf7;
   --bg-surface: #ffffff;
   --bg-sunken: #edeae3;
   --border-subtle: #e2ded5;
+  --border-strong: #cfc9bd;
   --text-primary: #1c1917;
   --text-secondary: #6b665e;
+  --text-tertiary: #989288;
   --accent-primary: #3f5673;
+  --accent-hover: #364a64;
+  --accent-pressed: #2d3e55;
   --accent-soft: #e4eaf1;
-  --state-success: #5f7f52;
-  --state-warning: #b67f2e;
-  --state-danger: #a8493b;
-
-  /* Derived. `--accent-on` is the text colour that sits on a filled accent surface;
-     it flips in dark mode because the accent itself does. */
+  /* The text colour that sits on a filled accent surface; it flips in dark mode
+     because the accent itself does. */
   --accent-on: #ffffff;
-  --keycap-edge: #afa8a0;
+  --state-success: #5f7f52;
+  --state-success-soft: #e8efe3;
+  --state-warning: #b67f2e;
+  --state-warning-text: #84591a;
+  --state-warning-soft: #f7eedc;
+  --state-danger: #a8493b;
+  --state-danger-soft: #f6e6e2;
   --overlay-hover: rgb(28 25 23 / 5%);
   --overlay-pressed: rgb(28 25 23 / 10%);
   --track-off: #d5d0c6;
+  --control-knob: #ffffff;
+  --keycap-top: #ffffff;
+  --keycap-edge: #bdb6ab;
+  --focus-ring: rgb(63 86 115 / 38%);
+
+  --shadow-control: 0 1px 1.5px rgb(0 0 0 / 7%);
+  --shadow-knob: 0 1px 2px rgb(0 0 0 / 22%), 0 0 0.5px rgb(0 0 0 / 12%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg-window: #1b1c1f;
+    --bg-chrome: #212226;
     --bg-surface: #25272b;
     --bg-sunken: #16171a;
     --border-subtle: #34373c;
+    --border-strong: #474a51;
     --text-primary: #f2f0eb;
     --text-secondary: #a19d95;
+    --text-tertiary: #76736d;
     --accent-primary: #8fa9c9;
+    --accent-hover: #a3bad6;
+    --accent-pressed: #7c97b8;
     --accent-soft: #2a3644;
-    --state-success: #93b585;
-    --state-warning: #d9a95a;
-    --state-danger: #d98476;
-
     --accent-on: #1b1c1f;
-    --keycap-edge: #101114;
+    --state-success: #93b585;
+    --state-success-soft: #28321f;
+    --state-warning: #d9a95a;
+    --state-warning-text: #e2b971;
+    --state-warning-soft: #382d1b;
+    --state-danger: #d98476;
+    --state-danger-soft: #3a2521;
     --overlay-hover: rgb(242 240 235 / 6%);
     --overlay-pressed: rgb(242 240 235 / 12%);
     --track-off: #4a4d53;
+    --control-knob: #f2f0eb;
+    --keycap-top: #2e3035;
+    --keycap-edge: #101114;
+    --focus-ring: rgb(143 169 201 / 45%);
   }
 }
 
@@ -84,24 +117,33 @@
   --font-heading: 'Cairo', system-ui, sans-serif;
   --font-body: 'Almarai', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'IBM Plex Mono', monospace;
+  /* Keycaps and other Latin-only labels: the system face, as macOS prints its own keys. */
+  --font-latin: system-ui, -apple-system, sans-serif;
 
   --size-large: 26px;   --leading-large: 36px;
-  --size-title: 20px;   --leading-title: 30px;
+  --size-title: 20px;   --leading-title: 28px;
   --size-section: 15px; --leading-section: 24px;
   --size-body: 14px;    --leading-body: 22px;
-  --size-small: 12px;   --leading-small: 19px;
-  --size-caption: 11px; --leading-caption: 17px;
+  --size-small: 12px;   --leading-small: 18px;
+  --size-caption: 11px; --leading-caption: 16px;
+  --size-sample: 22px;  --leading-sample: 32px;
 }
 
 /* ── Metrics ───────────────────────────────────────────────────────────────── */
 :root {
   --row-height: 44px;
   --window-pad: 20px;
-  --group-gap: 16px;
+  --group-gap: 20px;
+  --control-height: 28px;
+  --control-height-large: 36px;
+  /* Pop-ups and recorders share one width, so the control column reads as a column. */
+  --control-column: 184px;
+  --radius-keycap: 4px;
   --radius-control: 6px;
+  --radius-tab: 8px;
   --radius-card: 10px;
-  --focus-width: 2px;
-  --focus-offset: 2px;
+  --radius-hero: 14px;
+  --focus-width: 3px;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
@@ -146,9 +188,7 @@ button, input, select, textarea {
    `:focus-visible` keeps it off mouse clicks. */
 :focus { outline: none; }
 :focus-visible {
-  outline: var(--focus-width) solid var(--accent-primary);
-  outline-offset: var(--focus-offset);
-  border-radius: var(--radius-control);
+  box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
 }
 
 /* Latin runs inside Arabic rows (shortcuts, samples, layout names) must not be

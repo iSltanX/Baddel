@@ -26,7 +26,7 @@
       class:selected={pane.id === selected}
       onclick={() => onselect(pane.id)}
     >
-      <Icon name={pane.icon} size={22} />
+      <Icon name={pane.icon} size={20} />
       <span>{pane.label}</span>
     </button>
   {/each}
@@ -36,10 +36,10 @@
   .toolbar {
     display: flex;
     justify-content: center;
-    gap: 2px;
-    padding: 8px 12px;
+    gap: 4px;
+    padding: 4px 12px 8px;
     border-bottom: 1px solid var(--border-subtle);
-    background: var(--bg-window);
+    background: var(--bg-chrome);
   }
 
   button {
@@ -47,26 +47,32 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    width: 64px;
-    height: 56px;
+    gap: 2px;
+    width: 80px;
+    height: 52px;
     border: none;
-    border-radius: var(--radius-control);
+    border-radius: var(--radius-tab);
     background: none;
     color: var(--text-secondary);
+    transition: background-color 120ms ease-out;
   }
 
   button:hover:not(.selected) {
     background: var(--overlay-hover);
   }
 
+  /* Quiet on purpose: the selected pane is marked, but the content stays the loudest thing. */
   .selected {
-    background: var(--accent-primary);
-    color: var(--accent-on);
+    background: var(--accent-soft);
+    color: var(--accent-primary);
   }
 
   span {
     font-size: var(--size-caption);
     line-height: var(--leading-caption);
+  }
+
+  .selected span {
+    font-weight: 700;
   }
 </style>

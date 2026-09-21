@@ -18,30 +18,35 @@
     justify-content: center;
     min-width: 20px;
     height: 20px;
-    padding: 0 6px;
-    border: 1px solid var(--border-subtle);
+    /* The 2px lower edge is inside the box, so the label sits 1px high to stay centred on the face. */
+    padding: 0 4px 2px;
+    border: 1px solid var(--keycap-edge);
     border-bottom-width: 2px;
-    border-bottom-color: var(--keycap-edge);
-    border-radius: 5px;
-    background: linear-gradient(var(--bg-surface), var(--bg-sunken));
+    border-radius: var(--radius-keycap);
+    background: var(--keycap-top);
     color: var(--text-primary);
-    font-family: var(--font-mono);
-    font-size: var(--size-caption);
-    line-height: 1;
+    font-family: var(--font-latin);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 12px;
     direction: ltr;
     unicode-bidi: isolate;
+    box-sizing: border-box;
   }
 
   .m {
-    min-width: 26px;
-    height: 26px;
-    padding: 0 8px;
-    font-size: var(--size-small);
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px 2px;
+    border-radius: var(--radius-control);
+    font-size: 12px;
+    line-height: 16px;
   }
 
   .pressed {
+    padding-top: 2px;
+    padding-bottom: 0;
     border-bottom-width: 1px;
-    transform: translateY(1px);
     background: var(--bg-sunken);
   }
 </style>

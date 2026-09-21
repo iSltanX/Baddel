@@ -9,6 +9,8 @@
   }
 
   const { name, size = 18, flip = false }: Props = $props()
+  /** From 18px up the line stays 1.5px on screen; smaller marks scale it with the glyph. */
+  const stroke = $derived(size >= 18 ? (1.5 * 24) / size : 1.5)
 </script>
 
 <svg
@@ -18,16 +20,12 @@
   viewBox="0 0 24 24"
   fill="none"
   stroke="currentColor"
-  stroke-width="1.5"
+  stroke-width={stroke}
   stroke-linecap="round"
   stroke-linejoin="round"
   aria-hidden="true"
 >
   <path d={ICON_PATHS[name]} />
-  {#if name === 'general'}
-    <circle cx="15.5" cy="8" r="2" />
-    <circle cx="9.5" cy="16" r="2" />
-  {/if}
 </svg>
 
 <style>

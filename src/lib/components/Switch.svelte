@@ -22,27 +22,40 @@
 
 <style>
   button {
-    width: 38px;
-    height: 22px;
+    width: 36px;
+    height: 20px;
     flex: none;
     padding: 2px;
     border: none;
-    border-radius: 11px;
+    border-radius: 999px;
     background: var(--track-off);
     transition: background-color 150ms ease-out;
+  }
+
+  button:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 1px var(--border-strong);
   }
 
   button[aria-checked='true'] {
     background: var(--accent-primary);
   }
 
+  button[aria-checked='true']:hover:not(:disabled) {
+    background: var(--accent-hover);
+    box-shadow: none;
+  }
+
+  button:focus-visible {
+    box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+  }
+
   .knob {
     display: block;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 25%);
+    background: var(--control-knob);
+    box-shadow: var(--shadow-knob);
     /* A logical offset so the knob travels the right way in both directions. */
     margin-inline-start: 0;
     transition: margin-inline-start 150ms ease-out;
@@ -53,6 +66,6 @@
   }
 
   button:disabled {
-    opacity: 0.38;
+    opacity: 0.4;
   }
 </style>

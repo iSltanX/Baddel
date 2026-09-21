@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Permissions for the settings and onboarding windows.",
   "windows": ["settings", "onboarding"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "core:window:allow-start-dragging"]
 }

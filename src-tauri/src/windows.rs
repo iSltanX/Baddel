@@ -78,7 +78,11 @@ pub fn open_onboarding_at(app: &AppHandle, step: Option<&str>) -> tauri::Result<
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
-        .title_bar_style(tauri::TitleBarStyle::Transparent)
+        // The page runs under the title bar, so the window is one colour top to bottom and
+        // exactly the size the design gives it. The strip the page leaves at the top is its
+        // drag region, and the traffic lights float over it.
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true)
         .visible(false)
         .theme(forced_theme())
         .build()?;

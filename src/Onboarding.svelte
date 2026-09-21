@@ -11,7 +11,6 @@
     app,
     convertText,
     finishOnboarding,
-    requestPermission,
     reveal,
     setShortcut,
     t,
@@ -51,23 +50,16 @@
     return () => void stop.then((unlisten) => unlisten())
   })
 
-  const primaryLabel = $derived(
-    step === 1
-      ? t('onboarding.next')
-      : step === 2
-        ? app.permission
-          ? t('onboarding.next')
-          : t('onboarding.openSystemSettings')
-        : t('onboarding.start'),
-  )
+  const primaryLabel = $derived(step === STEPS ? t('onboarding.start') : t('onboarding.next'))
+  /**
+   * One primary action per screen. While the permission is missing, that action is
+   * the card's own button, so "Next" steps back to a secondary one.
+   */
+  const primaryVariant = $derived(step === 2 && !app.permission ? 'secondary' : 'primary')
 
   function primary() {
-    if (step === 3) {
+    if (step === STEPS) {
       void finishOnboarding()
-      return
-    }
-    if (step === 2 && !app.permission) {
-      void requestPermission()
       return
     }
     step += 1
@@ -79,63 +71,59 @@
 </script>
 
 <div class="window">
-  <header></header>
-
-  {#if step > 1}
-    <button class="back" type="button" aria-label={t('common.cancel')} onclick={() => (step -= 1)}>
-      <!-- Flipped with the reading direction, unlike the glyphs on the keycaps. -->
-      <Icon name="chevron" size={18} flip />
-    </button>
-  {/if}
+  <!-- The window's title bar is an overlay: this empty strip is what shows through it,
+       and what the window is dragged by. The traffic lights float over it, on
+       whichever side macOS reads from. -->
+  <header data-tauri-drag-region></header>
 
   <main>
+    <div class="hero">
+      {#if step === 1}
+        <img src={iconUrl} alt="" width="104" height="104" />
+      {:else}
+        <span class="glyph"><Icon name={step === 2 ? 'accessibility' : 'keyboard'} size={32} /></span>
+      {/if}
+    </div>
+
+    <div class="heading">
+      <h1>{t(`onboarding.step${step}.title`)}</h1>
+      <p>{t(`onboarding.step${step}.body`)}</p>
+    </div>
+
     {#if step === 1}
-      <img src={iconUrl} alt="" width="72" height="72" />
-      <h1>{t('onboarding.step1.title')}</h1>
-      <p class="body">{t('onboarding.step1.body')}</p>
-      <div class="card samples">
-        <ConversionSample
-          from={t('onboarding.step1.sample1From')}
-          to={t('onboarding.step1.sample1To')}
-          size="hero"
-        />
-        <hr />
-        <ConversionSample
-          from={t('onboarding.step1.sample2From')}
-          to={t('onboarding.step1.sample2To')}
-          size="hero"
-        />
+      <div class="card">
+        <div class="shortcut-row">
+          <span>{t('onboarding.step1.shortcutLabel')}</span>
+          <span class="keys">
+            {#each toGlyphs(settings.shortcutConvert) as glyph (glyph)}
+              <Keycap label={glyph} size="m" />
+            {/each}
+          </span>
+        </div>
+        <div class="samples">
+          <ConversionSample from={t('onboarding.step1.sample1From')} to={t('onboarding.step1.sample1To')} size="hero" />
+          <ConversionSample from={t('onboarding.step1.sample2From')} to={t('onboarding.step1.sample2To')} size="hero" />
+        </div>
       </div>
     {:else if step === 2}
-      <h1>{t('onboarding.step2.title')}</h1>
-      <p class="body">{t('onboarding.step2.body')}</p>
-      <ul class="reassurance">
-        <li><Icon name="noEye" size={18} />{t('onboarding.step2.reassurance.noKeylogging')}</li>
-        <li><Icon name="noWifi" size={18} />{t('onboarding.step2.reassurance.noInternet')}</li>
-        <li><Icon name="noText" size={18} />{t('onboarding.step2.reassurance.noTextStorage')}</li>
+      <ul class="card reassurance">
+        <li><Icon name="noEye" />{t('onboarding.step2.reassurance.noKeylogging')}</li>
+        <li><Icon name="noWifi" />{t('onboarding.step2.reassurance.noInternet')}</li>
+        <li><Icon name="noSave" />{t('onboarding.step2.reassurance.noTextStorage')}</li>
       </ul>
       <div class="stretch"><PermissionCard /></div>
     {:else}
-      <h1>{t('onboarding.step3.title')}</h1>
-      <div class="recorder">
-        <ShortcutRecorder
-          value={settings.shortcutConvert}
-          {conflict}
-          label={t('settings.shortcuts.rows.convert')}
-          onrecord={async (accelerator) => (conflict = await setShortcut('convert', accelerator))}
-        />
-        <span class="caption">{t('onboarding.step3.recorderCaption')}</span>
-      </div>
-      <div class="card practice">
+      <div class="practice" class:converted>
         <input
-          class="field"
           bind:value={practice}
+          dir="auto"
           aria-label={t('onboarding.step3.title')}
           onkeydown={(event) => event.key === 'Enter' && tryIt()}
         />
+        {#if converted}<span class="done"><Icon name="checkCircle" size={22} /></span>{/if}
       </div>
       {#if converted}
-        <p class="success" role="status">
+        <p class="helper success" role="status">
           <Icon name="checkCircle" size={16} />
           {t('onboarding.step3.successMessage')}
         </p>
@@ -149,6 +137,20 @@
           </span>
         </p>
       {/if}
+      <div class="card your-shortcut">
+        <div class="text">
+          <span>{t('onboarding.step3.recorderLabel')}</span>
+          <span class="caption" class:warning={conflict}>
+            {conflict ? t('shortcut.recorder.conflict') : t('onboarding.step3.recorderCaption')}
+          </span>
+        </div>
+        <ShortcutRecorder
+          value={settings.shortcutConvert}
+          {conflict}
+          label={t('settings.shortcuts.rows.convert')}
+          onrecord={async (accelerator) => (conflict = await setShortcut('convert', accelerator))}
+        />
+      </div>
     {/if}
   </main>
 
@@ -159,63 +161,62 @@
         <span class="dot" class:active={index + 1 === step}></span>
       {/each}
     </div>
-    <Button variant="primary" size="large" onclick={primary}>{primaryLabel}</Button>
+    <div class="actions">
+      {#if step > 1}
+        <Button size="large" onclick={() => (step -= 1)}>{t('onboarding.back')}</Button>
+      {/if}
+      <Button variant={primaryVariant} size="large" onclick={primary}>{primaryLabel}</Button>
+    </div>
   </footer>
 </div>
 
 <style>
   .window {
-    position: relative;
     display: flex;
     flex-direction: column;
     height: 100vh;
   }
 
-  /* An empty strip under the transparent title bar. The traffic lights live there,
-     and macOS puts them on whichever side its own language reads from. */
   header {
-    height: 38px;
+    height: 28px;
     flex: none;
   }
 
-  /* Below that strip, so it cannot collide with them on either side. */
-  .back {
-    position: absolute;
-    top: 42px;
-    inset-inline-start: 14px;
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: var(--radius-control);
-    background: none;
-    color: var(--text-secondary);
-  }
-
-  .back:hover {
-    background: var(--overlay-hover);
-  }
-
+  /* Anchored to the top, so the title sits on the same line in every step. */
   main {
     display: flex;
     flex: 1;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 14px 44px;
+    padding: 8px 48px 24px;
     text-align: center;
     overflow-y: auto;
   }
 
-  /* Cards fill the width; headings and the icon stay centred on their own. */
-  .stretch {
-    width: 100%;
+  /* One fixed slot for the step's picture keeps the heading from jumping between steps. */
+  .hero {
+    display: grid;
+    place-items: center;
+    height: 96px;
+    flex: none;
   }
 
-  img {
-    border-radius: 16px;
+  .glyph {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-primary);
+  }
+
+  .heading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding-block: 16px 24px;
   }
 
   h1 {
@@ -224,128 +225,214 @@
     font-weight: 700;
   }
 
-  .body {
+  .heading p {
     margin: 0;
-    max-width: 42ch;
+    max-width: 464px;
     color: var(--text-secondary);
   }
 
-  .card {
+  /* Cards fill the width; headings and the picture stay centred on their own. */
+  .card,
+  .stretch,
+  .practice {
     width: 100%;
-    padding: 14px 16px;
+  }
+
+  .card {
+    margin: 0;
+    padding: 0;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-card);
     background: var(--bg-surface);
+    list-style: none;
+    overflow: hidden;
+    text-align: start;
+  }
+
+  .shortcut-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 48px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   .samples {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
   }
 
-  hr {
-    width: 100%;
-    margin: 0;
-    border: none;
-    border-top: 1px solid var(--border-subtle);
+  .samples > :global(*) {
+    flex: 1;
+    justify-content: center;
+    padding: 20px 8px;
   }
 
-  .reassurance {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .samples > :global(* + *) {
+    border-inline-start: 1px solid var(--border-subtle);
   }
 
   .reassurance li {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    min-height: 40px;
+    padding: 0 16px;
+    color: var(--text-primary);
+  }
+
+  .reassurance li :global(svg) {
     color: var(--text-secondary);
-    text-align: start;
   }
 
-  .recorder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
+  .reassurance li + li::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 46px 0;
+    height: 1px;
+    background: var(--border-subtle);
   }
 
-  .caption {
-    color: var(--text-secondary);
-    font-size: var(--size-small);
+  .stretch {
+    margin-top: 12px;
   }
 
+  /* The practice field is the step: big, focused, and it turns green when it worked. */
   .practice {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    height: 64px;
+    padding: 0 20px;
+    border: 1.5px solid var(--accent-primary);
+    border-radius: var(--radius-card);
+    background: var(--bg-surface);
+    box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
   }
 
-  .field {
+  .practice input {
     flex: 1;
     min-width: 0;
-    height: 32px;
-    padding-inline: 10px;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-control);
-    background: var(--bg-sunken);
-    font-size: var(--size-body);
+    border: none;
+    outline: none;
+    background: none;
+    box-shadow: none;
+    font-size: var(--size-sample);
+    line-height: var(--leading-sample);
+    font-weight: 700;
+    caret-color: var(--accent-primary);
     user-select: text;
   }
 
-  .helper,
-  .success {
+  .converted {
+    border-color: var(--state-success);
+    background: var(--state-success-soft);
+    box-shadow: none;
+  }
+
+  .converted input {
+    caret-color: var(--state-success);
+  }
+
+  .done {
+    display: grid;
+    color: var(--state-success);
+  }
+
+  .helper {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     margin: 0;
+    padding-block: 12px 20px;
     color: var(--text-secondary);
     font-size: var(--size-small);
+    line-height: var(--leading-small);
   }
 
   .success {
     color: var(--state-success);
+    font-size: var(--size-body);
+    line-height: var(--leading-body);
+    font-weight: 700;
   }
 
   .keys {
     display: inline-flex;
-    gap: 3px;
+    gap: 4px;
     direction: ltr;
   }
 
+  .helper .keys {
+    gap: 3px;
+  }
+
+  .your-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 10px 16px;
+  }
+
+  .your-shortcut .text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .caption {
+    color: var(--text-secondary);
+    font-size: var(--size-small);
+    line-height: var(--leading-small);
+  }
+
+  .warning {
+    color: var(--state-warning-text);
+  }
+
   footer {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
+    height: 68px;
     flex: none;
-    padding: 14px 20px;
+    padding: 0 20px;
     border-top: 1px solid var(--border-subtle);
   }
 
-  .dots {
+  .actions {
     display: flex;
-    gap: 5px;
+    gap: 8px;
+  }
+
+  /* Centred on the window, not between the buttons, so it holds still as they change. */
+  .dots {
+    position: absolute;
+    inset-inline: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    pointer-events: none;
   }
 
   .dot {
-    width: 10px;
-    height: 3px;
-    border-radius: 2px;
-    background: var(--border-subtle);
+    width: 8px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border-strong);
     transition: width 150ms ease-out;
   }
 
   .active {
-    width: 28px;
+    width: 24px;
     background: var(--accent-primary);
   }
 </style>

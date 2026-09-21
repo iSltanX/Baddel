@@ -9,6 +9,8 @@
   }
 
   const { info, first = false, onremove }: Props = $props()
+  /** An app that is not installed has no name of its own: its bundle id stands in, and the row says why. */
+  const unresolved = $derived(info.name === info.id)
 </script>
 
 <div class="row" class:first>
@@ -17,7 +19,12 @@
   {:else}
     <span class="fallback"><Icon name="appGeneric" size={20} /></span>
   {/if}
-  <span class="name">{info.name}</span>
+  <span class="text">
+    <bdi class="name">{info.name}</bdi>
+    {#if unresolved}
+      <span class="id">{t('settings.exceptions.notInstalled')}</span>
+    {/if}
+  </span>
   <!-- Always in the tab order; visible on hover or focus, as macOS does it. -->
   <button
     class="remove"
@@ -25,22 +32,37 @@
     aria-label="{t('common.remove')} — {info.name}"
     onclick={() => onremove(info.id)}
   >
-    <Icon name="close" size={14} />
+    <Icon name="close" size={12} />
   </button>
 </div>
 
 <style>
   .row {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     min-height: var(--row-height);
     padding: 6px 16px;
-    border-top: 1px solid var(--border-subtle);
+    transition: background-color 120ms ease-out;
   }
 
-  .first {
-    border-top: none;
+  .row:hover,
+  .row:focus-within {
+    background: var(--overlay-hover);
+  }
+
+  .row::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 52px 0;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  .first::before {
+    display: none;
   }
 
   img,
@@ -56,25 +78,43 @@
     color: var(--text-secondary);
   }
 
-  .name {
+  .text {
+    display: flex;
     flex: 1;
+    flex-direction: column;
     min-width: 0;
+  }
+
+  .name,
+  .id {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
+  .name {
+    font-size: 13px;
+    line-height: var(--leading-body);
+  }
+
+  .id {
+    color: var(--text-secondary);
+    font-size: var(--size-caption);
+    line-height: var(--leading-small);
+  }
+
   .remove {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
     flex: none;
     border: none;
-    border-radius: var(--radius-control);
-    background: none;
+    border-radius: 50%;
+    background: var(--overlay-pressed);
     color: var(--text-secondary);
     opacity: 0;
+    transition: opacity 120ms ease-out;
   }
 
   .row:hover .remove,
@@ -83,7 +123,6 @@
   }
 
   .remove:hover {
-    background: var(--overlay-hover);
     color: var(--state-danger);
   }
 </style>
