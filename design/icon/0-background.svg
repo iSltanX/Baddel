@@ -1,4 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A6485"/><stop offset="1" stop-color="#35485F"/></linearGradient></defs>
-  <rect width="1024" height="1024" fill="url(#bg)"/>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- Exported from Figma (Badeel · 03 App Icon · "Export / Icon Composer layers"). Full-bleed 1024, no mask, no effects, letters as outlines. Do not edit by hand: change the Figma master and re-export. -->
+<rect width="1024" height="1024" fill="url(#bg)"/>
+<defs>
+<linearGradient id="bg" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+<stop stop-color="#52709A"/>
+<stop offset="1" stop-color="#31445C"/>
+</linearGradient>
+</defs>
 </svg>

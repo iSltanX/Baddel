@@ -186,7 +186,7 @@ cargo clippy -p baddel-core -- -D warnings
 **يتوقف على المستخدم:** قرار التوقيع + اعتماد تصميم الأيقونة.
 
 **الخطوات**
-1. **الأيقونة:** تُرسم طبقات SVG يدويًا في `design/icon/` (`0-background` … `3-keycap-front`) حسب البرومبت 6 في المواصفة، وتُعرض على المستخدم لاعتمادها. ثم تُدمج في 1024px ← `npm run tauri icon` ← `.icns`. أيقونة tray بصيغة template (PNG أسود مع alpha، @1x/@2x) بحالاتها الثلاث.
+1. **الأيقونة:** ✅ **أُنجزت قبل المرحلة (2026-09-21) واعتمدها المستخدم.** مصدرها الوحيد صفحة `03 · App Icon` في ملف Figma المعتمد، وكل ما في `design/icon/` مُصدَّر منها (انظر [design/icon/README.md](design/icon/README.md)): `icon-macos-1024.png` ← `tauri icon` ← `.icns`، وطبقات `0-background` · `1-keycap-back` · `2-keycap-front`، وأيقونات tray الثلاث بصيغة template. **لا تُرسم من الكود.** يبقى للمرحلة 5 التحقق من الأيقونة داخل حزمة release فقط.
    - _اختياري لاحقًا:_ أيقونة Liquid Glass عبر Icon Composer. هذه تتطلب تجميع `Assets.car` بـ`actool` وإضافته للحزمة، وتُسجَّل فكرةً لما بعد v1.
 2. **التوقيع:**
    - Developer ID: متغيرات `APPLE_SIGNING_IDENTITY` و`APPLE_ID` و`APPLE_PASSWORD` و`APPLE_TEAM_ID` يضبطها المستخدم في بيئته بنفسه، **ولا تُكتب في أي ملف**. Tauri يتولى التوقيع وNotarization أثناء `tauri build`.
