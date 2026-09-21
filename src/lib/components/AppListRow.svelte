@@ -78,15 +78,19 @@
     color: var(--text-secondary);
   }
 
+  /* A Latin name is its own left-to-right run, but it still belongs beside the icon:
+     the run hugs its text and sits at the row's start, whichever side that is. */
   .text {
     display: flex;
     flex: 1;
     flex-direction: column;
+    align-items: flex-start;
     min-width: 0;
   }
 
   .name,
   .id {
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

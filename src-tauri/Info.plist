@@ -4,5 +4,15 @@
 <dict>
   <key>LSUIElement</key>
   <true/>
+  <!-- The languages the app speaks. Without this macOS assumes English only, and everything
+       it draws on our behalf (the open panel behind "Add app…", alerts, standard menu items)
+       comes up in English even on an Arabic system. -->
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>ar</string>
+    <string>en</string>
+  </array>
+  <key>CFBundleAllowMixedLocalizations</key>
+  <true/>
 </dict>
 </plist>

@@ -5,7 +5,7 @@
 //! menus take no custom views, so the status header and the hint are plain
 //! disabled items.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Mutex;
 
 use tauri::image::Image;
@@ -21,19 +21,54 @@ use crate::{settings, sync, windows};
 
 const TRAY_ID: &str = "main";
 const TRAY_ICON: &[u8] = include_bytes!("../icons/tray.png");
+const TRAY_ICON_PAUSED: &[u8] = include_bytes!("../icons/tray-paused.png");
+const TRAY_ICON_NEEDS_PERMISSION: &[u8] = include_bytes!("../icons/tray-needs-permission.png");
+
+/// Which drawing the menu bar icon shows, so the state reads without opening the menu.
+/// All three are template images: black and alpha only, tinted by the system.
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+enum Glyph {
+    Ready = 0,
+    Paused = 1,
+    NeedsPermission = 2,
+}
+
+impl Glyph {
+    /// The same precedence as the menu's header: a missing permission outranks a pause.
+    fn of(trusted: bool, paused: bool) -> Self {
+        match (trusted, paused) {
+            (false, _) => Self::NeedsPermission,
+            (_, true) => Self::Paused,
+            _ => Self::Ready,
+        }
+    }
+
+    fn bytes(self) -> &'static [u8] {
+        match self {
+            Self::Ready => TRAY_ICON,
+            Self::Paused => TRAY_ICON_PAUSED,
+            Self::NeedsPermission => TRAY_ICON_NEEDS_PERMISSION,
+        }
+    }
+}
 
 /// What the menu shows beyond the preferences: the permission and the last conversion.
 #[derive(Default)]
 pub struct TrayState {
     trusted: AtomicBool,
+    /// The glyph currently on the menu bar, so the icon is only replaced when it changes.
+    glyph: AtomicU8,
     /// The last conversion, for the "اثممخ ← hello · تراجع" item. Held in memory only,
     /// never written anywhere, and cleared as soon as undo is no longer offered.
     last: Mutex<Option<(String, String)>>,
 }
 
 pub fn build(app: &AppHandle) -> tauri::Result<TrayIcon> {
+    let glyph = current_glyph(app);
+    app.state::<TrayState>().glyph.store(glyph as u8, Ordering::SeqCst);
     let tray = TrayIconBuilder::with_id(TRAY_ID)
-        .icon(Image::from_bytes(TRAY_ICON)?)
+        .icon(Image::from_bytes(glyph.bytes())?)
         .icon_as_template(true)
         .tooltip(menu_text::strings(app.state::<AppState>().get().language).name)
         .menu(&menu(app)?)
@@ -65,8 +100,21 @@ pub fn rebuild(app: &AppHandle) {
         if let Ok(menu) = menu(&handle) {
             let _ = tray.set_menu(Some(menu));
         }
+        let glyph = current_glyph(&handle);
+        if handle.state::<TrayState>().glyph.swap(glyph as u8, Ordering::SeqCst) != glyph as u8 {
+            if let Ok(image) = Image::from_bytes(glyph.bytes()) {
+                let _ = tray.set_icon(Some(image));
+                // Replacing the image drops the template flag, and with it the system tint.
+                let _ = tray.set_icon_as_template(true);
+            }
+        }
         let _ = tray.set_visible(handle.state::<AppState>().get().show_tray_icon);
     });
+}
+
+fn current_glyph(app: &AppHandle) -> Glyph {
+    let trusted = app.state::<TrayState>().trusted.load(Ordering::SeqCst);
+    Glyph::of(trusted, app.state::<AppState>().get().paused)
 }
 
 fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
