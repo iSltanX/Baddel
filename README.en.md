@@ -15,7 +15,7 @@
 
 <sub>macOS 13 or later · Apple Silicon and Intel · Free and open source</sub>
 
-[The idea](#the-idea) · [How it works](#how-it-works) · [Features](#features) · [Install](#install) · [Usage](#usage) · [Screenshots](#screenshots) · [Technical details](#technical-details) · [العربية](README.md)
+[The idea](#the-idea) · [How it works](#how-it-works) · [Features](#features) · [Install](#install) · [Usage](#usage) · [Screenshots](#screenshots) · [Technical details](#technical-details) · [FAQ](#frequently-asked-questions) · [العربية](README.md)
 
 </div>
 
@@ -290,7 +290,9 @@ docs/                 Signing, the test matrix, screenshots, and images
 Changelog in [CHANGELOG.md](CHANGELOG.md).
 </details>
 
-### Frequently asked questions
+---
+
+## Frequently asked questions
 
 <details>
 <summary><strong>Why does macOS warn me the first time I open it?</strong></summary><br>
@@ -373,9 +375,13 @@ The code is licensed under [MIT](LICENSE) — © 2026 Sultan Al-Anzi. The **Cair
 
 <img src="src/assets/app-icon.png" alt="Baddel icon" width="96">
 
-**Designed & developed by Sultan**
+**Designed & developed by Sultan** · تصميم وتطوير: سلطان
 
-From the same maker: [Raff](https://github.com/iSltanX/Raff) · [Luma](https://github.com/iSltanX/Luma) · [Naffith](https://github.com/iSltanX/naffith)
+Website: [bysltan.com](https://www.bysltan.com)
+
+From the same maker<br>
+macOS apps: [Raff](https://github.com/iSltanX/Raff) · [Luma](https://github.com/iSltanX/Luma) · [Naffith](https://github.com/iSltanX/naffith)<br>
+Browser extensions: [SnRead](https://github.com/iSltanX/SnRead) · [SAWB](https://github.com/iSltanX/SAWB) · [Jusoor](https://github.com/iSltanX/Jusoor)
 
 <sub>[Changelog](CHANGELOG.md) · [Privacy](PRIVACY.md) · [العربية](README.md)</sub>
 

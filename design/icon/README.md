@@ -11,7 +11,6 @@ https://www.figma.com/design/le5J63MNuS9wV7kN8tYpsX/Badeel
 | `0-background.svg` · `1-keycap-back.svg` · `2-keycap-front.svg` | طبقات Icon Composer: 1024 كاملة بلا قناع ولا ظلال، والحروف outlines، مرقّمة من الخلف للأمام | الإطار `Export / Icon Composer layers` |
 | `icon-flat.svg` | الطبقات الثلاث مركّبة | الإطار نفسه |
 | `preview.png` | اختبار المقاسات 512…16، مع مقارنة النسخة الصغيرة | اللوحة `Icon / Sizes` |
-| `concepts/` | مفاهيم سابقة **مرفوضة**، محفوظة للمرجع فقط | — |
 
 ## الهندسة (موثّقة بالقياسات في لوحة `Icon / Construction grid`)
 

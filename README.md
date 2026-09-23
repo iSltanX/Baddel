@@ -17,7 +17,7 @@
 
 <sub>مجاني ومفتوح المصدر · macOS 13 أو أحدث · Apple Silicon وIntel</sub>
 
-[الفكرة](#الفكرة) · [طريقة العمل](#طريقة-العمل) · [الميزات](#الميزات) · [التثبيت](#التثبيت) · [الاستخدام](#الاستخدام) · [لقطات الشاشة](#لقطات-الشاشة) · [معلومات تقنية](#معلومات-تقنية) · [English](README.en.md)
+[الفكرة](#الفكرة) · [طريقة العمل](#طريقة-العمل) · [الميزات](#الميزات) · [التثبيت](#التثبيت) · [الاستخدام](#الاستخدام) · [لقطات الشاشة](#لقطات-الشاشة) · [معلومات تقنية](#معلومات-تقنية) · [الأسئلة المتكررة](#الأسئلة-المتكررة) · [English](README.en.md)
 
 </div>
 
@@ -295,7 +295,9 @@
 سجل التغييرات في [CHANGELOG.md](CHANGELOG.md).
 </details>
 
-### أسئلة متكررة
+---
+
+## الأسئلة المتكررة
 
 <details>
 <summary><strong>لماذا يحذّرني macOS حين أفتحه أول مرة؟</strong></summary><br>
@@ -380,7 +382,11 @@
 
 **تصميم وتطوير: سلطان** · Designed & developed by Sultan
 
-من الصانع نفسه: [رفّ](https://github.com/iSltanX/Raff) · [Luma](https://github.com/iSltanX/Luma) · [نفّذ](https://github.com/iSltanX/naffith)
+الموقع: [bysltan.com](https://www.bysltan.com)
+
+من الصانع نفسه<br>
+تطبيقات macOS: [رفّ](https://github.com/iSltanX/Raff) · [Luma](https://github.com/iSltanX/Luma) · [نفّذ](https://github.com/iSltanX/naffith)<br>
+إضافات المتصفح: [SnRead](https://github.com/iSltanX/SnRead) · [صَوْب](https://github.com/iSltanX/SAWB) · [جسور](https://github.com/iSltanX/Jusoor)
 
 <sub>[سجل التغييرات](CHANGELOG.md) · [الخصوصية](PRIVACY.md) · [English](README.en.md)</sub>
 
