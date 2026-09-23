@@ -16,17 +16,35 @@ sleep 1
 open -g --stderr "$BADDEL_LOG" target/debug/bundle/macos/Baddel.app
 sleep 4
 
+# `open -b <id> <file-url>#field` drops the fragment, so the page would always focus the
+# textarea: open tabs through each browser's own dictionary instead. AppleScript's `activate`
+# no longer reliably brings an app forward, so `open -b` does that.
+open_page() { # <app name> <bundle id> <url>
+  if [ "$1" = Safari ]; then
+    osascript -e "tell application \"Safari\"
+      if (count of windows) = 0 then make new document
+      tell front window to set current tab to (make new tab with properties {URL:\"$3\"})
+    end tell" >/dev/null
+  else
+    osascript -e "tell application \"$1\"
+      if (count of windows) = 0 then make new window
+      tell front window to make new tab with properties {URL:\"$3\"}
+    end tell" >/dev/null
+  fi
+  open -b "$2"
+}
+
 osascript -e 'tell application "TextEdit" to make new document' >/dev/null
 python3 "$HERE/matrix.py" TextEdit com.apple.TextEdit
-for app in "Safari:com.apple.Safari" "Brave:com.brave.Browser" "Chrome:com.google.Chrome"; do
-  name=${app%%:*} id=${app#*:}
+for app in "Safari:Safari:com.apple.Safari" "Brave:Brave Browser:com.brave.Browser" "Chrome:Google Chrome:com.google.Chrome"; do
+  IFS=: read -r name app_name id <<< "$app"
   [ -n "$(mdfind "kMDItemCFBundleIdentifier == '$id'" | head -1)" ] || { echo "$name: not installed"; continue; }
   for field in ta ce; do
-    open -b "$id" "$PAGE#$field"
+    open_page "$app_name" "$id" "$PAGE#$field"
     sleep 2.5
     python3 "$HERE/matrix.py" "$name#$field" "$id"
   done
-  open -b "$id" "$PAGE#pw"
+  open_page "$app_name" "$id" "$PAGE#pw"
   sleep 2.5
   python3 "$HERE/matrix.py" "$name#password" "$id" --expect Blocked
 done

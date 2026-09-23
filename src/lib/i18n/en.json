@@ -177,6 +177,7 @@
     "upToDateBody": "You have the latest version ({current}).",
     "checkFailedTitle": "Couldn’t Check for Updates",
     "installFailedTitle": "Couldn’t Install the Update",
-    "failedBody": "Check your internet connection, then try again."
+    "failedBody": "Check your internet connection, then try again.",
+    "ok": "OK"
   }
 }

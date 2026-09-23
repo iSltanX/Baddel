@@ -142,8 +142,13 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
     if let Some((from, to)) = state.last.lock().unwrap().clone() {
-        let arrow = if settings.language == settings::Language::Ar { '←' } else { '→' };
-        menu.append(&item(app, "last", &format!("{from} {arrow} {to}"), false)?)?;
+        // The line takes its direction from its first letter, so an Arabic original turned the
+        // English line right-to-left ("hello → اثممخ") and a Latin one the Arabic line
+        // left-to-right. Pin it to the interface language and isolate each side.
+        let (mark, arrow) =
+            if settings.language == settings::Language::Ar { ('\u{200F}', '←') } else { ('\u{200E}', '→') };
+        let line = format!("{mark}\u{2068}{from}\u{2069} {arrow} \u{2068}{to}\u{2069}");
+        menu.append(&item(app, "last", &line, false)?)?;
         menu.append(&item(app, "undo", text.undo, live)?)?;
         menu.append(&PredefinedMenuItem::separator(app)?)?;
     }
@@ -175,7 +180,9 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 fn hint(app: &AppHandle, text: &str) -> String {
     let settings = app.state::<AppState>().get();
     match crate::shortcuts::glyphs(&settings.shortcut_convert) {
-        Some(glyphs) => format!("{glyphs} — {text}"),
+        // Isolated left-to-right: in an Arabic menu the neutral ⌥⇧ glyphs would otherwise
+        // be reordered, and the shortcut would read "Space⇧⌥".
+        Some(glyphs) => format!("\u{2066}{glyphs}\u{2069} — {text}"),
         None => text.to_string(),
     }
 }

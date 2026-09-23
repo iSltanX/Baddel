@@ -4,7 +4,7 @@ use std::ffi::c_void;
 use std::ptr::NonNull;
 
 use objc2::MainThreadMarker;
-use objc2_app_kit::{NSApplication, NSWindow};
+use objc2_app_kit::{NSApplication, NSApplicationActivationOptions, NSWindow, NSWorkspace};
 
 /// The height of a window's title bar, in points.
 ///
@@ -28,7 +28,18 @@ pub fn title_bar_height(ns_window: *mut c_void) -> f64 {
 /// A window that really wants focus asks for it itself, in `windows::focus`.
 pub fn resign_activation() {
     let Some(mtm) = MainThreadMarker::new() else { return };
-    NSApplication::sharedApplication(mtm).deactivate();
+    let app = NSApplication::sharedApplication(mtm);
+    app.deactivate();
+    if !app.isActive() {
+        return;
+    }
+    // `deactivate` alone can leave the app active, holding the keys with no window to type
+    // in (seen with a system permission prompt waiting on screen). The app the user is in
+    // still owns the menu bar: hand it the keys directly.
+    let Some(owner) = NSWorkspace::sharedWorkspace().menuBarOwningApplication() else { return };
+    if owner.processIdentifier() != std::process::id() as i32 {
+        owner.activateWithOptions(NSApplicationActivationOptions::empty());
+    }
 }
 
 /// Brings the app forward for a dialog it shows with no window of its own (the update

@@ -31,6 +31,8 @@ const SELECTION_SETTLE: Duration = Duration::from_millis(40);
 /// How long we keep looking for the selection a key press should have produced. Apps handle
 /// the key asynchronously; reading too early sees "nothing selected".
 const SELECTION_TIMEOUT: Duration = Duration::from_millis(300);
+/// How long an accessibility write may take to show up in the text before we call it dropped.
+const WRITE_SETTLE: Duration = Duration::from_millis(100);
 /// Time for an app to consume ⌘V before we put the user's pasteboard back.
 const PASTE_SETTLE: Duration = Duration::from_millis(200);
 /// How long a Chromium/Electron app gets to build its accessibility tree after we ask for it.
@@ -230,6 +232,15 @@ impl Controller {
             if layouts.current_is_arabic { Direction::ArabicToLatin } else { Direction::LatinToArabic };
         let cx = Context { map: &map, layouts: &layouts, expected, switch_input_source: settings.switch_input_source };
         let mut target = Target { focused: self.focused_element(), method: Method::Accessibility, saved: None };
+        if target.focused.as_ref().is_some_and(Focused::is_secure) {
+            return Outcome::Blocked;
+        }
+        // A stand-in says "caret at 0, nothing selected" whatever is really there (Figma's
+        // canvas text). Believing it means never converting; the keyboard knows.
+        if target.focused.as_ref().is_some_and(Focused::is_stand_in) {
+            trace!("focused element is a stand-in, using the keyboard");
+            target.method = Method::Pasteboard;
+        }
         // Debug aid: exercise the key-based path in apps that would never need it.
         #[cfg(debug_assertions)]
         if std::env::var_os("BADDEL_FORCE_KEYS").is_some() {
@@ -428,6 +439,9 @@ impl Controller {
         }
         keysynth::wait_for_modifiers_released(MODIFIER_RELEASE_TIMEOUT);
         let mut target = Target { focused: Focused::get(), method: Method::Accessibility, saved: None };
+        if target.focused.as_ref().is_some_and(Focused::is_secure) {
+            return Outcome::Failed;
+        }
         let outcome = self.undo_in(&mut target, &last);
         if let Some(saved) = &target.saved {
             pasteboard::restore(saved);
@@ -612,6 +626,25 @@ impl Target {
     /// Selects `word` through the text range, replaces it, and puts the caret back where it
     /// was relative to the text after it (the user may have typed a space after the word).
     fn replace_range(&mut self, word: &Word, replacement: &str, caret: usize) -> bool {
+        if !self.select_word(word) || !self.write(&word.text, replacement) {
+            return false;
+        }
+        if self.method == Method::Accessibility && self.write_dropped(word, replacement) {
+            trace!("accessibility write dropped, pasting instead");
+            self.method = Method::Pasteboard;
+            if !self.select_word(word) || !self.write(&word.text, replacement) {
+                return false;
+            }
+        }
+        let new_caret = (caret + utf16_len(replacement)).saturating_sub(word.len).max(word.start);
+        // Best effort: a misplaced caret is not a failed conversion.
+        if let Some(focused) = self.focused.as_ref() {
+            focused.select_range(new_caret, 0);
+        }
+        true
+    }
+
+    fn select_word(&self, word: &Word) -> bool {
         let Some(focused) = self.focused.as_ref() else { return false };
         if !focused.select_range(word.start, word.len) {
             return false;
@@ -625,15 +658,24 @@ impl Target {
             }
             sleep(Duration::from_millis(10));
         }
-        if !self.write(&word.text, replacement) {
-            return false;
-        }
-        let new_caret = (caret + utf16_len(replacement)).saturating_sub(word.len).max(word.start);
-        // Best effort: a misplaced caret is not a failed conversion.
-        if let Some(focused) = self.focused.as_ref() {
-            focused.select_range(new_caret, 0);
-        }
         true
+    }
+
+    /// Whether an accessibility write was accepted and then thrown away (ProseMirror in
+    /// Electron does this for some replacements). Only when the original is provably still in
+    /// place is it safe to write again; anything else counts as landed, so nothing is doubled.
+    fn write_dropped(&self, word: &Word, replacement: &str) -> bool {
+        let Some(focused) = self.focused.as_ref() else { return false };
+        let deadline = Instant::now() + WRITE_SETTLE;
+        loop {
+            if focused.string_for_range(word.start, utf16_len(replacement)).as_deref() == Some(replacement) {
+                return false;
+            }
+            if Instant::now() >= deadline {
+                return focused.string_for_range(word.start, word.len).as_deref() == Some(word.text.as_str());
+            }
+            sleep(Duration::from_millis(10));
+        }
     }
 
     /// Replaces the selection (`original`) with `result`.

@@ -1,3 +1,5 @@
+<div dir="rtl">
+
 <div align="center">
 
 <picture>
@@ -9,15 +11,15 @@
 
 [التثبيت](#التثبيت) · [كيف يعمل](#كيف-يعمل) · [الخصوصية](#الخصوصية) · [الأسئلة](#أسئلة-متكررة) · [English](README.en.md)
 
-[![الإصدار](https://img.shields.io/github/v/release/iSltanX/Baddel?label=%D8%A7%D9%84%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1&color=3F5673&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
+[![Release](https://img.shields.io/github/v/release/iSltanX/Baddel?label=release&color=3F5673&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Universal-1C1917?style=flat-square)](#المتطلبات)
-[![محلي بالكامل](https://img.shields.io/badge/%D9%85%D8%AD%D9%84%D9%8A%20%D8%A8%D8%A7%D9%84%D9%83%D8%A7%D9%85%D9%84-%D8%A8%D9%84%D8%A7%20%D8%B4%D8%A8%D9%83%D8%A9-5F7F52?style=flat-square)](#الخصوصية)
-[![الواجهة](https://img.shields.io/badge/%D8%A7%D9%84%D9%88%D8%A7%D8%AC%D9%87%D8%A9-%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9%20%C2%B7%20English-3F5673?style=flat-square)](#لماذا-بدّل)
-[![الرخصة: MIT](https://img.shields.io/badge/%D8%A7%D9%84%D8%B1%D8%AE%D8%B5%D8%A9-MIT-6B665E?style=flat-square)](LICENSE)
+[![Local only](https://img.shields.io/badge/local--only-no%20network-5F7F52?style=flat-square)](#الخصوصية)
+[![UI](https://img.shields.io/badge/UI-Arabic%20%C2%B7%20English-3F5673?style=flat-square)](#لماذا-بدّل)
+[![License: MIT](https://img.shields.io/badge/license-MIT-6B665E?style=flat-square)](LICENSE)
 
 ### [⬇︎ تنزيل أحدث إصدار](https://github.com/iSltanX/Baddel/releases/latest)
 
-<sub>macOS 13 أو أحدث · Apple Silicon وIntel · مجاني ومفتوح المصدر</sub>
+<sub>مجاني ومفتوح المصدر · macOS 13 أو أحدث · Apple Silicon وIntel</sub>
 
 </div>
 
@@ -27,7 +29,7 @@
 
 كل من يكتب بلغتين يعرف هذه اللحظة: تكتب جملة كاملة، ثم ترفع عينك فتجد «اثممخ صخقمي» بدل `hello world`، أو `sghl ugd;l` بدل «سلام عليكم». لوحة المفاتيح كانت على التخطيط الآخر.
 
-**بدّل** أداة صغيرة في شريط القوائم تصلح هذا دون حذف ولا إعادة كتابة. اضغط <kbd>⌥</kbd><kbd>⇧</kbd><kbd>Space</kbd>، فيُستبدل النص بما قصدته في مكانه، في أي تطبيق تقريبًا، وينتقل مصدر الإدخال إلى اللغة الصحيحة لتكمل الكتابة مباشرة.
+**بدّل** أداة صغيرة في شريط القوائم تصلح هذا دون حذف ولا إعادة كتابة. اضغط <span dir="ltr"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>Space</kbd></span>، فيُستبدل النص بما قصدته في مكانه، في أي تطبيق تقريبًا، وينتقل مصدر الإدخال إلى اللغة الصحيحة لتكمل الكتابة مباشرة.
 
 <!-- GIF العرض يُوضع هنا حين يُسجَّل: docs/assets/demo.gif — السيناريو والمقاسات في docs/launch/demo-gif.md -->
 <div align="center">
@@ -52,13 +54,14 @@
 | --- | --- |
 | اثممخ صخقمي | `hello world` |
 | `sghl ugd;l` | سلام عليكم |
-| `;dt hgphg?` | كيف الحال؟ |
-| صاغ؟ | `why?` |
+| <span dir="ltr">`;dt hgphg?`</span> | كيف الحال؟ |
+| صاغ؟ | <span dir="ltr">`why?`</span> |
 | اثممخ صخقمي ok | `hello world ok` |
 
 ### مفتاح «لا»
 
 في تخطيط **Arabic‑PC** يكتب مفتاح <kbd>B</kbd> حرفين معًا: «لا». فإذا وجد بدّل «لا» في كلمة إنجليزية مكتوبة خطأً، لا يعرف أكنت تقصد `b` أم `gh`. يحسم ذلك بقائمة من 45 ألف كلمة إنجليزية مضمَّنة في التطبيق: «ىهلاف» تصير `night`، لا `nibt`.
+
 وفي تخطيط **Arabic** (Mac) تُكتب «لا» بمفتاحين، فلا التباس: «مهلاف» تصير `light`.
 
 ---
@@ -68,7 +71,7 @@
 - **في أي تطبيق تقريبًا.** يقرأ النص ويستبدله عبر واجهة تسهيلات الاستخدام في macOS. وحين لا يكشف التطبيق نصّه، يلجأ إلى النسخ واللصق.
 - **يعرف تخطيطاتك.** لا يعتمد على جدول ثابت، بل يبني الخريطة من التخطيطين المفعّلين عندك في macOS، مفتاحًا مفتاحًا.
 - **الحافظة كما تركتها.** بعد كل تحويل تعود كاملةً، نصًّا كانت أو صورة. وما يمرّ فيها مؤقتًا يُوسَم بوسمَي [nspasteboard.org](http://nspasteboard.org)، فتتجاهله مديرات الحافظة التي تحترمهما، ومنها [رفّ](https://github.com/iSltanX/Raff).
-- **سريع.** 23–85ms للتحويل في التطبيقات المختبرة: TextEdit وNotes وSafari وChrome وBrave.
+- **سريع.** يستغرق التحويل من 7 إلى 95 ملّي ثانية في معظم التطبيقات المختبرة: TextEdit وNotes وSafari وChrome وBrave وLuma وClaude. أما Mail وFigma، ولا يكشفان نص الحقل، فيمرّ فيهما عبر لوحة المفاتيح في 0.3 إلى 1.2 ثانية.
 - **لا يراقب ما تكتب.** لا يطلب مراقبة الإدخال (Input Monitoring)، ولا يقرأ شيئًا قبل أن تضغط الاختصار، ولا يحفظ أي نص.
 - **خفيف.** نحو 15MB من الذاكرة في الخمول. نافذتا الإعدادات والترحيب تُنشآن عند فتحهما وتُهدمان عند الإغلاق.
 - **عربي أولًا.** واجهة من اليمين إلى اليسار بخطَّي Cairo وAlmarai، ونسخة إنجليزية كاملة، ووضعان فاتح وداكن يتبعان النظام.
@@ -79,7 +82,7 @@
 
 <table>
   <tr>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-1-ar-dark.png">
         <img alt="الترحيب: كتبتها باللغة الخطأ؟ بدّلها." src="docs/screenshots/onboarding-1-ar-light.png" width="100%">
@@ -87,7 +90,7 @@
       <b>الترحيب</b><br>
       ثلاث خطوات: الفكرة، ثم الصلاحية، ثم تجربة حقيقية باختصارك.
     </td>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-2-ar-dark.png">
         <img alt="صلاحية واحدة فقط" src="docs/screenshots/onboarding-2-ar-light.png" width="100%">
@@ -96,8 +99,20 @@
       تسهيلات الاستخدام، وسببها مكتوب قبل أن تمنحها. والبطاقة تتحقق منها حيًّا.
     </td>
   </tr>
+</table>
+
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-layouts-ar-dark.png">
+    <img alt="الإعدادات: التخطيطات وخريطة المفاتيح" src="docs/screenshots/settings-layouts-ar-light.png" width="72%">
+  </picture><br>
+  <b>التخطيطات</b><br>
+  التخطيطان المستخدمان في التحويل، وخريطة المفاتيح كما يراها بدّل.
+</div>
+
+<table>
   <tr>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-general-ar-dark.png">
         <img alt="الإعدادات: عام" src="docs/screenshots/settings-general-ar-light.png" width="100%">
@@ -105,17 +120,17 @@
       <b>عام</b><br>
       التشغيل عند الدخول، وتبديل اللغة بعد التحويل، والإشعار، والتحديثات.
     </td>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-layouts-ar-dark.png">
-        <img alt="الإعدادات: التخطيطات" src="docs/screenshots/settings-layouts-ar-light.png" width="100%">
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-about-ar-dark.png">
+        <img alt="الإعدادات: حول" src="docs/screenshots/settings-about-ar-light.png" width="100%">
       </picture><br>
-      <b>التخطيطات</b><br>
-      التخطيطان المستخدمان في التحويل، وخريطة المفاتيح كما يراها بدّل.
+      <b>حول</b><br>
+      الإصدار، والروابط، و«من الصانع نفسه».
     </td>
   </tr>
   <tr>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-shortcuts-ar-dark.png">
         <img alt="الإعدادات: الاختصارات" src="docs/screenshots/settings-shortcuts-ar-light.png" width="100%">
@@ -123,7 +138,7 @@
       <b>الاختصارات</b><br>
       ثلاثة اختصارات عامة، ويُنبَّه على أي اختصار يستخدمه تطبيق آخر.
     </td>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-exceptions-ar-dark.png">
         <img alt="الإعدادات: الاستثناءات" src="docs/screenshots/settings-exceptions-ar-light.png" width="100%">
@@ -133,11 +148,10 @@
     </td>
   </tr>
 </table>
-
 <div align="center">
-  <img alt="تم التراجع" src="docs/screenshots/hud-undone-ar.png" width="30%">
-  <img alt="حقل محمي — لم يُحوَّل شيء" src="docs/screenshots/hud-blocked-ar.png" width="30%">
-  <img alt="لا يوجد نص لتحويله" src="docs/screenshots/hud-no-text-ar.png" width="30%"><br>
+  <img alt="تم التراجع" src="docs/screenshots/hud-undone-ar.png" height="48">
+  <img alt="حقل محمي — لم يُحوَّل شيء" src="docs/screenshots/hud-blocked-ar.png" height="48">
+  <img alt="لا يوجد نص لتحويله" src="docs/screenshots/hud-no-text-ar.png" height="48"><br>
   <sub>حالات الإشعار: التراجع، والحقل المحمي، ولا نص.</sub>
 </div>
 
@@ -149,11 +163,11 @@
 
 | الإجراء | الافتراضي |
 | --- | --- |
-| حوّل التحديد أو آخر كلمة | <kbd>⌥</kbd><kbd>⇧</kbd><kbd>Space</kbd> |
+| حوّل التحديد أو آخر كلمة | <span dir="ltr"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>Space</kbd></span> |
 | مُدّ التحويل كلمةً أخرى إلى الوراء | الاختصار نفسه مرة ثانية خلال ثانيتين |
 | تراجع عن آخر تحويل | بلا اختصار افتراضي: عيّنه من **الإعدادات ← الاختصارات**، أو استخدم «تراجع» في القائمة |
 | أوقف بدّل مؤقتًا | بلا اختصار افتراضي، أو من القائمة |
-| الإعدادات | <kbd>⌘</kbd><kbd>,</kbd> من القائمة |
+| الإعدادات | <span dir="ltr"><kbd>⌘</kbd><kbd>,</kbd></span> من القائمة |
 
 إن كان الاختصار الذي تسجّله مستخدمًا في تطبيق آخر، يخبرك المسجِّل ويُبقي اختصارك السابق، فلا تبقى بلا اختصار.
 
@@ -161,26 +175,30 @@
 
 ## التثبيت
 
-1. نزّل `Baddel_<الإصدار>_universal.dmg` من [صفحة الإصدارات](https://github.com/iSltanX/Baddel/releases/latest).
+1. نزّل ملف `Baddel_…_universal.dmg` من [صفحة الإصدارات](https://github.com/iSltanX/Baddel/releases/latest).
 2. افتحه واسحب **Baddel** إلى مجلد **التطبيقات**.
 3. شغّل بدّل. في المرة الأولى يظهر تحذير Gatekeeper، وطريقة تجاوزه في التنبيه أدناه.
 4. تظهر شاشة الترحيب: امنح صلاحية **تسهيلات الاستخدام** في الخطوة الثانية، ثم جرّب الاختصار في الخطوة الثالثة.
 
+</div>
+
 > [!IMPORTANT]
 > **تنبيه Gatekeeper:** بدّل موقَّع بشهادة ذاتية ثابتة، لا بشهادة Apple Developer ID، ولم يمرّ بتوثيق Apple (Notarization)، لأنه مشروع شخصي. لذلك يرفض macOS فتحه أول مرة ويقول إن المطوّر غير معروف.
 >
-> - **macOS 15 فما بعد:** حاول فتحه مرة، ثم افتح **إعدادات النظام ← الخصوصية والأمن** (Privacy & Security)، وانزل إلى الرسالة عن Baddel، واضغط **افتح على أي حال** (Open Anyway).
-> - **macOS 13 و14:** في Finder انقر على Baddel بالزر الأيمن ← **فتح** ← **فتح**.
+> - **في macOS 15 فما بعد:** حاول فتحه مرة، ثم افتح **إعدادات النظام ← الخصوصية والأمن** (Privacy & Security)، وانزل إلى الرسالة عن Baddel، واضغط **افتح على أي حال** (Open Anyway).
+> - **في macOS 13 و14:** في Finder انقر على Baddel بالزر الأيمن ← **فتح** ← **فتح**.
 >
 > تكفي مرة واحدة. وإن استمر المنع، فمن الطرفية:
 > ```sh
 > xattr -dr com.apple.quarantine /Applications/Baddel.app
 > ```
 
+<div dir="rtl">
+
 ### المتطلبات
 
-- macOS 13 (Ventura) أو أحدث. مُختبَر على **macOS 27**.
-- Apple Silicon أو Intel (حزمة Universal واحدة).
+- نظام macOS 13 (Ventura) أو أحدث، ومُختبَر على **macOS 27**.
+- معالج Apple Silicon أو Intel، بحزمة Universal واحدة.
 - تخطيط عربي مفعّل في **إعدادات النظام ← لوحة المفاتيح ← مصادر الإدخال**. إن لم يجد بدّل تخطيطًا عربيًا، يعمل بخريطة Arabic (Mac) مضمَّنة، وتنبّهك لوحة التخطيطات.
 
 ---
@@ -205,8 +223,8 @@
 - **لا يحفظ أي نص،** لا على القرص ولا في سجل. آخر تحويل يبقى في الذاكرة 30 ثانية ليمكن التراجع عنه، ثم يُمحى.
 - **الحافظة تعود كما كانت** بعد كل تحويل، وما يمرّ فيها موسوم بأنه مؤقت وسرّي.
 - **لا شبكة** إلا للتحقق من التحديثات: طلب واحد لملف `latest.json` من صفحة إصدارات هذا المستودع، مرة في اليوم. لا يحمل شيئًا عنك ولا عن نصّك، ويصل GitHub منه ما يصله من أي تنزيل عادي. ويمكن إيقافه من **الإعدادات ← عام**.
-- **لا حساب، ولا تحليلات، ولا تتبّع.** والواجهة لا تطلب أي مورد خارجي: الخطوط مضمَّنة، وسياسة المحتوى `default-src 'self'`.
-- **الحقول المحمية لا تُمسّ:** حين يفعّل macOS الإدخال الآمن (Secure Input)، في حقول كلمات المرور مثلًا، لا يقرأ بدّل شيئًا ولا يكتب شيئًا.
+- **لا حساب، ولا تحليلات، ولا تتبّع.** والواجهة لا تطلب أي مورد خارجي: الخطوط مضمَّنة، وسياسة المحتوى <span dir="ltr">`default-src 'self'`</span>.
+- **الحقول المحمية لا تُمسّ:** في حقل كلمة مرور، أو حين يفعّل macOS الإدخال الآمن (Secure Input)، لا يقرأ بدّل شيئًا ولا يكتب شيئًا.
 
 التفاصيل في [PRIVACY.md](PRIVACY.md).
 
@@ -224,8 +242,8 @@
 
 | الحالة | التطبيقات |
 | --- | --- |
-| **مُختبَر على الجهاز** | TextEdit · Safari · Chrome · Brave، في حقول النص العادية والمحرّرة (`textarea` و`contenteditable`): التحديد وآخر كلمة والمدّ، والحافظة تعود كما كانت في كل مرة. وNotes: آخر كلمة. |
-| **لم يُختبر بعد** | Mail · تطبيقات Electron (Slack وVS Code وDiscord) · Figma · Spotlight. المسار موجود لها، لكننا لا ندّعي ما لم نشغّله. |
+| **مُختبَر على الجهاز** | TextEdit · Notes · Mail (نافذة رسالة جديدة) · Safari · Chrome · Brave (في `textarea` و`contenteditable`) · Claude (تطبيق Electron) · Luma (تطبيق Tauri) · Figma (نص على اللوحة): التحديد وآخر كلمة والمدّ، والحافظة تعود كما كانت في كل مرة. وحقول كلمات المرور في المتصفحات الثلاثة لا تُمسّ. |
+| **لم يُختبر بعد** | تطبيقات Electron الأخرى (Slack وVS Code وDiscord) · Spotlight. المسار موجود لها، لكننا لا ندّعي ما لم نشغّله. |
 | **مستثنى عمدًا** | الطرفيات (Terminal وiTerm وWarp وGhostty وkitty وAlacritty وWezTerm)، ومديرو كلمات المرور (Keychain Access وPasswords و1Password وBitwarden وKeePassXC وEnpass). تُدار من **الإعدادات ← الاستثناءات**. |
 
 النتائج والأزمنة بالتفصيل في [docs/test-matrix.md](docs/test-matrix.md).
@@ -267,7 +285,7 @@
 <details>
 <summary><strong>وحقول كلمات المرور؟</strong></summary><br>
 
-لا يلمسها. حين يكون الإدخال الآمن (Secure Input) مفعّلًا يتوقف بدّل ويعرض «حقل محمي — لم يُحوَّل شيء»، دون أن يقرأ النص أو يمسّ الحافظة. ومديرو كلمات المرور مستثناة افتراضيًا أيضًا.
+لا يلمسها. في حقل كلمة مرور، أو حين يكون الإدخال الآمن (Secure Input) مفعّلًا، يتوقف بدّل ويعرض «حقل محمي — لم يُحوَّل شيء»، دون أن يقرأ النص أو يمسّ الحافظة. ولا يعتمد على الإدخال الآمن وحده، فبعض المتصفحات (Safari) لا تفعّله في حقول كلمات المرور. ومديرو كلمات المرور مستثناة افتراضيًا أيضًا.
 </details>
 
 <details>
@@ -293,7 +311,7 @@
 
 1. أطفئ **تشغيل عند تسجيل الدخول** من **الإعدادات ← عام** إن كنت فعّلته، ثم **إنهاء بدّل** من القائمة.
 2. احذف **Baddel** من مجلد التطبيقات.
-3. احذف مجلد الإعدادات: `~/Library/Application Support/com.isltanx.baddel/`
+3. احذف مجلد الإعدادات: <span dir="ltr">`~/Library/Application Support/com.isltanx.baddel/`</span>
 4. أزل «بدّل» من **إعدادات النظام ← الخصوصية والأمن ← تسهيلات الاستخدام**.
 </details>
 
@@ -301,37 +319,36 @@
 
 ## للمطوّرين
 
-**المتطلبات:** macOS 13+، وأدوات سطر أوامر Xcode، وRust (stable)، وNode 20+ مع npm.
+**المتطلبات:** macOS 13 أو أحدث، وأدوات سطر أوامر Xcode، وRust (stable)، وNode 20 أو أحدث مع npm.
 
-```sh
-npm install
-./scripts/check.sh              # اختبارات النواة + clippy + svelte-check + بناء الواجهة
-cargo test -p baddel-core       # النواة وحدها
-npm run dev                     # الواجهة في المتصفح، مع بدائل وهمية لأوامر Rust
-./scripts/dev-build.sh          # حزمة debug موقَّعة في target/debug/bundle/macos/
-./scripts/release.sh <version>  # إصدار Universal موقَّع: DMG وحزمة التحديث وlatest.json
-```
+| الأمر | ما يفعله |
+| --- | --- |
+| <span dir="ltr">`npm install`</span> | يثبّت اعتماديات الواجهة |
+| <span dir="ltr">`./scripts/check.sh`</span> | اختبارات النواة، وclippy، وsvelte-check، وبناء الواجهة |
+| <span dir="ltr">`cargo test -p baddel-core`</span> | اختبارات النواة وحدها |
+| <span dir="ltr">`npm run dev`</span> | الواجهة في المتصفح، مع بدائل وهمية لأوامر Rust |
+| <span dir="ltr">`./scripts/dev-build.sh`</span> | حزمة debug موقَّعة في <span dir="ltr">`target/debug/bundle/macos/`</span> |
+| <span dir="ltr">`./scripts/release.sh <version>`</span> | إصدار Universal موقَّع: DMG وحزمة التحديث و<span dir="ltr">`latest.json`</span> |
 
-صلاحية تسهيلات الاستخدام مربوطة بتوقيع التطبيق، فحزمة غير موقَّعة تفقدها مع كل بناء. `dev-build.sh` يوقّع بهوية المشروع إن وُجدت، وإلا بأول شهادة Apple Development في سلسلة المفاتيح. التفاصيل في [docs/signing.md](docs/signing.md).
+صلاحية تسهيلات الاستخدام مربوطة بتوقيع التطبيق، فحزمة غير موقَّعة تفقدها مع كل بناء. يوقّع `dev-build.sh` بهوية المشروع إن وُجدت، وإلا بأول شهادة Apple Development في سلسلة المفاتيح. التفاصيل في [docs/signing.md](docs/signing.md).
 
 <details>
 <summary><b>بنية المشروع</b></summary>
 
-```
-crates/baddel-core/   النواة: الخرائط والتحويل وحسم «لا» — Rust صِرف، بلا Tauri ولا macOS
-src-tauri/src/
-  sys/                كل استدعاءات النظام (AX وCGEvent والحافظة وTIS) خلف واجهات آمنة
-  controller.rs       مسار التحويل: الحراسة ← التحديد ← المدّ ← آخر كلمة، والتراجع
-  hud.rs              الإشعار: NSPanel أصيل لا يأخذ التركيز
-  tray.rs             القائمة وأيقونة شريط القوائم
-  updater.rs          التحديث الموقَّع
-  settings.rs         التفضيلات وترحيلها
-src/                  الواجهة (Svelte 5): الإعدادات والترحيب، عرضٌ فقط عبر invoke
-  lib/i18n/           النصوص العربية والإنجليزية
-design/               الأيقونة (مُصدَّرة من Figma) والغلاف
-scripts/              الفحص والبناء والتوقيع والإصدار واختبار الجهاز
-docs/                 الخطة والتوقيع ومصفوفة الاختبار واللقطات
-```
+| المسار | ما فيه |
+| --- | --- |
+| <span dir="ltr">`crates/baddel-core/`</span> | النواة: الخرائط والتحويل وحسم «لا». Rust صِرف، بلا Tauri ولا macOS |
+| <span dir="ltr">`src-tauri/src/sys/`</span> | كل استدعاءات النظام (AX وCGEvent والحافظة وTIS) خلف واجهات آمنة |
+| <span dir="ltr">`src-tauri/src/controller.rs`</span> | مسار التحويل: الحراسة، ثم التحديد، ثم المدّ، ثم آخر كلمة، والتراجع |
+| <span dir="ltr">`src-tauri/src/hud.rs`</span> | الإشعار: NSPanel أصيل لا يأخذ التركيز |
+| <span dir="ltr">`src-tauri/src/tray.rs`</span> | القائمة وأيقونة شريط القوائم |
+| <span dir="ltr">`src-tauri/src/updater.rs`</span> | التحديث الموقَّع |
+| <span dir="ltr">`src-tauri/src/settings.rs`</span> | التفضيلات وترحيلها |
+| <span dir="ltr">`src/`</span> | الواجهة (Svelte 5): الإعدادات والترحيب، عرضٌ فقط عبر <span dir="ltr">`invoke`</span> |
+| <span dir="ltr">`src/lib/i18n/`</span> | النصوص العربية والإنجليزية |
+| <span dir="ltr">`design/`</span> | الأيقونة (مُصدَّرة من Figma) والغلاف |
+| <span dir="ltr">`scripts/`</span> | الفحص والبناء والتوقيع والإصدار واختبار الجهاز |
+| <span dir="ltr">`docs/`</span> | الخطة والتوقيع ومصفوفة الاختبار واللقطات |
 
 </details>
 
@@ -349,7 +366,8 @@ docs/                 الخطة والتوقيع ومصفوفة الاختبا�
 
 ## الرخصة
 
-الشيفرة مرخَّصة بـ[MIT](LICENSE) — © 2026 Sultan Al-Anzi.
+الشيفرة مرخَّصة بـ[MIT](LICENSE).
+
 الخطّان **Cairo** و**Almarai** برخصة SIL Open Font License 1.1، وقائمة الكلمات الإنجليزية من SCOWL. النصوص الكاملة في [THIRD_PARTY.md](THIRD_PARTY.md).
 
 ---
@@ -363,5 +381,7 @@ docs/                 الخطة والتوقيع ومصفوفة الاختبا�
 من الصانع نفسه: [رفّ](https://github.com/iSltanX/Raff) · [Luma](https://github.com/iSltanX/Luma) · [نفّذ](https://github.com/iSltanX/naffith)
 
 <sub>[سجل التغييرات](CHANGELOG.md) · [الخصوصية](PRIVACY.md) · [English](README.en.md)</sub>
+
+</div>
 
 </div>

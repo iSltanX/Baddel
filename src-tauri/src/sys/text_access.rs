@@ -3,13 +3,16 @@
 use std::ptr;
 
 use accessibility_sys::{
-    kAXErrorSuccess, kAXFocusedUIElementAttribute, kAXSelectedTextAttribute, kAXSelectedTextRangeAttribute,
-    kAXStringForRangeParameterizedAttribute, kAXValueTypeCFRange, AXUIElementCopyAttributeValue,
-    AXUIElementCopyParameterizedAttributeValue, AXUIElementCreateApplication, AXUIElementCreateSystemWide, AXUIElementRef,
-    AXUIElementSetAttributeValue, AXUIElementSetMessagingTimeout, AXValueCreate, AXValueGetValue, AXValueRef,
+    kAXComboBoxRole, kAXErrorSuccess, kAXFocusedUIElementAttribute, kAXNumberOfCharactersAttribute, kAXRoleAttribute,
+    kAXSecureTextFieldSubrole, kAXSelectedTextAttribute, kAXSelectedTextRangeAttribute,
+    kAXStringForRangeParameterizedAttribute, kAXSubroleAttribute, kAXTextAreaRole, kAXTextFieldRole,
+    kAXValueTypeCFRange, AXUIElementCopyAttributeValue, AXUIElementCopyParameterizedAttributeValue,
+    AXUIElementCreateApplication, AXUIElementCreateSystemWide, AXUIElementRef, AXUIElementSetAttributeValue,
+    AXUIElementSetMessagingTimeout, AXValueCreate, AXValueGetValue, AXValueRef,
 };
 use core_foundation::base::{CFRange, CFType, TCFType};
 use core_foundation::boolean::CFBoolean;
+use core_foundation::number::CFNumber;
 use core_foundation::string::CFString;
 
 /// Seconds to wait for the target app to answer an accessibility request.
@@ -37,14 +40,48 @@ impl Focused {
             AXUIElementSetMessagingTimeout(raw, AX_TIMEOUT);
             CFType::wrap_under_create_rule(raw.cast())
         };
-        copy_attribute(&system, kAXFocusedUIElementAttribute).map(Focused)
+        // While a system prompt (a permission request, say) is waiting on screen, the
+        // system-wide query fails for every app; the front app still answers for itself.
+        copy_attribute(&system, kAXFocusedUIElementAttribute)
+            .or_else(|| copy_attribute(&app_element(super::frontmost::pid()?)?, kAXFocusedUIElementAttribute))
+            .map(Focused)
+    }
+
+    /// A password field. Not every app turns Secure Input on for one (Safari's web password
+    /// fields do not), so this is checked on its own.
+    pub fn is_secure(&self) -> bool {
+        copy_attribute(&self.0, kAXSubroleAttribute)
+            .and_then(|v| v.downcast::<CFString>())
+            .is_some_and(|s| s == kAXSecureTextFieldSubrole)
+    }
+
+    /// A stand-in for text that lives elsewhere: an element that is not a text control and
+    /// reports no characters. Canvas editors (Figma) give it focus while the real text lives
+    /// on the canvas, reachable only through the keyboard. An empty text field is not one.
+    pub fn is_stand_in(&self) -> bool {
+        let role = copy_attribute(&self.0, kAXRoleAttribute).and_then(|v| v.downcast::<CFString>());
+        let text_control = role.is_some_and(|r| {
+            [kAXTextAreaRole, kAXTextFieldRole, kAXComboBoxRole].iter().any(|&t| r == t)
+        });
+        !text_control
+            && copy_attribute(&self.0, kAXNumberOfCharactersAttribute)
+                .and_then(|v| v.downcast::<CFNumber>())
+                .and_then(|n| n.to_i64())
+                == Some(0)
     }
 
     pub fn selection(&self) -> Selection {
         match copy_attribute(&self.0, kAXSelectedTextAttribute).and_then(|v| v.downcast::<CFString>()) {
             Some(s) if s.to_string().is_empty() => Selection::Empty,
             Some(s) => Selection::Text(s.to_string()),
-            None => Selection::Unavailable,
+            // Some elements (Safari's contenteditable) expose the range but not its text.
+            None => match self.selected_range() {
+                Some((_, 0)) => Selection::Empty,
+                Some((location, length)) => {
+                    self.string_for_range(location, length).map_or(Selection::Unavailable, Selection::Text)
+                }
+                None => Selection::Unavailable,
+            },
         }
     }
 
@@ -121,15 +158,7 @@ impl Focused {
 /// `AXEnhancedUserInterface` is the one Chrome listens to. Returns whether either was accepted;
 /// the tree then builds asynchronously.
 pub fn enable_accessibility(pid: i32) -> bool {
-    // SAFETY: create rule; a stale pid just yields an element whose calls fail.
-    let app = unsafe {
-        let raw = AXUIElementCreateApplication(pid);
-        if raw.is_null() {
-            return false;
-        }
-        AXUIElementSetMessagingTimeout(raw, AX_TIMEOUT);
-        CFType::wrap_under_create_rule(raw.cast())
-    };
+    let Some(app) = app_element(pid) else { return false };
     ["AXManualAccessibility", "AXEnhancedUserInterface"].into_iter().any(|name| {
         let attribute = CFString::new(name);
         // SAFETY: valid element and CF objects, all alive for the call.
@@ -142,6 +171,18 @@ pub fn enable_accessibility(pid: i32) -> bool {
         };
         status == kAXErrorSuccess
     })
+}
+
+fn app_element(pid: i32) -> Option<CFType> {
+    // SAFETY: create rule; a stale pid just yields an element whose calls fail.
+    unsafe {
+        let raw = AXUIElementCreateApplication(pid);
+        if raw.is_null() {
+            return None;
+        }
+        AXUIElementSetMessagingTimeout(raw, AX_TIMEOUT);
+        Some(CFType::wrap_under_create_rule(raw.cast()))
+    }
 }
 
 fn ax_range(location: usize, length: usize) -> Option<CFType> {

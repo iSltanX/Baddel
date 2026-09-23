@@ -192,7 +192,14 @@ fn ask_to_install(app: &AppHandle, version: &str, current: &str) {
 fn inform(app: &AppHandle, kind: MessageDialogKind, title: &str, body: &str) {
     on_main(app, chrome::activate);
     let handle = app.clone();
-    app.dialog().message(body).title(title).kind(kind).show(move |_| step_back(&handle));
+    // The default button is an English "OK" whatever the interface language.
+    let ok = strings(app).ok;
+    app.dialog()
+        .message(body)
+        .title(title)
+        .kind(kind)
+        .buttons(MessageDialogButtons::OkCustom(ok.into()))
+        .show(move |_| step_back(&handle));
 }
 
 /// After a dialog: with no window of our own open, hand activation back to the app the

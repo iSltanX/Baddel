@@ -37,6 +37,7 @@ pub struct Strings {
     pub check_failed_title: &'static str,
     pub install_failed_title: &'static str,
     pub update_failed_body: &'static str,
+    pub ok: &'static str,
 }
 
 const AR: Strings = Strings {
@@ -67,6 +68,7 @@ const AR: Strings = Strings {
     check_failed_title: "تعذّر التحقق من التحديثات",
     install_failed_title: "تعذّر تثبيت التحديث",
     update_failed_body: "تحقّق من اتصالك بالإنترنت، ثم حاول مرة أخرى.",
+    ok: "حسنًا",
 };
 
 const EN: Strings = Strings {
@@ -97,6 +99,7 @@ const EN: Strings = Strings {
     check_failed_title: "Couldn’t Check for Updates",
     install_failed_title: "Couldn’t Install the Update",
     update_failed_body: "Check your internet connection, then try again.",
+    ok: "OK",
 };
 
 pub fn strings(language: Language) -> &'static Strings {

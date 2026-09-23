@@ -59,6 +59,7 @@ The direction is detected automatically: if most of the characters are Arabic, t
 ### The "لا" key
 
 On the **Arabic‑PC** layout, the <kbd>B</kbd> key types two characters together: «لا». So when Baddel finds «لا» inside a word typed in the wrong layout, it can't tell whether you meant `b` or `gh`. It resolves this with a built-in list of 45,000 English words: «ىهلاف» becomes `night`, not `nibt`.
+
 On the **Arabic** (Mac) layout, «لا» is typed with two separate keys, so there's no ambiguity: «مهلاف» becomes `light`.
 
 ---
@@ -68,7 +69,7 @@ On the **Arabic** (Mac) layout, «لا» is typed with two separate keys, so the
 - **In almost any app.** It reads and replaces text through macOS's Accessibility interface. When an app doesn't expose its text, it falls back to copy and paste.
 - **It knows your layouts.** It doesn't rely on a fixed table — it builds the map from the two layouts active in your macOS, key by key.
 - **The clipboard stays as you left it.** After every conversion it's fully restored, whether it held text or an image. Whatever passes through it briefly is tagged with the two [nspasteboard.org](http://nspasteboard.org) markers, so clipboard managers that respect them ignore it — including [Raff](https://github.com/iSltanX/Raff).
-- **Fast.** 23–85ms to convert, across the tested apps: TextEdit, Notes, Safari, Chrome, and Brave.
+- **Fast.** 7–95ms to convert in most of the tested apps: TextEdit, Notes, Safari, Chrome, Brave, Luma, and Claude. Mail and Figma don't expose the field's text, so there it goes through the keyboard and takes 0.3–1.2 seconds.
 - **Doesn't monitor what you type.** It doesn't request Input Monitoring, doesn't read anything before you press the shortcut, and doesn't save any text.
 - **Lightweight.** About 15MB of memory at idle. The Settings and Welcome windows are created when opened and destroyed when closed.
 - **Arabic first.** A right-to-left interface in Cairo and Almarai, with a complete English version, and light and dark modes that follow the system.
@@ -79,7 +80,7 @@ On the **Arabic** (Mac) layout, «لا» is typed with two separate keys, so the
 
 <table>
   <tr>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-1-en-dark.png">
         <img alt="Welcome: Typed it in the wrong language? Switch it." src="docs/screenshots/onboarding-1-en-light.png" width="100%">
@@ -87,7 +88,7 @@ On the **Arabic** (Mac) layout, «لا» is typed with two separate keys, so the
       <b>Welcome</b><br>
       Three steps: the idea, then the permission, then a real try with your shortcut.
     </td>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-2-en-dark.png">
         <img alt="Just one permission" src="docs/screenshots/onboarding-2-en-light.png" width="100%">
@@ -96,8 +97,20 @@ On the **Arabic** (Mac) layout, «لا» is typed with two separate keys, so the
       Accessibility, with the reason written before you grant it. The card checks it live.
     </td>
   </tr>
+</table>
+
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-layouts-en-dark.png">
+    <img alt="Settings: Layouts and the key map" src="docs/screenshots/settings-layouts-en-light.png" width="72%">
+  </picture>
+  <br><b>Layouts</b><br>
+  The two layouts used for conversion, and the key map as Baddel sees it.
+</div>
+
+<table>
   <tr>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-general-en-dark.png">
         <img alt="Settings: General" src="docs/screenshots/settings-general-en-light.png" width="100%">
@@ -105,17 +118,17 @@ On the **Arabic** (Mac) layout, «لا» is typed with two separate keys, so the
       <b>General</b><br>
       Launch at Login, switching the keyboard layout after converting, the notification, and updates.
     </td>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-layouts-en-dark.png">
-        <img alt="Settings: Layouts" src="docs/screenshots/settings-layouts-en-light.png" width="100%">
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-about-en-dark.png">
+        <img alt="Settings: About" src="docs/screenshots/settings-about-en-light.png" width="100%">
       </picture><br>
-      <b>Layouts</b><br>
-      The two layouts used for conversion, and the key map as Baddel sees it.
+      <b>About</b><br>
+      The version, the links, and "From the same maker".
     </td>
   </tr>
   <tr>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-shortcuts-en-dark.png">
         <img alt="Settings: Shortcuts" src="docs/screenshots/settings-shortcuts-en-light.png" width="100%">
@@ -123,7 +136,7 @@ On the **Arabic** (Mac) layout, «لا» is typed with two separate keys, so the
       <b>Shortcuts</b><br>
       Three global shortcuts, with a warning for any shortcut already used by another app.
     </td>
-    <td width="50%" align="center">
+    <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-exceptions-en-dark.png">
         <img alt="Settings: Exceptions" src="docs/screenshots/settings-exceptions-en-light.png" width="100%">
@@ -135,9 +148,9 @@ On the **Arabic** (Mac) layout, «لا» is typed with two separate keys, so the
 </table>
 
 <div align="center">
-  <img alt="Undone" src="docs/screenshots/hud-undone-en.png" width="30%">
-  <img alt="Protected field — nothing converted" src="docs/screenshots/hud-blocked-en.png" width="30%">
-  <img alt="No text to convert" src="docs/screenshots/hud-no-text-en.png" width="30%"><br>
+  <img alt="Undone" src="docs/screenshots/hud-undone-en.png" height="48">
+  <img alt="Protected field — nothing converted" src="docs/screenshots/hud-blocked-en.png" height="48">
+  <img alt="No text to convert" src="docs/screenshots/hud-no-text-en.png" height="48"><br>
   <sub>Notice states: undo, the protected field, and no text.</sub>
 </div>
 
@@ -206,7 +219,7 @@ Baddel has no reason to know what you type, and no way to send it anywhere:
 - **The clipboard is restored** after every conversion, and whatever passes through it is marked transient and concealed.
 - **No network access** except to check for updates: a single request for a `latest.json` file from this repository's releases page, once a day. It carries nothing about you or your text — GitHub receives from it only what it receives from any ordinary download. You can turn it off from **Settings → General**.
 - **No account, no analytics, no tracking.** The interface doesn't request any external resource: fonts are bundled, and the content policy is `default-src 'self'`.
-- **Protected fields are never touched:** when macOS turns on Secure Input, in password fields for example, Baddel reads nothing and writes nothing.
+- **Protected fields are never touched:** in a password field, or whenever macOS turns on Secure Input, Baddel reads nothing and writes nothing.
 
 Details in [PRIVACY.md](PRIVACY.md).
 
@@ -224,8 +237,8 @@ Details in [PRIVACY.md](PRIVACY.md).
 
 | Status | Apps |
 | --- | --- |
-| **Tested on device** | TextEdit · Safari · Chrome · Brave, in plain and rich text fields (`textarea` and `contenteditable`): selection, last word, and extend — and the clipboard is restored every time. And Notes: last word. |
-| **Not tested yet** | Mail · Electron apps (Slack, VS Code, Discord) · Figma · Spotlight. The code path exists for them, but we don't claim what we haven't run. |
+| **Tested on device** | TextEdit · Notes · Mail (new message) · Safari · Chrome · Brave (in `textarea` and `contenteditable`) · Claude (an Electron app) · Luma (a Tauri app) · Figma (text on the canvas): selection, last word, and extend — and the clipboard is restored every time. Password fields in all three browsers are left alone. |
+| **Not tested yet** | Other Electron apps (Slack, VS Code, Discord) · Spotlight. The code path exists for them, but we don't claim what we haven't run. |
 | **Deliberately excluded** | Terminals (Terminal, iTerm, Warp, Ghostty, kitty, Alacritty, WezTerm), and password managers (Keychain Access, Passwords, 1Password, Bitwarden, KeePassXC, Enpass). Managed from **Settings → Exceptions**. |
 
 Full results and timings are in [docs/test-matrix.md](docs/test-matrix.md).
@@ -267,7 +280,7 @@ Terminals are excluded by default: what you type in them are commands that get e
 <details>
 <summary><strong>What about password fields?</strong></summary><br>
 
-It doesn't touch them. When Secure Input is on, Baddel stops and shows "Protected field — nothing converted", without reading the text or touching the clipboard. Password managers are also excluded by default.
+It doesn't touch them. In a password field, or whenever Secure Input is on, Baddel stops and shows "Protected field — nothing converted", without reading the text or touching the clipboard. It doesn't rely on Secure Input alone: some browsers (Safari) don't turn it on for password fields. Password managers are also excluded by default.
 </details>
 
 <details>
@@ -350,6 +363,7 @@ Open an issue on the [issues page](https://github.com/iSltanX/Baddel/issues), an
 ## License
 
 The code is licensed under [MIT](LICENSE) — © 2026 Sultan Al-Anzi.
+
 The **Cairo** and **Almarai** fonts are licensed under the SIL Open Font License 1.1, and the English word list is from SCOWL. Full texts in [THIRD_PARTY.md](THIRD_PARTY.md).
 
 ---

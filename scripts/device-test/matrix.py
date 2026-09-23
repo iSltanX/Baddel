@@ -3,7 +3,8 @@
 
 ⚠️ Sends real key presses to the front app. Run only inside phase 7, when the user has
 said they are away from the machine. Before every key press it checks that the target
-app is in front, and stops otherwise, so a stray window never receives them.
+app is in front and holds the keyboard focus, and stops otherwise, so a stray window —
+or a system prompt that took the keys while the app stayed in front — never receives them.
 
 Needs the debug build running with its stderr in $BADDEL_LOG (see run.sh): the outcome
 and timing of each conversion are read from there. The log holds outcomes, paths and
@@ -37,17 +38,37 @@ def osa(script):
 
 
 def front():
-    return osa('tell application "System Events" to get bundle identifier of first process whose frontmost is true')
+    # The app that receives key presses. System Events' "frontmost" can lag behind it (it
+    # kept naming TextEdit while a just-launched Baddel held the keys), so ask Launch Services.
+    asn = subprocess.run(["lsappinfo", "front"], capture_output=True, text=True).stdout.strip()
+    info = subprocess.run(["lsappinfo", "info", "-only", "bundleid", asn], capture_output=True, text=True).stdout
+    m = re.search(r'bundleID="([^"]+)"', info)
+    return m.group(1) if m else ""
+
+
+FOCUS_OWNER = os.path.join(os.environ.get("TMPDIR", "/tmp"), "baddel-focus-owner")
+
+
+def focus_owner():
+    """The app holding the keys; "" when the system cannot say (then assume the worst)."""
+    source = os.path.join(os.path.dirname(os.path.abspath(__file__)), "focus-owner.swift")
+    if not os.path.exists(FOCUS_OWNER) or os.path.getmtime(FOCUS_OWNER) < os.path.getmtime(source):
+        subprocess.run(["swiftc", "-O", "-o", FOCUS_OWNER, source], check=True, capture_output=True)
+    return subprocess.run([FOCUS_OWNER], capture_output=True, text=True).stdout.strip()
 
 
 def ensure_front(bundle, activate=True):
     for _ in range(30):
-        if front() == bundle:
+        # A pending system prompt makes the system unable to name the focus owner at all.
+        # BADDEL_TRUST_FRONT=1 accepts "frontmost" alone then — only after checking by hand
+        # that keys really land in the app (type one letter into a test document).
+        owner = focus_owner()
+        if front() == bundle and (owner == bundle or (not owner and os.environ.get("BADDEL_TRUST_FRONT") == "1")):
             return
-        if activate:
-            osa(f'tell application id "{bundle}" to activate')
+        if activate:  # AppleScript's `activate` is not reliable on recent macOS; `open` is
+            subprocess.run(["open", "-b", bundle])
         time.sleep(0.2)
-    raise NotFront(f"{bundle} not in front (front: {front()})")
+    raise NotFront(f"{bundle} not in front (front: {front()}, keys: {focus_owner() or 'unknown'})")
 
 
 def key(bundle, code, mods=()):

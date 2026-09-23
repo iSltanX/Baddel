@@ -5,11 +5,11 @@
 بدّل أداة محلية بالكامل. هذه الصفحة تشرح ما يقرأه، وما يحتفظ به، وما يرسله.
 
 - **القراءة**: فقط حين تضغط الاختصار — التحديد إن وُجد، وإلا النص قبل المؤشر بقدر ما يلزم لإيجاد الكلمة السابقة — أو حين تطلب التراجع، فيُقرأ موضع النص المحوَّل ليُعاد. لا يُقرأ شيء في غير ذلك.
-- **التخزين**: لا نص على القرص ولا في أي سجل. آخر تحويل يبقى في الذاكرة 30 ثانية فقط ليتيح التراجع، ثم يُمحى. ملف الإعدادات في `~/Library/Application Support/com.isltanx.baddel/` يحمل التفضيلات وحدها (الاختصارات، الاستثناءات، وما شابه)، لا أي نص كتبته.
+- **التخزين**: لا نص على القرص ولا في أي سجل. آخر تحويل يبقى في الذاكرة 30 ثانية فقط ليتيح التراجع، ثم يُمحى. ملف الإعدادات في <span dir="ltr">`~/Library/Application Support/com.isltanx.baddel/`</span> يحمل التفضيلات وحدها (الاختصارات، الاستثناءات، وما شابه)، لا أي نص كتبته.
 - **الحافظة**: تعود إلى ما كانت عليه بعد كل تحويل. محتواها أثناء التحويل مؤقت، ويحمل وسمَي [nspasteboard.org](http://nspasteboard.org): «Transient» و«Concealed»، فتتجاهله مديرات الحافظة التي تحترمهما.
 - **الشبكة**: لا اتصال إلا لفحص التحديث — طلب واحد يوميًا لملف `latest.json` من صفحة إصدارات هذا المستودع على GitHub، يمكن إيقافه من **الإعدادات ← عام**. الطلب لا يحمل شيئًا عنك ولا عن نصّك، ويصل GitHub منه ما يصله من أي تنزيل عادي، مثل عنوان IP. روابط بدّل على GitHub في نافذة «حول» تفتح في متصفحك.
 - **الصلاحية**: تسهيلات الاستخدام (Accessibility) هي الوحيدة المطلوبة — لقراءة التحديد أو الكلمة قبل المؤشر واستبدالها، وإرسال ضغطات النسخ واللصق حين لا يكشف التطبيق نصّه. لا يطلب بدّل مراقبة الإدخال (Input Monitoring)، ولا تسجيل الشاشة (Screen Recording)، ولا الوصول الكامل إلى القرص (Full Disk Access).
-- **الحقول المحمية والاستثناءات**: حين يفعّل macOS الإدخال الآمن (Secure Input)، لا يقرأ بدّل شيئًا ولا يكتب شيئًا. و14 استثناءً افتراضيًا يتوقف فيها الاختصار: 7 طرفيات و7 من مديري كلمات المرور، تُدار من **الإعدادات ← الاستثناءات**.
+- **الحقول المحمية والاستثناءات**: في حقل كلمة مرور، أو حين يفعّل macOS الإدخال الآمن (Secure Input)، لا يقرأ بدّل شيئًا ولا يكتب شيئًا. و14 استثناءً افتراضيًا يتوقف فيها الاختصار: 7 طرفيات و7 من مديري كلمات المرور، تُدار من **الإعدادات ← الاستثناءات**.
 - **لا تتبّع**: لا حسابات، ولا تحليلات، ولا تتبّع، ولا تقارير أعطال.
 - **التواصل**: لأي سؤال أو مشكلة، افتح مسألة في [صفحة المسائل](https://github.com/iSltanX/Baddel/issues).
 
@@ -26,6 +26,6 @@ Baddel is fully local. This page explains what it reads, what it keeps, and what
 - **Clipboard**: restored after every conversion. Its content during a conversion is temporary and carries the [nspasteboard.org](http://nspasteboard.org) markers "Transient" and "Concealed", so clipboard managers that respect them ignore it.
 - **Network**: no network access except the update check — one request a day for `latest.json` from this repository's GitHub releases page, which can be turned off in **Settings → General**. The request carries nothing about you or your text; GitHub receives whatever any ordinary download request carries, such as an IP address. The GitHub links in the About window open in your browser.
 - **Permission**: the only permission Baddel asks for is **Accessibility** — to read the selection or the word before the cursor and replace it, and to send copy/paste keystrokes when an app does not expose its text. Baddel does not request Input Monitoring, Screen Recording, or Full Disk Access.
-- **Protected fields and exceptions**: when macOS turns on Secure Input, Baddel reads nothing and writes nothing. There are 14 default exceptions where the shortcut does nothing: 7 terminals and 7 password managers, managed from **Settings → Exceptions**.
+- **Protected fields and exceptions**: in a password field, or whenever macOS turns on Secure Input, Baddel reads nothing and writes nothing. There are 14 default exceptions where the shortcut does nothing: 7 terminals and 7 password managers, managed from **Settings → Exceptions**.
 - **No tracking**: no accounts, no analytics, no tracking, no crash reporting.
 - **Contact**: for any question or issue, open one at the [issues page](https://github.com/iSltanX/Baddel/issues).

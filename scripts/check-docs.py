@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Checks the links and images of the public documents before they go on GitHub.
 
-    python3 scripts/check-docs.py            relative paths and #anchors
+    python3 scripts/check-docs.py            relative paths, #anchors, and the RTL rules of README.md
     python3 scripts/check-docs.py --online   external links too (HTTP)
 
 Anchors follow GitHub's rule: lowercase, keep letters/marks/digits/spaces/hyphens/
@@ -66,6 +66,55 @@ def targets(text: str):
             yield number, match.group(1).split()[0]
 
 
+def rtl_problems(path: Path) -> list:
+    """Arabic README rules, learnt from how GitHub actually renders it.
+
+    GitHub gives paragraphs, lists and headings dir="auto" (the first strong letter
+    decides) but gives tables and <details> nothing, so the document lives inside
+    <div dir="rtl">. What that leaves fragile:
+      - a block whose first letter is Latin turns LTR and scrambles its Arabic;
+      - inline code that starts or ends with punctuation, or holds Arabic, flips its
+        ends inside RTL text unless wrapped in <span dir="ltr">;
+      - Arabic inside a fenced block loses its joining in the monospace face;
+      - an alert (> [!NOTE]…) inside a <div> is not rendered as an alert;
+      - shields.io stretches badge text to a computed width, which breaks Arabic.
+    """
+    found, fence, stack = [], False, []
+    strong = lambda text: next((("L" if unicodedata.bidirectional(c) == "L" else "R")
+                               for c in text if unicodedata.bidirectional(c) in ("L", "R", "AL")), None)
+    arabic = lambda text: any(unicodedata.bidirectional(c) in ("R", "AL") for c in text)
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        where = f"{path.name}:{number}"
+        bare = line.strip().lstrip(">").strip()
+        if bare.startswith("```"):
+            fence = not fence
+            continue
+        if fence:
+            if arabic(line):
+                found.append(f"{where}: Arabic inside a code block (use a table)")
+            continue
+        for tag in re.findall(r"<div\b[^>]*>|</div>", line):
+            if tag == "</div>":
+                stack and stack.pop()
+            else:
+                stack.append('dir="rtl"' in tag)
+        if re.match(r"\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]", bare) and any(stack):
+            found.append(f"{where}: alert inside a <div> is not rendered")
+        if "img.shields.io" in line and re.search(r"%D[89]", line):
+            found.append(f"{where}: Arabic badge text — shields.io stretches it and breaks the joining")
+        for match in re.finditer(r"(?<!`)`([^`]+)`(?!`)", line):
+            code = match.group(1)
+            edge = lambda c: unicodedata.bidirectional(c) not in ("L", "EN", "R", "AL")
+            if (edge(code[0]) or edge(code[-1]) or arabic(code)) \
+                    and not line[:match.start()].endswith('<span dir="ltr">'):
+                found.append(f"{where}: wrap `{code}` in <span dir=\"ltr\">")
+        text = re.sub(r"^\s*([-*+]|\d+\.)\s+", "", bare)
+        text = re.sub(r"\]\([^)]*\)|<[^>]+>", "", text)
+        if text and not bare.startswith(("|", "<", "[![", "[!")) and strong(text) == "L":
+            found.append(f"{where}: starts with a Latin word, GitHub will lay it out LTR")
+    return found
+
+
 def online(url: str) -> str | None:
     request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "baddel-docs-check"})
     try:
@@ -103,6 +152,8 @@ def main() -> int:
                 have = own if file_path == path else anchors(file_path) if file_path.suffix == ".md" else set()
                 if wanted not in have:
                     problems.append(f"{where}: no heading for #{wanted} in {file_path.name}")
+        if name == "README.md":
+            problems += rtl_problems(path)
     for problem in problems:
         print("✗", problem)
     print(f"{checked} links checked, {len(problems)} problem(s){' (online)' if check_online else ''}")
