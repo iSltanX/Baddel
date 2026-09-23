@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
-# Renders design/brand/cover.html into the repository images, with a headless
+# Renders design/brand/cover.html and readme.html into the repository images, with a headless
 # Chrome: no window opens and nothing takes focus.
 #
 #   ./design/brand/render.sh
 #
-# docs/assets/cover-light.png · cover-dark.png   README cover, 1280×560 @2x
 # docs/assets/social-preview.png                 GitHub social preview, 1280×640
+# docs/assets/header-{ar,en}-{light,dark}.png     README header, 1280×440 @2x   (readme.html)
+# docs/assets/steps-{ar,en}-{light,dark}.png      README "how it works", 1280×420 @2x
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 [ -x "$chrome" ] || { echo "Google Chrome is required" >&2; exit 1; }
 
-page="file://$PWD/design/brand/cover.html"
+brand="file://$PWD/design/brand"
+page="$brand/cover.html"
 out="docs/assets"
 profile=$(mktemp -d -t baddel-render)
 trap 'rm -rf "$profile"' EXIT
@@ -39,6 +41,12 @@ render() { # render <query> <width> <height> <scale> <file>
   echo "✓ $5 ($(sips -g pixelWidth -g pixelHeight "$5" | awk '/pixel/ {printf "%s ", $2}'))"
 }
 
-render "theme=light&kind=cover" 1280 560 2 "$out/cover-light.png"
-render "theme=dark&kind=cover" 1280 560 2 "$out/cover-dark.png"
 render "theme=light&kind=social" 1280 640 1 "$out/social-preview.png"
+
+page="$brand/readme.html"
+for lang in ar en; do
+  for theme in light dark; do
+    render "theme=$theme&kind=header&lang=$lang" 1280 440 2 "$out/header-$lang-$theme.png"
+    render "theme=$theme&kind=steps&lang=$lang" 1280 420 2 "$out/steps-$lang-$theme.png"
+  done
+done

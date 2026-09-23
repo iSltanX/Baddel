@@ -1,0 +1,196 @@
+<!doctype html>
+<!--
+  README images for Baddel: the header and the "how it works" strip.
+  Rendered to PNG by design/brand/render.sh — edit here, never the PNGs.
+  Query: ?theme=light|dark  &kind=header|steps  &lang=ar|en
+  Same identity as cover.html and the Figma cover (page 00 · Cover): the app's tokens,
+  Cairo for headings, Almarai for text, keycaps and the conversion card.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Baddel README images</title>
+<style>
+  @font-face { font-family: 'Cairo'; font-weight: 600; src: url('../../src/assets/fonts/Cairo-SemiBold.woff2') format('woff2'); }
+  @font-face { font-family: 'Cairo'; font-weight: 700; src: url('../../src/assets/fonts/Cairo-Bold.woff2') format('woff2'); }
+  @font-face {
+    font-family: 'Almarai'; font-weight: 400; src: url('../../src/assets/fonts/Almarai-Regular.woff2') format('woff2');
+    unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
+  }
+  @font-face {
+    font-family: 'Almarai'; font-weight: 700; src: url('../../src/assets/fonts/Almarai-Bold.woff2') format('woff2');
+    unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
+  }
+
+  /* Tokens: the app's own (src/lib/theme.css), as in cover.html. */
+  :root {
+    --bg-window: #f6f4ef; --bg-sunken: #edeae3; --bg-surface: #ffffff;
+    --border-subtle: #e2ded5; --border-strong: #cfc9bd;
+    --text-primary: #1c1917; --text-secondary: #6b665e; --text-tertiary: #989288;
+    --accent: #3f5673; --accent-soft: #e4e9ef; --keycap-top: #ffffff; --keycap-edge: #bdb6ab;
+    --success: #5f7f52; --danger-ink: #9a5b4c;
+    --card-shadow: 0 1px 2px rgb(28 25 23 / 6%), 0 8px 24px rgb(28 25 23 / 6%);
+  }
+  :root[data-theme="dark"] {
+    --bg-window: #1b1c1f; --bg-sunken: #16171a; --bg-surface: #25272b;
+    --border-subtle: #34373c; --border-strong: #474a51;
+    --text-primary: #f2f0eb; --text-secondary: #a19d95; --text-tertiary: #76736d;
+    --accent: #8fa9c9; --accent-soft: #2a3340; --keycap-top: #2e3035; --keycap-edge: #101114;
+    --success: #93b585; --danger-ink: #d39a8a;
+    --card-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 25%);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
+  html, body { width: 1280px; overflow: hidden; }
+  body {
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: 'Almarai', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .latin, [lang="en"] { font-family: system-ui, -apple-system, sans-serif; }
+  :root[lang="en"] h1, :root[lang="en"] .tagline, :root[lang="en"] .step h2 { font-family: system-ui, -apple-system, sans-serif; }
+
+  .keys { display: flex; gap: 6px; direction: ltr; }
+  .key {
+    min-width: 34px; height: 32px; padding: 0 10px;
+    display: grid; place-items: center;
+    font: 500 15px/1 system-ui, -apple-system, sans-serif;
+    color: var(--text-primary); background: var(--keycap-top);
+    border: 1px solid var(--border-strong); border-bottom: 2px solid var(--keycap-edge);
+    border-radius: 7px;
+  }
+  .arrow { width: 22px; height: 22px; color: var(--text-tertiary); flex: none; }
+  :root[lang="en"] .arrow { transform: scaleX(-1); }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  .header { height: 440px; display: flex; align-items: center; justify-content: center; gap: 64px; padding: 0 88px; }
+  .header .icon { width: 208px; height: 208px; flex: none; filter: drop-shadow(0 10px 22px rgb(28 25 23 / 16%)); }
+  .eyebrow { font-weight: 700; font-size: 20px; color: var(--accent); }
+  h1 {
+    font-family: 'Cairo', system-ui, sans-serif; font-weight: 700;
+    font-size: 72px; line-height: 1.12; letter-spacing: -0.5px; margin-top: 4px;
+  }
+  .tagline {
+    font-family: 'Cairo', system-ui, sans-serif; font-weight: 600;
+    font-size: 30px; line-height: 1.35; color: var(--text-secondary);
+  }
+  .row { display: flex; align-items: center; gap: 18px; margin-top: 28px; }
+  .sample {
+    display: flex; align-items: center; gap: 20px;
+    padding: 16px 24px;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: 16px; box-shadow: var(--card-shadow);
+  }
+  .divider { width: 1px; align-self: stretch; background: var(--border-subtle); }
+  /* Mistyped Latin is set in mono: raw keystrokes, and an l that never reads as I. */
+  .from { font: 600 28px/1 ui-monospace, 'SF Mono', Menlo, monospace; color: var(--text-secondary); direction: ltr; unicode-bidi: isolate; }
+  .to { font-family: 'Cairo', system-ui, sans-serif; font-weight: 700; font-size: 34px; line-height: 1; color: var(--accent); }
+  .header .key { min-width: 40px; height: 38px; font-size: 18px; }
+  .layout {
+    direction: ltr; font: 500 12px system-ui, -apple-system, sans-serif;
+    letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-tertiary);
+    font-size: 15px;
+  }
+
+  /* ── How it works ───────────────────────────────────────────────────── */
+  .steps { height: 420px; display: flex; align-items: center; justify-content: center; gap: 14px; padding: 0 40px; }
+  .step {
+    width: 372px; height: 340px; flex: none;
+    display: flex; flex-direction: column;
+    padding: 24px 26px;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: 18px; box-shadow: var(--card-shadow);
+  }
+  .step .num {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center;
+    font: 700 16px/1 system-ui, -apple-system, sans-serif;
+    color: var(--accent); background: var(--accent-soft);
+  }
+  .step h2 { font-family: 'Cairo', system-ui, sans-serif; font-weight: 700; font-size: 29px; line-height: 1.3; margin-top: 14px; }
+  .step p { font-size: 19px; line-height: 1.6; color: var(--text-secondary); margin-top: 4px; }
+  .step .visual { margin-top: auto; }
+  .field {
+    display: flex; align-items: center; gap: 2px;
+    height: 58px; padding: 0 18px;
+    background: var(--bg-window); border: 1px solid var(--border-strong); border-radius: 10px;
+    font-size: 27px;
+  }
+  .field .wrong { font-weight: 700; color: var(--danger-ink); }
+  .field .right { font: 700 27px system-ui, -apple-system, sans-serif; color: var(--accent); direction: ltr; unicode-bidi: isolate; }
+  /* Each field takes its text's own direction, so the caret sits at the text's logical end. */
+  .caret { width: 2px; height: 30px; background: var(--text-primary); border-radius: 1px; }
+  .step .keys .key { min-width: 62px; height: 58px; font-size: 24px; border-radius: 10px; }
+  .step .keys { justify-content: center; gap: 10px; }
+  .source {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 12px;
+    font-size: 17px; color: var(--success);
+  }
+  .source .badge {
+    direction: ltr; font: 600 14px/1 system-ui, -apple-system, sans-serif;
+    padding: 4px 7px; border: 1.5px solid currentColor; border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <section class="header" data-kind="header">
+    <img class="icon" src="../icon/icon-macos-1024.png" alt="">
+    <div>
+      <p class="eyebrow" data-ar="أداة شريط قوائم لنظام macOS" data-en="A menu bar app for macOS"></p>
+      <h1 data-ar="بدّل — <span class='latin'>Baddel</span>" data-en="Baddel — <span style='font-family:Cairo'>بدّل</span>"></h1>
+      <p class="tagline" data-ar="كتبتها باللغة الخطأ؟ بدّلها." data-en="Typed it in the wrong layout? Switch it."></p>
+      <div class="row">
+        <div class="sample">
+          <div class="keys"><span class="key">⌥</span><span class="key">⇧</span><span class="key">Space</span></div>
+          <span class="divider"></span>
+          <span class="from">lnpfh</span>
+          <svg class="arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>
+          <span class="to">مرحبا</span>
+        </div>
+        <span class="layout">Arabic (Mac)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="steps" data-kind="steps">
+    <div class="step">
+      <span class="num">1</span>
+      <h2 data-ar="تكتب بالتخطيط الخطأ" data-en="You type in the wrong layout"></h2>
+      <p data-ar="لوحة المفاتيح على العربية وأنت تقصد الإنجليزية، أو العكس." data-en="The keyboard was on the other language."></p>
+      <div class="visual"><div class="field" dir="rtl"><span class="wrong">اثممخ صخقمي</span><span class="caret"></span></div></div>
+    </div>
+    <svg class="arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>
+    <div class="step">
+      <span class="num">2</span>
+      <h2 data-ar="تضغط اختصارًا واحدًا" data-en="You press one shortcut"></h2>
+      <p data-ar="في أي تطبيق تقريبًا، دون حذف ولا إعادة كتابة." data-en="In almost any app, with no deleting and no retyping."></p>
+      <div class="visual"><div class="keys"><span class="key">⌥</span><span class="key">⇧</span><span class="key">Space</span></div></div>
+    </div>
+    <svg class="arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>
+    <div class="step">
+      <span class="num">3</span>
+      <h2 data-ar="يصير النص صحيحًا" data-en="The text is fixed"></h2>
+      <div class="visual">
+        <div class="field" dir="ltr"><span class="right">hello world</span><span class="caret"></span></div>
+        <span class="source"><span class="badge">ABC</span><span data-ar="وانتقلت لوحة المفاتيح إلى الإنجليزية" data-en="Keyboard switched to English"></span></span>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const q = new URLSearchParams(location.search);
+    const root = document.documentElement;
+    const lang = q.get('lang') === 'en' ? 'en' : 'ar';
+    root.dataset.theme = q.get('theme') === 'dark' ? 'dark' : 'light';
+    root.lang = lang;
+    root.dir = lang === 'en' ? 'ltr' : 'rtl';
+    for (const el of document.querySelectorAll('[data-ar]')) el.innerHTML = el.dataset[lang];
+    const kind = q.get('kind') === 'steps' ? 'steps' : 'header';
+    for (const s of document.querySelectorAll('section')) s.hidden = s.dataset.kind !== kind;
+    document.body.style.height = kind === 'steps' ? '420px' : '440px';
+  </script>
+</body>
+</html>
