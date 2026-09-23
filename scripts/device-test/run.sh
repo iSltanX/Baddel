@@ -6,6 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 export BADDEL_LOG="${BADDEL_LOG:-${TMPDIR:-/tmp}/baddel-device-test.log}"
+touch "${TMPDIR:-/tmp}/baddel-device-test.start"  # cleanup.sh trashes only what is newer
 HERE="scripts/device-test"
 PAGE="file://$PWD/$HERE/page.html"
 

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Phase 7 clean-up: closes the test page's tabs in every browser, and discards TextEdit's
-# untitled documents (the test's scratch documents; saved documents are left alone).
-# `close … saving no` leaves TextEdit's untitled documents open on recent macOS, so each
-# one goes through its own close sheet and that sheet's Delete button.
+# untitled documents (the test's scratch documents; named documents are left alone).
+# On recent macOS TextEdit files a new document in iCloud Drive at once, so "untitled" is
+# told by the window's name, not by the absence of a file; `close … saving no` does not
+# close them, so each goes through its own close sheet and that sheet's Delete button.
+# Untitled files the run left in TextEdit's iCloud folder go to the Trash (never deleted),
+# and only those newer than the marker run.sh leaves when it starts.
 # Anything else the run opened (a note, a draft, an app) is closed by hand: see EXECUTION.md.
 set -uo pipefail
 
@@ -23,7 +26,7 @@ for _ in $(seq 50); do
   result=$(osascript -e 'tell application "System Events" to tell process "TextEdit"
   if (count of windows) = 0 then return "none"
   set w to window 1
-  if value of attribute "AXDocument" of w is not missing value then return "saved"
+  if name of w does not contain "بلا عنوان" and name of w does not contain "Untitled" then return "named"
   if (count of sheets of w) = 0 then
     click (first button of w whose subrole is "AXCloseButton")
     delay 0.8
@@ -49,3 +52,14 @@ end tell' 2>&1)
     *) echo "TextEdit: $result"; break ;;
   esac
 done
+
+marker="${TMPDIR:-/tmp}/baddel-device-test.start"
+icloud="$HOME/Library/Mobile Documents/com~apple~TextEdit/Documents"
+if [ -f "$marker" ] && [ -d "$icloud" ]; then
+  find "$icloud" -maxdepth 1 -type f \( -name 'بلا عنوان*' -o -name 'Untitled*' \) -newer "$marker" -print0 |
+    while IFS= read -r -d '' file; do
+      osascript -e "tell application \"Finder\" to delete (POSIX file \"$file\" as alias)" >/dev/null &&
+        echo "moved to Trash: $(basename "$file")"
+    done
+fi
+

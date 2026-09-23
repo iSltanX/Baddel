@@ -59,11 +59,7 @@ def focus_owner():
 
 def ensure_front(bundle, activate=True):
     for _ in range(30):
-        # A pending system prompt makes the system unable to name the focus owner at all.
-        # BADDEL_TRUST_FRONT=1 accepts "frontmost" alone then — only after checking by hand
-        # that keys really land in the app (type one letter into a test document).
-        owner = focus_owner()
-        if front() == bundle and (owner == bundle or (not owner and os.environ.get("BADDEL_TRUST_FRONT") == "1")):
+        if front() == bundle and focus_owner() == bundle:
             return
         if activate:  # AppleScript's `activate` is not reliable on recent macOS; `open` is
             subprocess.run(["open", "-b", bundle])
