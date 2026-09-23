@@ -8,3 +8,16 @@ src-tauri/gen/
 .env
 .env.*
 release/
+
+# Working files: kept on the maintainer's disk (the phase protocol, plans, design drafts,
+# release notes-to-self), not in the public tree. Earlier versions remain in git history.
+/STATUS.md
+/EXECUTION.md
+/CLAUDE.md
+/docs/baddel-figma-prompt.md
+/docs/baddel-figma-prompt-pro.md
+/docs/design-reference.md
+/docs/baddel-implementation-plan.md
+/docs/design/stitch/
+/docs/launch/
+/design/icon/concepts/

@@ -29,7 +29,7 @@ Anyone who types in two languages knows this moment: you type a full sentence, l
 
 **Baddel** is a small menu bar tool that fixes this without deleting or retyping anything. Press <kbd>⌥</kbd><kbd>⇧</kbd><kbd>Space</kbd> and the text is replaced in place with what you meant, in almost any app, and the input source switches to the correct language so you can keep typing right away.
 
-<!-- The demo GIF goes here once recorded: docs/assets/demo.gif — script and dimensions in docs/launch/demo-gif.md -->
+<!-- The demo GIF goes here once recorded: docs/assets/demo.gif -->
 <div align="center">
   <img alt="Baddel's notice after conversion: اثممخ → hello" src="docs/screenshots/hud-success-en.png" width="330"><br>
   <sub>A small notice confirms what happened, then disappears without taking focus from the app you're typing in.</sub>
@@ -343,7 +343,7 @@ src/                  UI (Svelte 5): Settings and Welcome, display only via invo
   lib/i18n/           Arabic and English strings
 design/               The icon (exported from Figma) and the cover
 scripts/              Checks, build, signing, release, and device testing
-docs/                 The plan, signing, test matrix, and screenshots
+docs/                 Signing, the test matrix, screenshots, and the cover
 ```
 
 </details>
