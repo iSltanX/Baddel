@@ -48,6 +48,8 @@ launch() { # launch <appearance> <window> [capture-path]
     sleep 0.25
   done
   sleep 0.5
+  # A pointer resting over the window would photograph a row or button in its hover state.
+  swift scripts/park-cursor.swift
   BADDEL_THEME="$1" BADDEL_WINDOW="$2" BADDEL_HUD_CAPTURE="${3:-}" "$app" >/dev/null 2>&1 &
   sleep 3
 }
