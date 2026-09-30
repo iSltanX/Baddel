@@ -156,7 +156,7 @@ fn encode(bitmap: &NSBitmapImageRep, jpeg: bool) -> Result<Vec<u8>, ImageError> 
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     #[test]
@@ -169,7 +169,7 @@ mod tests {
     }
 
     /// A blank bitmap of the given size, encoded as PNG, as a picked file would arrive.
-    fn png(width: f64, height: f64) -> Vec<u8> {
+    pub(crate) fn png(width: f64, height: f64) -> Vec<u8> {
         autoreleasepool(|_| {
         // SAFETY: as in `redraw`.
         let bitmap = unsafe {

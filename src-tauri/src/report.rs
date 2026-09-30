@@ -436,6 +436,27 @@ mod tests {
         assert_eq!(&second[14..15], "4");
     }
 
+    /// The channel end to end, from this module's own payload and sender: files a real `test`
+    /// report with an image. Opt-in and never part of `check.sh`:
+    /// `BADDEL_LIVE_REPORT=1 cargo test -p baddel live_report -- --ignored --nocapture`
+    #[test]
+    #[ignore = "posts to the live Worker"]
+    fn live_report() {
+        if std::env::var_os("BADDEL_LIVE_REPORT").is_none() {
+            return;
+        }
+        let png = crate::sys::image::tests::png(640.0, 400.0);
+        let prepared = crate::sys::image::prepare_file(&png).unwrap();
+        let image = Image { mime: prepared.mime, bytes: prepared.bytes, width: prepared.width, height: prepared.height, thumbnail: prepared.thumbnail };
+        let d = Draft {
+            problem: Problem::Other,
+            description: "Channel check from src-tauri/src/report.rs (cargo test, not the report window). Safe to close.".into(),
+        };
+        let p = payload(&d, &snapshot(), Some(&image)).unwrap();
+        let id = tauri::async_runtime::block_on(send(&p, &uuid_v4(), "test")).expect("the Worker filed the report");
+        println!("filed report #{id}");
+    }
+
     #[test]
     fn base64_matches_the_standard() {
         assert_eq!(base64(b""), "");
