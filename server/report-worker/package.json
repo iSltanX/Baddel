@@ -1,0 +1,14 @@
+{
+  "name": "app-reports-worker",
+  "private": true,
+  "description": "The shared report Worker of iSltanX/app-reports (contract v1).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "dev": "wrangler dev",
+    "deploy": "./scripts/deploy.sh"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}

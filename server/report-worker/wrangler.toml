@@ -1,0 +1,16 @@
+# The shared report Worker. Nothing here is secret: GITHUB_TOKEN and RATE_LIMIT_SALT are Worker
+# secrets set by scripts/deploy.sh, never written to this file.
+name = "app-reports"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+# Only the Worker's own URL: no routes on any zone.
+
+[vars]
+REPORTS_REPO = "iSltanX/app-reports"
+
+# Rate-limit counters, idempotency keys and the product-label cache, all with TTLs.
+# The id is filled in by scripts/deploy.sh on the first deploy.
+[[kv_namespaces]]
+binding = "REPORTS_KV"
+id = "cbe73245563648d880e2a85df62f2f49"
