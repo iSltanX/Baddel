@@ -7,7 +7,7 @@
 
 [![Release](https://img.shields.io/github/v/release/iSltanX/Baddel?label=release&color=3F5673&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Universal-1C1917?style=flat-square)](#requirements)
-[![Local only](https://img.shields.io/badge/local--only-no%20network-5F7F52?style=flat-square)](#privacy)
+[![Local only](https://img.shields.io/badge/local--only-no%20tracking-5F7F52?style=flat-square)](#privacy)
 [![UI](https://img.shields.io/badge/UI-Arabic%20%C2%B7%20English-3F5673?style=flat-square)](#features)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6B665E?style=flat-square)](LICENSE)
 
@@ -231,7 +231,7 @@ A Tauri 2 app: a Rust core holds all the logic and state, and a Svelte 5 UI for 
 - **It only reads what it's about to convert,** and only the moment you press the shortcut: the selection, or as much text before the cursor as needed to find the word.
 - **It doesn't save any text,** not to disk and not in a log. The last conversion stays in memory for 30 seconds so it can be undone, then it's erased.
 - **The clipboard is restored** after every conversion, and whatever passes through it is marked transient and concealed.
-- **No network access** except to check for updates: a single request for a `latest.json` file from this repository's releases page, once a day. It carries nothing about you or your text, and you can turn it off from **Settings → General**.
+- **No network access** except in two cases: the update check (a single request for a `latest.json` file from this repository's releases page, once a day, carrying nothing about you or your text, which you can turn off from **Settings → General**), and a report you write, see in full, and confirm (see [Reporting an issue](#reporting-an-issue)).
 - **No account, no analytics, no tracking.** The interface doesn't request any external resource: fonts are bundled, and the content policy is `default-src 'self'`.
 - **Protected fields are never touched:** in a password field, or whenever macOS turns on Secure Input, Baddel reads nothing and writes nothing.
 
@@ -361,9 +361,15 @@ Yes. It's a Universal package: a single file that runs natively on both Apple Si
 
 ## Reporting an issue
 
-Open an issue on the [issues page](https://github.com/iSltanX/Baddel/issues), and include: the Baddel version (from **Settings → About**), the macOS version, the app you were typing in, and the two layouts you use.
+From inside Baddel, without an account: the menu → **Report a Problem…**, or **Settings → About → Report a Problem…**.
 
-> Don't paste private text into the issue. Anything you write there becomes public.
+1. Pick the problem type, write a short description (up to 1,000 characters), and attach an image if you like: from a file, or paste it with <kbd>⌘</kbd><kbd>V</kbd>. Baddel never asks for screen recording.
+2. **Review what's sent:** the preview shows every field with its value, the image with its size, and the full diagnostics. Nothing else is sent: no text you typed or converted, no clipboard contents, no identifier for you or your device.
+3. **Send,** and you get a report number. The report goes to a private repository owned by the developer, not to a public page.
+
+If sending fails, "Copy Report" puts it on the clipboard so you can send it your own way. **Settings → About → Copy Diagnostics** copies the same fields without sending anything. Details in [PRIVACY.md](PRIVACY.md).
+
+For general questions, the [issues page](https://github.com/iSltanX/Baddel/issues) is open; what you write there is public.
 
 ## License
 
