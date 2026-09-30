@@ -2,7 +2,8 @@
   import FormRow from '../components/FormRow.svelte'
   import GroupCard from '../components/GroupCard.svelte'
   import Icon from '../components/Icon.svelte'
-  import { appVersion, closeWindow, openExternal, openOnboarding, t } from '../state.svelte'
+  import Button from '../components/Button.svelte'
+  import { appVersion, closeWindow, copyDiagnostics, openExternal, openOnboarding, openReport, t } from '../state.svelte'
   import iconUrl from '../../assets/app-icon.png'
 
   const REPOSITORY = 'https://github.com/iSltanX/Baddel'
@@ -13,11 +14,13 @@
     void appVersion().then((value) => (version = value))
   })
 
-  const links = [
-    { key: 'sourceOnGithub', url: REPOSITORY, value: '' },
-    { key: 'reportIssue', url: `${REPOSITORY}/issues`, value: '' },
-    { key: 'license', url: `${REPOSITORY}/blob/main/LICENSE`, value: 'MIT' },
-  ]
+  let copied = $state(false)
+
+  async function copy() {
+    await copyDiagnostics()
+    copied = true
+    setTimeout(() => (copied = false), 1600)
+  }
 
   /** Tints for the maker's other apps until their own icons ship with them. */
   const makers = [
@@ -40,14 +43,25 @@
 </div>
 
 <GroupCard>
-  {#each links as link, index (link.key)}
-    <button class="link" type="button" onclick={() => openExternal(link.url)}>
-      <FormRow first={index === 0} title={t(`settings.about.${link.key}`)}>
-        {#if link.value}<span class="value">{link.value}</span>{/if}
-        <span class="affordance"><Icon name="external" size={16} /></span>
-      </FormRow>
-    </button>
-  {/each}
+  <button class="link" type="button" onclick={() => openExternal(REPOSITORY)}>
+    <FormRow first title={t('settings.about.sourceOnGithub')}>
+      <span class="affordance"><Icon name="external" size={16} /></span>
+    </FormRow>
+  </button>
+  <button class="link" type="button" onclick={openReport}>
+    <FormRow title={t('settings.about.reportProblem')}>
+      <span class="affordance"><Icon name="chevronRight" size={16} flip /></span>
+    </FormRow>
+  </button>
+  <FormRow title={t('settings.about.copyDiagnostics')} description={t('settings.about.copyDiagnosticsDescription')}>
+    <Button onclick={copy}>{copied ? t('settings.about.copied') : t('settings.about.copy')}</Button>
+  </FormRow>
+  <button class="link" type="button" onclick={() => openExternal(`${REPOSITORY}/blob/main/LICENSE`)}>
+    <FormRow title={t('settings.about.license')}>
+      <span class="value">MIT</span>
+      <span class="affordance"><Icon name="external" size={16} /></span>
+    </FormRow>
+  </button>
   <button class="link" type="button" onclick={welcome}>
     <FormRow title={t('settings.about.showWelcome')}>
       <!-- Forward: right in English, mirrored to the left in Arabic. -->

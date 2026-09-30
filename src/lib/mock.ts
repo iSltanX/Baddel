@@ -53,6 +53,45 @@ const APPS: AppInfo[] = [
   { id: 'com.1password.1password', name: '1Password', icon: null },
 ]
 
+/** A tiny grey PNG standing in for a screenshot. */
+const MOCK_IMAGE = {
+  name: '1.png',
+  mime: 'image/png',
+  bytes: 421_888,
+  width: 1280,
+  height: 800,
+  thumbnail:
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN88OjRfwAIQQN2f0XMWgAAAABJRU5ErkJggg==',
+}
+
+function mockPreview(draft: { problem: string; description: string }) {
+  const bug = ['wrong-conversion', 'no-effect', 'undo', 'shortcut'].includes(draft.problem)
+  const categories: Record<string, string> = { 'wrong-conversion': 'conversion', 'no-effect': 'no-effect', undo: 'undo', shortcut: 'shortcut' }
+  const diagnostics = {
+    accessibility: true,
+    secure_input: false,
+    layouts: { arabic: 'com.apple.keylayout.Arabic', arabic_name: 'Arabic', latin: 'com.apple.keylayout.ABC', latin_name: 'ABC', active: 'latin', source: 'live' },
+    layout_choice: { arabic: 'auto', latin: 'auto' },
+    recent: [{ outcome: 'converted', path: 'keys', ms: 1240, ago_s: 42 }],
+    last_app: 'com.apple.mail',
+    settings: { language: settings.language, switch_input_source: true },
+    build: 'debug',
+  }
+  return {
+    json: '{}',
+    diagnostics: JSON.stringify(diagnostics, null, 2),
+    description: draft.description.trim(),
+    kind: bug ? 'bug' : draft.problem,
+    category: categories[draft.problem] ?? null,
+    appVersion: '1.1.0',
+    osVersion: '27.0.1',
+    arch: 'arm64',
+    locale: settings.language,
+    test: true,
+    image: MOCK_IMAGE,
+  }
+}
+
 let permission = true
 let apps = [...APPS]
 
@@ -104,6 +143,19 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
     }
     case 'app_version':
       return answer('1.0.0')
+    // The report window: `?report=fail` (or rate-limited, rejected) reviews the failure screens.
+    case 'report_pick_image':
+    case 'report_paste_image':
+      return answer(MOCK_IMAGE)
+    case 'report_preview':
+      return answer(mockPreview(args?.draft as { problem: string; description: string }))
+    case 'report_send': {
+      const mode = new URLSearchParams(location.search).get('report')
+      if (mode === 'fail') return Promise.reject({ kind: 'retry' })
+      if (mode === 'rate-limited') return Promise.reject({ kind: 'rate-limited', minutes: 42 })
+      if (mode === 'rejected') return Promise.reject({ kind: 'rejected', reason: 'invalid_field: description' })
+      return answer(128)
+    }
     // `?update=available` (or checking, installing, failed) reviews the other states.
     case 'update_status': {
       const phase = new URLSearchParams(location.search).get('update') ?? 'upToDate'

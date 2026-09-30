@@ -15,7 +15,8 @@
     "settings": "Settings…",
     "checkForUpdates": "Check for Updates…",
     "quit": "Quit Baddel",
-    "installUpdate": "Install Update {version}…"
+    "installUpdate": "Install Update {version}…",
+    "reportProblem": "Report a Problem…"
   },
   "settings": {
     "panes": {
@@ -95,7 +96,11 @@
       "version": "Version {version}",
       "tagline": "Type, and we'll switch it.",
       "sourceOnGithub": "Source on GitHub",
-      "reportIssue": "Report an Issue",
+      "reportProblem": "Report a Problem…",
+      "copyDiagnostics": "Copy Diagnostics",
+      "copyDiagnosticsDescription": "Version, system, layouts and recent outcomes — never any text you typed",
+      "copy": "Copy",
+      "copied": "Copied",
       "license": "License",
       "fromSameMaker": "From the same maker",
       "makerApps": {
@@ -106,7 +111,7 @@
       "showWelcome": "Show the welcome window again",
       "madeByLabel": "Designed & developed by",
       "madeByName": "Sultan",
-      "promise": "Fully local · No account · No internet · One permission"
+      "promise": "Fully local · No account · No tracking · One permission"
     }
   },
   "onboarding": {
@@ -127,7 +132,7 @@
       "body": "Baddel needs Accessibility permission to read and replace the selected text.",
       "reassurance": {
         "noKeylogging": "Doesn't monitor what you type",
-        "noInternet": "Doesn't connect to the internet",
+        "noInternet": "Never sends your text anywhere",
         "noTextStorage": "Doesn't save any text"
       }
     },
@@ -179,5 +184,70 @@
     "installFailedTitle": "Couldn’t Install the Update",
     "failedBody": "Check your internet connection, then try again.",
     "ok": "OK"
+  },
+  "report": {
+    "title": "Report a Problem",
+    "intro": "Describe what happened. Nothing is sent until you’ve seen it and confirmed.",
+    "problemType": "Problem type",
+    "problems": {
+      "wrong-conversion": "Wrong conversion",
+      "no-effect": "Nothing happened",
+      "undo": "Undo didn’t work",
+      "shortcut": "Shortcut problem",
+      "crash": "Baddel quit or froze",
+      "suggestion": "Suggestion",
+      "other": "Other"
+    },
+    "description": "Description",
+    "descriptionPlaceholder": "Example: in Mail I selected a paragraph and pressed the shortcut, but only half of it changed.",
+    "counter": "{count} of {max}",
+    "descriptionHint": "Mention the app you were typing in, what you expected, and what happened.",
+    "image": "Image (optional)",
+    "chooseImage": "Choose Image…",
+    "pasteHint": "or paste one here",
+    "attached": "Attached image",
+    "remove": "Remove",
+    "imageWarning": "The image may contain private text — check it before sending.",
+    "imageLimits": "PNG or JPEG up to 20 MB, prepared automatically to under 3 MB without its metadata.",
+    "imageErrors": {
+      "unsupported": "That isn’t a PNG or JPEG image.",
+      "too-large": "The image is larger than 20 MB.",
+      "failed": "Couldn’t prepare the image.",
+      "no-image": "There’s no image on the clipboard."
+    },
+    "next": "Next: Review What’s Sent",
+    "cancel": "Cancel",
+    "previewIntro": "This is exactly what will be sent — nothing else.",
+    "previewDestination": "It goes to a private repository owned by Baddel’s developer, through a server on Cloudflare.",
+    "groups": {
+      "report": "Report",
+      "description": "Description",
+      "image": "Image",
+      "diagnostics": "Diagnostics"
+    },
+    "fields": {
+      "type": "Type",
+      "app": "App",
+      "system": "System",
+      "locale": "Interface language",
+      "test": "Test report"
+    },
+    "onlyThis": "Nothing else is sent: no text you typed or converted, no clipboard contents, no identifier for you or your device.",
+    "send": "Send",
+    "back": "Back",
+    "sentTitle": "Report Received",
+    "sentBody": "Thank you. It goes straight to the developer and stays private.",
+    "copyNumber": "Copy Number",
+    "copied": "Copied",
+    "keepNumber": "Keep this number if you want to follow up — it’s your only reference.",
+    "done": "Done",
+    "failedTitle": "Couldn’t Send the Report",
+    "failedRetry": "Check your internet connection, then try again. The report is still here and hasn’t been saved anywhere else.",
+    "failedRateLimited": "Too many reports came from your network. Try again in {minutes} minutes.",
+    "failedRejected": "The server refused this report ({reason}). Copy it and send it your own way.",
+    "copyHint": "“Copy Report” puts its full text on the clipboard, with the image described by its size, so you can send it your own way.",
+    "retry": "Try Again",
+    "copyReport": "Copy Report",
+    "sending": "Sending…"
   }
 }

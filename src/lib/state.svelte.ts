@@ -68,6 +68,40 @@ export interface UpdateStatus {
   lastChecked: number | null
 }
 
+/** The problem types of the report window, as `report.rs` names them. */
+export type Problem = 'wrong-conversion' | 'no-effect' | 'undo' | 'shortcut' | 'crash' | 'suggestion' | 'other'
+
+/** The attached image as the report window shows it; the image itself stays in Rust. */
+export interface ReportImage {
+  name: string
+  mime: string
+  bytes: number
+  width: number
+  height: number
+  /** `data:image/png;base64,…` */
+  thumbnail: string
+}
+
+/** Everything the preview screen shows, built by Rust from the payload itself. */
+export interface ReportPreview {
+  json: string
+  diagnostics: string
+  description: string
+  kind: string
+  category: string | null
+  appVersion: string
+  osVersion: string
+  arch: string
+  locale: string
+  test: boolean
+  image: ReportImage | null
+}
+
+export type SendFailure =
+  | { kind: 'retry' }
+  | { kind: 'rate-limited'; minutes: number }
+  | { kind: 'rejected'; reason: string }
+
 const bundles: Record<Language, Record<string, unknown>> = { ar, en }
 
 /**
@@ -156,6 +190,18 @@ export const previewHud = () => invoke<void>('preview_hud')
 export const openOnboarding = () => invoke<void>('open_onboarding')
 export const finishOnboarding = () => invoke<void>('finish_onboarding')
 export const openExternal = (url: string) => invoke<void>('open_external', { url })
+export const copyDiagnostics = () => invoke<void>('copy_diagnostics')
+export const openReport = () => invoke<void>('open_report')
+/** `null` when the user cancels the picker. Rejects with an image error code. */
+export const pickReportImage = () => invoke<ReportImage | null>('report_pick_image')
+export const pasteReportImage = () => invoke<ReportImage>('report_paste_image')
+export const clearReportImage = () => invoke<void>('report_clear_image')
+export const previewReport = (problem: Problem, description: string) =>
+  invoke<ReportPreview>('report_preview', { draft: { problem, description } })
+/** Resolves to the report number; rejects with a {@link SendFailure}. */
+export const sendReport = () => invoke<number>('report_send')
+export const copyReport = () => invoke<void>('report_copy')
+export const copyReportNumber = (id: number) => invoke<void>('report_copy_number', { id })
 export const setWindowTitle = (title: string) => invoke<void>('set_window_title', { title })
 export const setContentHeight = (height: number) => invoke<void>('set_content_height', { height })
 
