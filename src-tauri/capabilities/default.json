@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions for the settings and onboarding windows.",
-  "windows": ["settings", "onboarding"],
+  "description": "Permissions for the settings, onboarding and report windows.",
+  "windows": ["settings", "onboarding", "report"],
   "permissions": ["core:default", "core:window:allow-start-dragging"]
 }

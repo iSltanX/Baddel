@@ -9,10 +9,12 @@ use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::controller;
+use crate::report::{self, Draft, DraftError, ReportState, SendError};
 use crate::settings::{self, AppState, Binding, Settings};
 use crate::sys::app_icons::AppInfo;
-use crate::sys::{app_icons, chrome, input_source, on_main, permissions};
-use crate::{hud, shortcuts, sync, updater, windows};
+use crate::sys::image::{self, ImageError};
+use crate::sys::{app_icons, chrome, input_source, on_main, pasteboard, permissions};
+use crate::{diagnostics, hud, shortcuts, sync, updater, windows};
 
 /// The three letter rows of a Mac keyboard, by virtual keycode. The keyboard is a
 /// real-world object, so this row order is never mirrored for a right-to-left UI.
@@ -237,6 +239,186 @@ pub fn install_update(app: AppHandle) {
     updater::install_in_background(&app);
 }
 
+// ── Diagnostics and problem reports ──────────────────────────────────────────
+
+/// About → "Copy Diagnostics": the same fields a report would carry, as JSON.
+#[tauri::command]
+pub fn copy_diagnostics(app: AppHandle) {
+    pasteboard::write_text(&diagnostics::collect(&app).to_pretty_json());
+}
+
+#[tauri::command]
+pub fn open_report(app: AppHandle) -> Result<(), String> {
+    windows::open_report(&app).map_err(|e| e.to_string())
+}
+
+/// The attached image as the window shows it. The image itself stays in Rust.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageInfo {
+    /// Its name in the report's folder ("1.png"); the original file name is never sent.
+    pub name: String,
+    pub mime: String,
+    pub bytes: usize,
+    pub width: u32,
+    pub height: u32,
+    /// `data:image/png;base64,…`
+    pub thumbnail: String,
+}
+
+fn image_error(error: ImageError) -> String {
+    match error {
+        ImageError::Unsupported => "unsupported",
+        ImageError::TooLarge => "too-large",
+        ImageError::Failed => "failed",
+    }
+    .into()
+}
+
+fn image_info(image: &report::Image) -> ImageInfo {
+    ImageInfo {
+        name: if image.mime == "image/jpeg" { "1.jpg" } else { "1.png" }.into(),
+        mime: image.mime.into(),
+        bytes: image.bytes.len(),
+        width: image.width,
+        height: image.height,
+        thumbnail: format!("data:image/png;base64,{}", report::base64(&image.thumbnail)),
+    }
+}
+
+fn keep_image(app: &AppHandle, prepared: image::Prepared) -> ImageInfo {
+    let image = report::Image {
+        mime: prepared.mime,
+        bytes: prepared.bytes,
+        width: prepared.width,
+        height: prepared.height,
+        thumbnail: prepared.thumbnail,
+    };
+    let info = image_info(&image);
+    let state = app.state::<ReportState>();
+    let mut session = state.0.lock().unwrap();
+    session.image = Some(image);
+    session.previewed = None;
+    info
+}
+
+/// "Choose Image…": PNG or JPEG from a file. `None` when the user cancels.
+#[tauri::command]
+pub async fn report_pick_image(app: AppHandle) -> Result<Option<ImageInfo>, String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    app.dialog().file().add_filter("PNG, JPEG", &["png", "jpg", "jpeg"]).pick_file(move |picked| {
+        let _ = tx.send(picked);
+    });
+    let prepared = tauri::async_runtime::spawn_blocking(move || {
+        let path = rx.recv().ok().flatten().and_then(|p| p.into_path().ok())?;
+        Some(std::fs::read(path).map_err(|_| ImageError::Failed).and_then(|bytes| image::prepare_file(&bytes)))
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    match prepared {
+        None => Ok(None),
+        Some(Ok(prepared)) => Ok(Some(keep_image(&app, prepared))),
+        Some(Err(error)) => Err(image_error(error)),
+    }
+}
+
+/// ⌘V in the report window with an image on the pasteboard.
+#[tauri::command]
+pub async fn report_paste_image(app: AppHandle) -> Result<ImageInfo, String> {
+    let prepared = tauri::async_runtime::spawn_blocking(image::prepare_pasteboard).await.map_err(|e| e.to_string())?;
+    match prepared {
+        None => Err("no-image".into()),
+        Some(Ok(prepared)) => Ok(keep_image(&app, prepared)),
+        Some(Err(error)) => Err(image_error(error)),
+    }
+}
+
+#[tauri::command]
+pub fn report_clear_image(app: AppHandle) {
+    let state = app.state::<ReportState>();
+    let mut session = state.0.lock().unwrap();
+    session.image = None;
+    session.previewed = None;
+}
+
+/// Everything the preview screen shows, built from the payload itself.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Preview {
+    /// The payload, pretty-printed, each attachment reduced to its type and size.
+    pub json: String,
+    /// Its `diagnostics` object alone, pretty-printed.
+    pub diagnostics: String,
+    pub description: String,
+    pub kind: String,
+    pub category: Option<String>,
+    pub app_version: String,
+    pub os_version: String,
+    pub arch: String,
+    pub locale: String,
+    pub test: bool,
+    pub image: Option<ImageInfo>,
+}
+
+#[tauri::command]
+pub fn report_preview(app: AppHandle, draft: Draft) -> Result<Preview, String> {
+    let snapshot = diagnostics::collect(&app);
+    let state = app.state::<ReportState>();
+    let mut session = state.0.lock().unwrap();
+    let payload = report::payload(&draft, &snapshot, session.image.as_ref()).map_err(|e| match e {
+        DraftError::EmptyDescription => "empty-description".to_string(),
+        DraftError::DescriptionTooLong => "too-long".to_string(),
+    })?;
+    let text = |key: &str| payload.get(key).and_then(|v| v.as_str()).unwrap_or_default().to_string();
+    let image = session.image.as_ref().map(image_info);
+    let preview = Preview {
+        json: report::pretty(&report::for_display(&payload)),
+        diagnostics: report::pretty(&payload["diagnostics"]),
+        description: text("description"),
+        kind: text("kind"),
+        category: payload.get("category").and_then(|v| v.as_str()).map(str::to_string),
+        app_version: text("app_version"),
+        os_version: text("os_version"),
+        arch: text("arch"),
+        locale: text("locale"),
+        test: payload.get("test").and_then(|v| v.as_bool()).unwrap_or(false),
+        image,
+    };
+    session.previewed = Some(payload);
+    Ok(preview)
+}
+
+/// Sends the payload the preview showed. Returns the report number.
+#[tauri::command]
+pub async fn report_send(app: AppHandle) -> Result<u64, SendError> {
+    let (payload, key) = {
+        let state = app.state::<ReportState>();
+        let mut session = state.0.lock().unwrap();
+        let payload = session.previewed.clone().ok_or(SendError::Rejected { reason: "no preview".into() })?;
+        let key = session.key_for(&payload.to_string());
+        (payload, key)
+    };
+    let version = app.package_info().version.to_string();
+    let id = report::send(&payload, &key, &version).await?;
+    app.state::<ReportState>().0.lock().unwrap().clear();
+    Ok(id)
+}
+
+/// "Copy Report": the previewed payload, attachments reduced to type and size.
+#[tauri::command]
+pub fn report_copy(app: AppHandle) -> Result<(), String> {
+    let state = app.state::<ReportState>();
+    let session = state.0.lock().unwrap();
+    let payload = session.previewed.as_ref().ok_or("no preview")?;
+    pasteboard::write_text(&report::pretty(&report::for_display(payload)));
+    Ok(())
+}
+
+#[tauri::command]
+pub fn report_copy_number(id: u64) {
+    pasteboard::write_text(&format!("#{id}"));
+}
+
 // ── Windows and odds and ends ────────────────────────────────────────────────
 
 #[tauri::command]
@@ -307,7 +489,8 @@ pub fn set_window_title(window: WebviewWindow, title: String) -> Result<(), Stri
     window.set_title(&title).map_err(|e| e.to_string())
 }
 
-/// Opens a link in the user's browser. The app itself never makes a network request.
+/// Opens a link in the user's browser. The app's own network requests are the update check and
+/// a problem report the user confirmed — neither goes through here.
 #[tauri::command]
 pub fn open_external(url: String) -> Result<(), String> {
     // Only ever called with the links built into the About pane.

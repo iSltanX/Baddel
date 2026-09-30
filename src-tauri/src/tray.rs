@@ -167,6 +167,7 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
     menu.append(&MenuItem::with_id(app, "settings", text.settings, true, Some("Cmd+,"))?)?;
+    menu.append(&item(app, "report", text.report_problem, true)?)?;
     match crate::updater::available_version(app) {
         Some(version) => menu.append(&item(app, "install-update", &text.install_update.replace("{version}", &version), true)?)?,
         None => menu.append(&item(app, "updates", text.check_updates, true)?)?,
@@ -207,6 +208,9 @@ fn on_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "pause" => sync::toggle_pause(app),
         "settings" => {
             let _ = windows::open_settings(app);
+        }
+        "report" => {
+            let _ = windows::open_report(app);
         }
         "updates" => updater::check_in_background(app, updater::Trigger::Menu),
         "install-update" => updater::install_in_background(app),

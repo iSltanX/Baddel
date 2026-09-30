@@ -65,6 +65,20 @@ pub fn read_string() -> Option<String> {
     })
 }
 
+/// Puts `text` on the pasteboard as an ordinary copy, for when the user asked to copy it
+/// (diagnostics, a report). Unlike [`write_transient`], clipboard managers may keep it.
+pub fn write_text(text: &str) {
+    autoreleasepool(|_| {
+        let pasteboard = NSPasteboard::generalPasteboard();
+        pasteboard.clearContents();
+        let item = NSPasteboardItem::new();
+        // SAFETY: AppKit constant, valid for the life of the process.
+        item.setData_forType(&NSData::with_bytes(text.as_bytes()), unsafe { NSPasteboardTypeString });
+        let item = ProtocolObject::<dyn NSPasteboardWriting>::from_retained(item);
+        pasteboard.writeObjects(&NSArray::from_retained_slice(&[item]));
+    })
+}
+
 /// Puts `text` on the pasteboard, flagged so clipboard managers do not record it.
 pub fn write_transient(text: &str) {
     autoreleasepool(|_| {

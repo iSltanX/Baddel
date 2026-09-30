@@ -1,4 +1,4 @@
-//! The two webview windows.
+//! The webview windows: settings, welcome, and the problem report.
 //!
 //! Both are created when asked for and destroyed when closed, so an idle Baddel
 //! runs no webview at all. Anything that must survive a close belongs in
@@ -11,12 +11,15 @@ use crate::settings::AppState;
 
 pub const SETTINGS: &str = "settings";
 pub const ONBOARDING: &str = "onboarding";
+pub const REPORT: &str = "report";
 
 /// Fixed by the spec: macOS settings windows do not resize horizontally.
 const SETTINGS_WIDTH: f64 = 560.0;
 /// A starting height; the page measures its pane and asks for the real one.
 const SETTINGS_HEIGHT: f64 = 520.0;
 const ONBOARDING_SIZE: (f64, f64) = (560.0, 600.0);
+/// A starting size; like the settings window, the page asks for the height it needs.
+const REPORT_SIZE: (f64, f64) = (480.0, 580.0);
 
 /// Debug aid for capturing the documentation screenshots: forces a window's
 /// appearance so the dark screens can be taken without switching the whole Mac over.
@@ -89,6 +92,24 @@ pub fn open_onboarding_at(app: &AppHandle, step: Option<&str>) -> tauri::Result<
     focus(&window)
 }
 
+/// Opens the problem-report window, or brings it forward.
+pub fn open_report(app: &AppHandle) -> tauri::Result<()> {
+    if let Some(window) = app.get_webview_window(REPORT) {
+        return focus(&window);
+    }
+    let language = app.state::<AppState>().get().language;
+    let window = WebviewWindowBuilder::new(app, REPORT, WebviewUrl::App("index.html?window=report".into()))
+        .title(menu_text::strings(language).report_title)
+        .inner_size(REPORT_SIZE.0, REPORT_SIZE.1)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .visible(false)
+        .theme(forced_theme())
+        .build()?;
+    focus(&window)
+}
+
 /// Windows are built hidden so the page can lay itself out before it is seen;
 /// the page reveals its own window once it has rendered.
 pub fn reveal(window: &tauri::WebviewWindow) -> tauri::Result<()> {
@@ -116,6 +137,7 @@ pub fn open_requested_window(app: &AppHandle) {
     let _ = match window {
         SETTINGS => open_settings_at(app, at),
         ONBOARDING => open_onboarding_at(app, at),
+        REPORT => open_report(app),
         "hud" => {
             show_notice_repeatedly(app, at.unwrap_or("success").to_string());
             Ok(())

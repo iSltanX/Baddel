@@ -26,6 +26,11 @@ tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Problem reports (src/report.rs). The updater already builds reqwest and rustls with exactly
+# these features, so no new crate enters the build; rustls is named only to install its
+# crypto provider, which reqwest's `rustls-no-provider` leaves to the app.
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accessibility-sys = "0.1"
@@ -40,6 +45,8 @@ objc2-foundation = { version = "0.3", features = [
     "NSURL",
     "NSGeometry",
     "NSValue",
+    # The macOS version in diagnostics (src/sys/system.rs).
+    "NSProcessInfo",
 ] }
 objc2-app-kit = { version = "0.3", features = [
     "NSPasteboard",

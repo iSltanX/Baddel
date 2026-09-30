@@ -1,7 +1,7 @@
 //! The handful of strings that live outside the webview.
 //!
 //! The tray menu and the notice panel are native, so they cannot read
-//! `src/lib/i18n/*.json`. This table mirrors the `menu.*`, `hud.*` and `updateDialog.*` keys there;
+//! `src/lib/i18n/*.json`. This table mirrors the `menu.*`, `hud.*`, `updateDialog.*` keys and `report.title` there;
 //! the two are kept in step by hand.
 
 use crate::settings::Language;
@@ -18,6 +18,9 @@ pub struct Strings {
     pub pause: &'static str,
     pub resume: &'static str,
     pub settings: &'static str,
+    pub report_problem: &'static str,
+    /// The report window's title.
+    pub report_title: &'static str,
     pub check_updates: &'static str,
     /// `{version}`
     pub install_update: &'static str,
@@ -52,6 +55,8 @@ const AR: Strings = Strings {
     pause: "أوقف بدّل مؤقتًا",
     resume: "استأنف بدّل",
     settings: "الإعدادات…",
+    report_problem: "أبلغ عن مشكلة…",
+    report_title: "أبلغ عن مشكلة",
     check_updates: "تحقّق من التحديثات…",
     install_update: "ثبّت التحديث {version}…",
     quit: "إنهاء بدّل",
@@ -83,6 +88,8 @@ const EN: Strings = Strings {
     pause: "Pause Baddel",
     resume: "Resume Baddel",
     settings: "Settings…",
+    report_problem: "Report a Problem…",
+    report_title: "Report a Problem",
     check_updates: "Check for Updates…",
     install_update: "Install Update {version}…",
     quit: "Quit Baddel",

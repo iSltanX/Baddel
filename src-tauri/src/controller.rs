@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 use baddel_core::{detect_direction, Direction, LayoutMap};
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::diagnostics::{History, Path};
 use crate::menu_text;
 use crate::settings::{AppState, Language};
 use crate::sys::input_source::Snapshot as Layouts;
@@ -114,7 +115,7 @@ pub fn spawn(app: AppHandle) -> Commands {
     thread::Builder::new()
         .name("baddel-controller".into())
         .spawn(move || {
-            let mut controller = Controller { app, last: None, shown: None, woken: HashSet::new() };
+            let mut controller = Controller { app, last: None, shown: None, woken: HashSet::new(), path: None };
             loop {
                 // While a conversion is remembered, wake up when its undo window closes so the
                 // text leaves memory and the menu on time, not whenever the next command comes.
@@ -132,13 +133,16 @@ pub fn spawn(app: AppHandle) -> Commands {
                     Err(RecvTimeoutError::Disconnected) => break,
                 };
                 let started = Instant::now();
+                let app_id = frontmost::bundle_id();
                 let outcome = match command {
                     Command::Convert => controller.convert(),
                     Command::Undo => controller.undo(),
                 };
                 #[cfg(debug_assertions)]
                 eprintln!("[baddel] {outcome:?} in {:?}", started.elapsed());
-                let _ = started;
+                // For diagnostics: the outcome, its path and time, and the app — never the text.
+                let path = controller.path.take();
+                controller.app.state::<History>().record(outcome, path, started.elapsed(), app_id);
                 controller.sync_menu();
                 controller.announce(outcome);
                 // The event carries the outcome and nothing else: no converted text
@@ -157,6 +161,8 @@ struct Controller {
     shown: Option<Instant>,
     /// Apps we already asked to switch their accessibility tree on.
     woken: HashSet<i32>,
+    /// How the last command reached the text, for diagnostics; `None` when a guard stopped it first.
+    path: Option<Path>,
 }
 
 /// How the current text was obtained, and therefore how to write it back.
@@ -165,6 +171,8 @@ struct Target {
     method: Method,
     /// Pasteboard contents to put back, taken before our first ⌘C.
     saved: Option<pasteboard::Snapshot>,
+    /// Whether synthetic arrow keys selected the text (diagnostics only).
+    keys: bool,
 }
 
 /// What to do with a line read through the keyboard: keep its first `keep` bytes, replace the rest.
@@ -231,7 +239,7 @@ impl Controller {
         let expected =
             if layouts.current_is_arabic { Direction::ArabicToLatin } else { Direction::LatinToArabic };
         let cx = Context { map: &map, layouts: &layouts, expected, switch_input_source: settings.switch_input_source };
-        let mut target = Target { focused: self.focused_element(), method: Method::Accessibility, saved: None };
+        let mut target = Target { focused: self.focused_element(), method: Method::Accessibility, saved: None, keys: false };
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
         }
@@ -248,6 +256,7 @@ impl Controller {
             target.method = Method::Pasteboard;
         }
         let outcome = self.convert_in(&mut target, &cx);
+        self.path = Some(target.path());
         if let Some(saved) = &target.saved {
             pasteboard::restore(saved);
         }
@@ -438,11 +447,12 @@ impl Controller {
             return Outcome::Failed;
         }
         keysynth::wait_for_modifiers_released(MODIFIER_RELEASE_TIMEOUT);
-        let mut target = Target { focused: Focused::get(), method: Method::Accessibility, saved: None };
+        let mut target = Target { focused: Focused::get(), method: Method::Accessibility, saved: None, keys: false };
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Failed;
         }
         let outcome = self.undo_in(&mut target, &last);
+        self.path = Some(target.path());
         if let Some(saved) = &target.saved {
             pasteboard::restore(saved);
         }
@@ -464,6 +474,7 @@ impl Controller {
         if stops > MAX_UNDO_CHARS {
             return Outcome::Failed;
         }
+        target.keys = true;
         for _ in 0..stops {
             keysynth::select_char(last.back_arrow);
         }
@@ -548,6 +559,14 @@ impl LastOp {
 }
 
 impl Target {
+    fn path(&self) -> Path {
+        match (self.keys, self.method) {
+            (true, _) => Path::Keys,
+            (false, Method::Accessibility) => Path::Accessibility,
+            (false, Method::Pasteboard) => Path::Pasteboard,
+        }
+    }
+
     /// The selected text, or `None` when nothing is selected.
     fn read_selection(&mut self) -> Option<String> {
         if self.method == Method::Accessibility {
@@ -608,6 +627,7 @@ impl Target {
     /// Arabic is full of — and walking back character by character goes astray in
     /// mixed-direction text. The line's edge is the one selection that is reliable everywhere.
     fn edit_line_with_keys(&mut self, arrow: u16, plan: impl Fn(&str) -> Option<LineEdit>) -> KeyEdit {
+        self.keys = true;
         keysynth::select_to_line_edge(arrow);
         let line = self.await_selection();
         trace!("key path: line read = {:?} chars", line.as_ref().map(|l| l.chars().count()));
