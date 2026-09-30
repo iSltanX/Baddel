@@ -21,3 +21,16 @@ release/
 /docs/design/stitch/
 /docs/launch/
 /design/icon/concepts/
+
+# The product/brand brief and everything it produces (study, progress board, reporting
+# proof, logo drafts and exports) stay local too. Code from the reporting phase is tracked.
+/baddel-brief.md
+/baddel-brief-notes.md
+/docs/baddel-phase-0.md
+/docs/baddel-progress.md
+/docs/baddel-phases.html
+/docs/baddel-product-study.md
+/docs/baddel-reporting.md
+/docs/baddel-brand-directions.md
+/docs/reporting/
+/design/logo/
