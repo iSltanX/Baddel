@@ -6,7 +6,6 @@
   import Icon from '../components/Icon.svelte'
   import { appVersion, closeWindow, copyDiagnostics, openExternal, openOnboarding, openReport, t } from '../state.svelte'
   import iconUrl from '../../assets/app-icon.png'
-  import iconDarkUrl from '../../assets/app-icon-dark.png'
   import raffUrl from '../../assets/makers/raff.png'
   import lumaUrl from '../../assets/makers/luma.png'
   import nafidhUrl from '../../assets/makers/nafidh.png'
@@ -43,12 +42,9 @@
 </script>
 
 <div class="identity">
-  <!-- Dark mode shows the identity's Ink version (`App Icon / 1024 · Ink (alt)`): the same
-       symbol, without a bright mint tile glaring on a dark window. -->
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset={iconDarkUrl} />
-    <img src={iconUrl} alt="" width="88" height="88" />
-  </picture>
+  <!-- The Mint icon in both appearances (Settings / حول, Light and Dark): on the dark window it
+       stands apart on its own, where the Ink version merged into it and needed a drawn frame. -->
+  <img src={iconUrl} alt="" width="88" height="88" />
   <h1>{t('settings.about.appName')}</h1>
   <p class="version">{t('settings.about.version', { version })}</p>
   <p class="tagline">{t('settings.about.tagline')}</p>
@@ -132,15 +128,6 @@
 
   img {
     display: block;
-  }
-
-  /* The Ink tile is the window's own colour in dark mode: a hairline keeps its shape, traced
-     from the image itself so it follows the squircle exactly. */
-  @media (prefers-color-scheme: dark) {
-    .identity img {
-      filter: drop-shadow(1px 0 0 var(--border-default)) drop-shadow(-1px 0 0 var(--border-default))
-        drop-shadow(0 1px 0 var(--border-default)) drop-shadow(0 -1px 0 var(--border-default));
-    }
   }
 
   h1 {
