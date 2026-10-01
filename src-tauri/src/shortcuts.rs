@@ -46,6 +46,18 @@ pub fn apply(app: &AppHandle, settings: &Settings) -> Vec<Binding> {
     refused
 }
 
+/// While the shortcut recorder listens, Baddel's own shortcuts are let go: registered, they
+/// would catch the very keys being recorded (a conversion instead of a recording), so a
+/// combination Baddel already uses could never reach the recorder — nor its conflict message.
+/// `false` binds them again from the settings.
+pub fn suspend(app: &AppHandle, suspended: bool) {
+    if suspended {
+        let _ = app.global_shortcut().unregister_all();
+    } else {
+        apply(app, &app.state::<crate::settings::AppState>().get());
+    }
+}
+
 fn fire(app: &AppHandle, binding: Binding) {
     match binding {
         Binding::Convert => app.state::<Commands>().send(Command::Convert),

@@ -10,6 +10,7 @@ pub const KEY_C: u16 = 8;
 pub const KEY_V: u16 = 9;
 pub const KEY_LEFT: u16 = 123;
 pub const KEY_RIGHT: u16 = 124;
+const KEY_UP: u16 = 126;
 
 /// Gap between a key's down and up events, and after the up event.
 const KEY_GAP: Duration = Duration::from_millis(8);
@@ -43,6 +44,12 @@ pub fn paste() -> bool {
 /// Command-Shift-arrow: extend the selection to that end of the line.
 pub fn select_to_line_edge(arrow: u16) -> bool {
     tap(arrow, CGEventFlags::CGEventFlagCommand | CGEventFlags::CGEventFlagShift)
+}
+
+/// Option-Shift-Up: extend the selection back to the start of the paragraph. Unlike the line
+/// edge, this is the logical line, not the visual one a wrapping editor shows.
+pub fn select_to_paragraph_start() -> bool {
+    tap(KEY_UP, CGEventFlags::CGEventFlagAlternate | CGEventFlags::CGEventFlagShift)
 }
 
 /// Shift-arrow: extend the selection by one character.

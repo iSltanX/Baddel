@@ -2,7 +2,7 @@
   import Icon from './Icon.svelte'
   import Keycap from './Keycap.svelte'
   import { fromEvent, toGlyphs } from '../accelerator'
-  import { t } from '../state.svelte'
+  import { suspendShortcuts, t } from '../state.svelte'
 
   /**
    * `Recorder` in 02 — Components: the shortcut field. It is as wide as a pop-up, so the control column stays a
@@ -22,6 +22,14 @@
   const { value, conflict = false, disabled = false, label, onrecord }: Props = $props()
 
   let recording = $state(false)
+
+  // While listening, Baddel's own shortcuts are let go, or pressing one would run it instead of
+  // recording it — and a combination another Baddel command has could never be refused by name.
+  $effect(() => {
+    if (!recording) return
+    suspendShortcuts(true)
+    return () => suspendShortcuts(false)
+  })
   const glyphs = $derived(toGlyphs(value))
   const filled = $derived(glyphs.length > 0 && !recording)
 

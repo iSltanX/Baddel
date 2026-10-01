@@ -150,6 +150,8 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
       if (field && !conflict) settings[field] = accelerator
       return answer({ settings: { ...settings }, conflict, conflictWith })
     }
+    case 'suspend_shortcuts':
+      return answer(null)
     case 'permission_granted':
       return answer(permission)
     case 'request_permission':

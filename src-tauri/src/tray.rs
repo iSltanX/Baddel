@@ -161,14 +161,24 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         let (mark, arrow) =
             if settings.language == settings::Language::Ar { ('\u{200F}', '←') } else { ('\u{200E}', '→') };
         let (from, to) = (&last.original, &last.result);
+        // A long conversion is named, not shown (Menu / Long conversion): no paragraph in the menu.
+        let short = crate::controller::fits_display(from, to);
         if last.undoable {
-            let line = format!("{mark}{}: \u{2068}{from}\u{2069} {arrow} \u{2068}{to}\u{2069}", text.undo);
+            let line = if short {
+                format!("{mark}{}: \u{2068}{from}\u{2069} {arrow} \u{2068}{to}\u{2069}", text.undo)
+            } else {
+                text.undo_last.to_string()
+            };
             menu.append(&item(app, "undo", &line, live)?)?;
         }
         // After a failed undo (Menu / After a failed undo): the original, to paste back by hand.
         // Copying needs no permission, so it stays enabled while paused or untrusted.
         if last.copyable {
-            let line = format!("{mark}{}: \u{2068}{from}\u{2069}", text.copy_original);
+            let line = if short {
+                format!("{mark}{}: \u{2068}{from}\u{2069}", text.copy_original)
+            } else {
+                text.copy_original.to_string()
+            };
             menu.append(&item(app, "copy-original", &line, true)?)?;
         }
         menu.append(&PredefinedMenuItem::separator(app)?)?;

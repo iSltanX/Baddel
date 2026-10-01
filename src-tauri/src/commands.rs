@@ -57,6 +57,12 @@ pub struct ShortcutResult {
     pub conflict_with: Option<Binding>,
 }
 
+/// The recorder is listening (`true`) or done (`false`): see [`shortcuts::suspend`].
+#[tauri::command]
+pub fn suspend_shortcuts(app: AppHandle, suspended: bool) {
+    shortcuts::suspend(&app, suspended);
+}
+
 /// Tries to bind `accelerator`, keeping the old one if it is refused. An empty
 /// accelerator clears the binding.
 #[tauri::command]

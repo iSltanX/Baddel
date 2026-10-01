@@ -43,6 +43,7 @@ pub fn run() {
             commands::get_settings,
             commands::set_settings,
             commands::set_shortcut,
+            commands::suspend_shortcuts,
             commands::permission_granted,
             commands::request_permission,
             commands::open_keyboard_settings,
@@ -140,6 +141,10 @@ pub fn run() {
             // A report not sent is dropped with its window: image, preview and all.
             if label == windows::REPORT {
                 app.state::<report::ReportState>().0.lock().unwrap().clear();
+            }
+            // Closed while the shortcut recorder was listening: bind the shortcuts again.
+            if label == windows::SETTINGS {
+                shortcuts::suspend(app, false);
             }
             windows::restore_activation_policy(app);
         }

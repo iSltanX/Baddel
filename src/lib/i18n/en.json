@@ -9,6 +9,7 @@
     "hint": "Convert the selection or last word",
     "undo": "Undo",
     "copyOriginal": "Copy Original Text",
+    "undoLast": "Undo Last Conversion",
     "grantPermission": "Grant Permission…",
     "switchLayoutAfterConvert": "Switch keyboard layout after converting",
     "pause": "Pause Baddel",
@@ -184,7 +185,8 @@
     "excluded": "Baddel stays out of {app}",
     "notHere": "Converted text isn’t here — copy the original from the menu",
     "undoFailed": "Couldn’t undo here — try again",
-    "copied": "Copied"
+    "copied": "Copied",
+    "convertedLong": "Converted — {count}"
   },
   "permission": {
     "granted": "Permission granted",

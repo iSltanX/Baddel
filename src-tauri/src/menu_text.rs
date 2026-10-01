@@ -13,6 +13,8 @@ pub struct Strings {
     pub paused: &'static str,
     pub hint: &'static str,
     pub undo: &'static str,
+    /// The undo item when the text is too long to show in the menu.
+    pub undo_last: &'static str,
     /// Offered after an undo did not go through; the original follows it in the menu.
     pub copy_original: &'static str,
     pub grant_permission: &'static str,
@@ -43,6 +45,8 @@ pub struct Strings {
     pub hud_not_here: &'static str,
     pub hud_undo_failed: &'static str,
     pub hud_copied: &'static str,
+    /// A conversion too long to show word for word. `{count}`: see [`characters`].
+    pub hud_converted_long: &'static str,
     pub update_available_title: &'static str,
     /// `{version}`, `{current}`
     pub update_available_body: &'static str,
@@ -64,6 +68,7 @@ const AR: Strings = Strings {
     paused: "متوقف مؤقتًا",
     hint: "حوّل التحديد أو آخر كلمة",
     undo: "تراجع",
+    undo_last: "تراجع عن آخر تحويل",
     copy_original: "انسخ النص الأصلي",
     grant_permission: "امنح الصلاحية…",
     switch_layout: "بدّل لغة لوحة المفاتيح بعد التحويل",
@@ -89,6 +94,7 @@ const AR: Strings = Strings {
     hud_not_here: "النص المحوَّل ليس هنا — انسخ الأصل من القائمة",
     hud_undo_failed: "تعذّر التراجع هنا — أعد المحاولة",
     hud_copied: "نُسخ",
+    hud_converted_long: "تم التحويل — {count}",
     update_available_title: "يتوفر إصدار جديد من بدّل",
     update_available_body: "الإصدار {version} متاح، ولديك {current}. يُعاد تشغيل بدّل بعد التثبيت.",
     install_and_restart: "ثبّت وأعد التشغيل",
@@ -108,6 +114,7 @@ const EN: Strings = Strings {
     paused: "Paused",
     hint: "Convert the selection or last word",
     undo: "Undo",
+    undo_last: "Undo Last Conversion",
     copy_original: "Copy Original Text",
     grant_permission: "Grant Permission…",
     switch_layout: "Switch keyboard layout after converting",
@@ -133,6 +140,7 @@ const EN: Strings = Strings {
     hud_not_here: "Converted text isn’t here — copy the original from the menu",
     hud_undo_failed: "Couldn’t undo here — try again",
     hud_copied: "Copied",
+    hud_converted_long: "Converted — {count}",
     update_available_title: "A New Version of Baddel Is Available",
     update_available_body: "Version {version} is available — you have {current}. Baddel restarts after installing.",
     install_and_restart: "Install and Restart",
@@ -145,9 +153,44 @@ const EN: Strings = Strings {
     ok: "OK",
 };
 
+/// "419 حرفًا" / "419 characters". Arabic counts its noun by the last two digits: 3–10 take the
+/// plural (أحرف), 11–99 the accusative singular (حرفًا), and the rest the singular (حرف).
+pub fn characters(language: Language, count: usize) -> String {
+    match language {
+        Language::En if count == 1 => "1 character".into(),
+        Language::En => format!("{count} characters"),
+        Language::Ar => {
+            let noun = match count % 100 {
+                3..=10 => "أحرف",
+                11..=99 => "حرفًا",
+                _ if count == 2 => "حرفان",
+                _ => "حرف",
+            };
+            format!("{count} {noun}")
+        }
+    }
+}
+
 pub fn strings(language: Language) -> &'static Strings {
     match language {
         Language::Ar => &AR,
         Language::En => &EN,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn arabic_counts_take_the_right_noun() {
+        let ar = |n| characters(Language::Ar, n);
+        assert_eq!(ar(5), "5 أحرف");
+        assert_eq!(ar(25), "25 حرفًا");
+        assert_eq!(ar(100), "100 حرف");
+        assert_eq!(ar(103), "103 أحرف");
+        assert_eq!(ar(419), "419 حرفًا");
+        assert_eq!(ar(1000), "1000 حرف");
+        assert_eq!(characters(Language::En, 419), "419 characters");
     }
 }

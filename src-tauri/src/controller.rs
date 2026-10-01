@@ -53,10 +53,19 @@ const UNDO_WINDOW: Duration = Duration::from_secs(30);
 const PERMISSION_NOTICE_EVERY: Duration = Duration::from_secs(30);
 
 const MAX_CHARS: usize = 10_000;
+/// Longer than this, a conversion is not shown word for word in the notice or the menu: the
+/// notice gives its length and the menu a plain "Undo Last Conversion". The text itself still
+/// converts in full; this only keeps paragraphs off the screen.
+const DISPLAY_MAX: usize = 24;
+
+/// Whether a conversion is short enough to show as it is.
+pub fn fits_display(original: &str, result: &str) -> bool {
+    original.chars().count() <= DISPLAY_MAX && result.chars().count() <= DISPLAY_MAX
+}
 /// How far back from the caret we read when looking for the previous word (UTF-16 units).
 const LOOKBEHIND_UNITS: usize = 400;
 /// On the key-based path, undo reselects the result character by character up to this length;
-/// a longer result on one line is reselected to the line's edge instead.
+/// a longer result within one paragraph is reselected to the paragraph's start instead.
 const MAX_UNDO_CHARS: usize = 300;
 
 /// Debug-build tracing of which path a conversion took. Never prints user text.
@@ -227,11 +236,11 @@ pub fn spawn(app: AppHandle) -> Commands {
                         continue;
                     }
                 };
-                #[cfg(debug_assertions)]
-                eprintln!("[baddel] {outcome:?} in {:?}", started.elapsed());
                 // For diagnostics: the outcome, why, its path and time, and the app — never the text.
                 let path = controller.path.take();
                 let reason = controller.reason.take();
+                #[cfg(debug_assertions)]
+                eprintln!("[baddel] {outcome:?} in {:?} reason={reason:?}", started.elapsed());
                 let history = controller.app.state::<History>();
                 history.record(outcome, reason, path, started.elapsed(), front.bundle_id.clone());
                 controller.sync_menu();
@@ -639,17 +648,17 @@ fn undo_in(target: &mut Target, last: &LastOp) -> Result<(), Reason> {
         return if target.replace_range(&word, &last.original, caret) { Ok(()) } else { Err(Reason::UndoRejected) };
     }
 
-    // Key-based, and longer than is worth reselecting character by character: as the conversion
-    // itself does, select back to the line's edge, check that our text still ends the line, and
-    // paste the line back with the original in its place. Nothing is touched unless the line
-    // ends exactly with what we wrote. (A short result keeps the exact reselection below, which
-    // leaves the rest of the line — and its formatting — alone.)
+    // Key-based, and longer than is worth reselecting character by character: select back to
+    // the paragraph's start (a long line wraps, so its visual edge is not enough), check that
+    // our text still ends it, and paste it back with the original in its place. Nothing is
+    // touched unless the paragraph ends exactly with what we wrote. (A short result keeps the
+    // exact reselection below, which leaves the rest of the line — and its formatting — alone.)
     let stops = caret_stops(&last.result);
     if stops > MAX_UNDO_CHARS {
         if last.result.contains('\n') {
             return Err(Reason::TooLong);
         }
-        let edit = target.edit_line_with_keys(last.back_arrow, |line| {
+        let edit = target.edit_with_keys(keysynth::select_to_paragraph_start, opposite(last.back_arrow), |line| {
             undo_line(line, &last.original, &last.result).map(|(keep, converted)| LineEdit {
                 keep,
                 converted,
@@ -717,11 +726,17 @@ impl Controller {
         }
         let message = |kind, sentence: &str| Some(notice(kind, sentence, rtl));
         let notice = match outcome {
-            Outcome::Converted | Outcome::Extended => self.last.as_ref().map(|last| hud::Notice {
-                kind: hud::Kind::Success,
-                body: hud::Body::Conversion { from: last.original.clone(), to: last.result.clone() },
-                rtl,
-                badge: settings.switch_input_source.then(|| badge(last.direction).to_string()),
+            Outcome::Converted | Outcome::Extended => self.last.as_ref().map(|last| {
+                if !fits_display(&last.original, &last.result) {
+                    let count = menu_text::characters(settings.language, last.result.chars().count());
+                    return notice(hud::Kind::Success, &text.hud_converted_long.replace("{count}", &count), rtl);
+                }
+                hud::Notice {
+                    kind: hud::Kind::Success,
+                    body: hud::Body::Conversion { from: last.original.clone(), to: last.result.clone() },
+                    rtl,
+                    badge: settings.switch_input_source.then(|| badge(last.direction).to_string()),
+                }
             }),
             Outcome::Undone => message(hud::Kind::Undone, text.hud_undone),
             Outcome::Blocked => message(hud::Kind::Blocked, text.hud_blocked),
@@ -940,13 +955,24 @@ impl Target {
     /// Arabic is full of — and walking back character by character goes astray in
     /// mixed-direction text. The line's edge is the one selection that is reliable everywhere.
     fn edit_line_with_keys(&mut self, arrow: u16, plan: impl Fn(&str) -> Option<LineEdit>) -> KeyEdit {
+        self.edit_with_keys(|| keysynth::select_to_line_edge(arrow), opposite(arrow), plan)
+    }
+
+    /// The same, with `select` choosing how far back to select, and `collapse` the arrow that
+    /// puts the caret back where it was when the plan declines.
+    fn edit_with_keys(
+        &mut self,
+        select: impl FnOnce() -> bool,
+        collapse: u16,
+        plan: impl Fn(&str) -> Option<LineEdit>,
+    ) -> KeyEdit {
         self.keys = true;
-        keysynth::select_to_line_edge(arrow);
+        select();
         let line = self.await_selection();
         trace!("key path: line read = {:?} chars", line.as_ref().map(|l| l.chars().count()));
         let Some(line) = line else { return KeyEdit::NothingHere };
         let Some(edit) = plan(&line) else {
-            keysynth::arrow(opposite(arrow)); // collapse back onto the caret
+            keysynth::arrow(collapse); // collapse back onto the caret
             return KeyEdit::NothingHere;
         };
         let replacement = format!("{}{}", &line[..edit.keep], edit.converted);
@@ -1114,6 +1140,15 @@ fn opposite(arrow: u16) -> u16 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_short_conversions_are_shown_word_for_word() {
+        assert!(fits_display("اثممخ", "hello"));
+        let long = "اثممخ صخقمي اثممخ صخقمي اثممخ";
+        assert!(!fits_display(long, "hello world hello world hello"));
+        assert!(fits_display(&"ب".repeat(DISPLAY_MAX), &"b".repeat(DISPLAY_MAX)));
+        assert!(!fits_display(&"ب".repeat(DISPLAY_MAX + 1), "b"));
+    }
 
     #[test]
     fn undo_puts_the_original_back_at_the_end_of_the_line() {

@@ -194,6 +194,11 @@ fn show_notice_repeatedly(app: &AppHandle, kind: String) {
             "not-here" => (hud::Kind::NotHere, message(strings.hud_not_here), None),
             "undo-failed" => (hud::Kind::UndoFailed, message(strings.hud_undo_failed), None),
             "copied" => (hud::Kind::Copied, message(strings.hud_copied), None),
+            "converted-long" => (
+                hud::Kind::Success,
+                message(&strings.hud_converted_long.replace("{count}", &crate::menu_text::characters(language, 419))),
+                None,
+            ),
             _ => (
                 hud::Kind::Success,
                 hud::Body::Conversion { from: "اثممخ".into(), to: "hello".into() },

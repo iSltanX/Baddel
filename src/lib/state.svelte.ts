@@ -203,6 +203,9 @@ export async function setShortcut(binding: Binding, accelerator: string): Promis
   return result.conflict ? { with: result.conflictWith } : null
 }
 
+/** Lets Baddel's own shortcuts go while the recorder listens, so they reach it; `false` rebinds. */
+export const suspendShortcuts = (suspended: boolean) => invoke<void>('suspend_shortcuts', { suspended })
+
 export const listLayouts = () => invoke<LayoutEntry[]>('list_layouts')
 export const keyboardMap = () => invoke<KeyboardMap>('keyboard_map')
 export const excludedApps = () => invoke<AppInfo[]>('excluded_apps')

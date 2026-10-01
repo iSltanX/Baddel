@@ -207,6 +207,9 @@ pub fn prime(app: &AppHandle) {
 
 /// Shows `notice` for about a second. Safe to call from any thread.
 pub fn show(app: &AppHandle, notice: Notice) {
+    // Debug builds name the state shown (never its text), for the device tests.
+    #[cfg(debug_assertions)]
+    eprintln!("[baddel] notice {:?}", notice.kind);
     let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
     let handle = app.clone();
     on_main(app, move || present(notice));
