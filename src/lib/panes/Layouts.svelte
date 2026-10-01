@@ -7,6 +7,7 @@
   import Select from '../components/Select.svelte'
   import {
     app,
+    convertText,
     keyboardMap,
     listLayouts,
     openKeyboardSettings,
@@ -43,6 +44,28 @@
   const pairName = $derived(map?.arabicName && map?.latinName ? `${map.arabicName}  ⇄  ${map.latinName}` : '')
 
   const options = (entries: LayoutEntry[]) => entries.map((entry) => ({ value: entry.id, label: entry.name }))
+
+  // «جرّبها هنا» (ج4): the text goes through the very command the shortcut uses, with the layouts
+  // in use, and lives in this field alone — nothing typed here is kept or sent anywhere.
+  let sample = $state('')
+  let converted = $state('')
+  let asked = 0
+
+  async function tryIt(text: string) {
+    const ask = ++asked
+    const result = text.trim() ? await convertText(text) : null
+    // An older answer arriving late must not replace a newer one.
+    if (ask === asked) converted = result ?? text
+  }
+
+  $effect(() => {
+    // Converted again when the chosen layouts change, as the map is.
+    void settings.arabicLayout
+    void settings.latinLayout
+    void tryIt(sample)
+  })
+
+  const arabicScript = (text: string) => /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text)
 </script>
 
 {#if missingArabic}
@@ -113,6 +136,31 @@
           {t('settings.layouts.keyboardMap.multiCharKeyCaption')}
         </p>
       {/if}
+    </div>
+  </GroupCard>
+
+  <GroupCard title={t('settings.layouts.tryIt.title')}>
+    <div class="try">
+      <!-- Typed text on one side, its conversion on the other: a left-to-right row in both languages. -->
+      <div class="try-row">
+        <input
+          class="try-field"
+          class:ar-script={arabicScript(sample)}
+          bind:value={sample}
+          dir="auto"
+          aria-label={t('settings.layouts.tryIt.label')}
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <span class="try-arrow" aria-hidden="true">→</span>
+        <bdi
+          class="try-result"
+          class:ar-script={arabicScript(converted)}
+          aria-label={t('settings.layouts.tryIt.result')}
+          aria-live="polite">{sample.trim() ? converted : ''}</bdi
+        >
+      </div>
+      <p class="try-caption">{t('settings.layouts.tryIt.caption')}</p>
     </div>
   </GroupCard>
 {/if}
@@ -198,6 +246,74 @@
     border-radius: var(--radius-md);
     background: var(--bg-selected);
     color: var(--text-brand);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
+  }
+
+  /* `Group / جرّبها هنا` in Settings · Layouts. */
+  .try {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-16);
+  }
+
+  .try-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    min-height: 32px;
+    direction: ltr;
+  }
+
+  /* The field keeps Figma's share of the row (334 of 484); the result has the rest. */
+  .try-field {
+    flex: 0 0 69%;
+    min-width: 0;
+    height: 32px;
+    padding: var(--space-4) var(--space-8);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface-secondary);
+    color: var(--text-primary);
+    font-family: var(--font-latin);
+    font-size: var(--size-section);
+    caret-color: var(--border-focus);
+    user-select: text;
+  }
+
+  .try-field:focus-visible {
+    border-color: var(--border-focus);
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  .try-arrow {
+    flex: none;
+    color: var(--text-tertiary);
+    font-family: var(--font-latin);
+    font-size: var(--size-section);
+  }
+
+  .try-result {
+    flex: 1 1 0;
+    min-width: 0;
+    color: var(--text-brand);
+    font-family: var(--font-latin);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 32px;
+    overflow-wrap: anywhere;
+  }
+
+  .try-field.ar-script,
+  .try-result.ar-script {
+    font-family: var(--font-body);
+  }
+
+  .try-caption {
+    margin: 0;
+    color: var(--text-secondary);
     font-size: var(--size-label);
     line-height: var(--leading-label);
   }

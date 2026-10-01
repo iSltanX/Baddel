@@ -9,13 +9,13 @@
 //! that cannot go through right now does not forget it: the original stays on offer in
 //! the menu until the undo window closes.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::sync::Mutex;
 use std::thread::{self, sleep};
 use std::time::{Duration, Instant};
 
-use baddel_core::{detect_direction, Direction, LayoutMap};
+use baddel_core::{Direction, LayoutMap};
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::diagnostics::{History, Path};
@@ -27,13 +27,18 @@ use crate::sys::keysynth::{self, KEY_LEFT, KEY_RIGHT};
 use crate::sys::text_access::{Focused, Selection};
 use crate::sys::{input_source, on_main, pasteboard, permissions, sound, text_access};
 use crate::tray::LastConversion;
-use crate::{hud, sync, tray};
+use crate::{hud, settings, sync, tray};
 
 // ── Timings ──────────────────────────────────────────────────────────────────
 /// How long we wait for the user to release the hotkey's modifiers.
 const MODIFIER_RELEASE_TIMEOUT: Duration = Duration::from_millis(700);
-/// How long an app may take to put the selection on the pasteboard after ⌘C.
+/// How long an app may take to put the selection on the pasteboard after ⌘C, until its own
+/// answers have been timed (see [`Route`]).
 const COPY_TIMEOUT: Duration = Duration::from_millis(250);
+/// The shortest ⌘C wait a remembered route may bring the timeout down to.
+const COPY_TIMEOUT_MIN: Duration = Duration::from_millis(80);
+/// How many answered ⌘C presses an app needs before its own timing is trusted.
+const COPY_SAMPLES: u32 = 3;
 /// Minimum time for an app to act on a selection key before we look at the selection.
 const SELECTION_SETTLE: Duration = Duration::from_millis(40);
 /// How long we keep looking for the selection a key press should have produced. Apps handle
@@ -78,7 +83,14 @@ macro_rules! trace {
 
 pub enum Command {
     Convert,
+    /// "Convert Line": from the start of the line to the caret, unless something is selected.
+    ConvertLine,
+    /// "Convert to Arabic / to English": the selection or the last word, in that direction, with
+    /// nothing held back.
+    ConvertTo(Direction),
     Undo,
+    /// "Exclude Current App" in the menu: the app in front stops being converted in.
+    ExcludeCurrent,
     /// "Copy Original Text" in the menu, after an undo did not go through.
     CopyOriginal,
 }
@@ -91,6 +103,14 @@ impl Commands {
     pub fn send(&self, command: Command) {
         let _ = self.0.lock().unwrap().send(command);
     }
+}
+
+/// Which conversion command is running.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Mode {
+    Auto,
+    Line,
+    To(Direction),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -151,6 +171,9 @@ struct LastOp {
     back_arrow: u16,
     /// Words converted so far without an explicit selection; 0 for a selection.
     words: usize,
+    /// Converted by an explicit "to Arabic / to English" command: literally, nothing held back.
+    /// Extending it continues the same way, and only that command extends it.
+    literal: bool,
     at: Instant,
     /// The app it happened in; undo and extend act there and nowhere else.
     app: App,
@@ -161,6 +184,40 @@ struct LastOp {
     undoable: bool,
     /// Set by a failed undo: the menu then offers the original for the user to paste back.
     copyable: bool,
+}
+
+/// What worked last time in one app, for this session only (never written anywhere): the side
+/// of the caret the key-based path found its line on, and how fast the app answers ⌘C. The next
+/// conversion there starts with what worked and waits no longer than it needs. Forgotten at the
+/// first failure, or the first ⌘C answered later than the wait it set.
+#[derive(Clone, Debug, Default, PartialEq)]
+struct Route {
+    arrow: Option<u16>,
+    /// The slowest ⌘C answer timed in this app, over `copies` answers.
+    slowest_copy: Duration,
+    copies: u32,
+}
+
+impl Route {
+    /// Twice the slowest answer seen, within [`COPY_TIMEOUT_MIN`]–[`COPY_TIMEOUT`], once there are
+    /// enough answers to go on.
+    fn copy_timeout(&self) -> Duration {
+        if self.copies < COPY_SAMPLES {
+            return COPY_TIMEOUT;
+        }
+        (self.slowest_copy * 2).clamp(COPY_TIMEOUT_MIN, COPY_TIMEOUT)
+    }
+
+    /// Folds in what one conversion learned.
+    fn learn(&mut self, target: &Target) {
+        if target.arrow.is_some() {
+            self.arrow = target.arrow;
+        }
+        self.copies += target.copy_times.len() as u32;
+        if let Some(slowest) = target.copy_times.iter().max() {
+            self.slowest_copy = self.slowest_copy.max(*slowest);
+        }
+    }
 }
 
 /// Notices for states the user expects (permission missing, paused, excluded app) are rationed:
@@ -206,6 +263,7 @@ pub fn spawn(app: AppHandle) -> Commands {
                 last: None,
                 shown: None,
                 woken: HashSet::new(),
+                routes: HashMap::new(),
                 path: None,
                 reason: None,
                 rationed: Rationed::default(),
@@ -229,10 +287,16 @@ pub fn spawn(app: AppHandle) -> Commands {
                 let started = Instant::now();
                 let front = frontmost::current();
                 let outcome = match command {
-                    Command::Convert => controller.convert(&front),
+                    Command::Convert => controller.convert(&front, Mode::Auto),
+                    Command::ConvertLine => controller.convert(&front, Mode::Line),
+                    Command::ConvertTo(direction) => controller.convert(&front, Mode::To(direction)),
                     Command::Undo => controller.undo(&front),
                     Command::CopyOriginal => {
                         controller.copy_original();
+                        continue;
+                    }
+                    Command::ExcludeCurrent => {
+                        controller.exclude(&front);
                         continue;
                     }
                 };
@@ -262,6 +326,8 @@ struct Controller {
     shown: Option<(Instant, bool, bool)>,
     /// Apps we already asked to switch their accessibility tree on.
     woken: HashSet<i32>,
+    /// What worked in each app this session, by bundle identifier.
+    routes: HashMap<String, Route>,
     /// How the last command reached the text, for diagnostics; `None` when a guard stopped it first.
     path: Option<Path>,
     /// Why the last command failed, when it did.
@@ -285,6 +351,14 @@ struct Target {
     copies: (u32, u32),
     /// Whether synthetic arrow keys selected the text (diagnostics only).
     keys: bool,
+    /// How long to wait for the app to answer a ⌘C ([`Route::copy_timeout`]).
+    copy_timeout: Duration,
+    /// How long each answered ⌘C took.
+    copy_times: Vec<Duration>,
+    /// A ⌘C was answered only after we had stopped waiting for it.
+    late_copy: bool,
+    /// The arrow the key-based path found the line with, when it did.
+    arrow: Option<u16>,
 }
 
 /// What to do with a line read through the keyboard: keep its first `keep` bytes, replace the rest.
@@ -322,11 +396,52 @@ struct Context<'a> {
     front: &'a App,
     /// The direction implied by the active layout: the one the wrong text was typed with.
     expected: Direction,
+    /// Set by "Convert to Arabic / to English": this direction, converted literally.
+    forced: Option<Direction>,
+    /// The arrow that found the line last time in this app ([`Route`]).
+    first_arrow: Option<u16>,
     switch_input_source: bool,
 }
 
+impl Context<'_> {
+    /// Converts `text` the way the running command does: in the forced direction and literally,
+    /// or in the direction the text votes for, keeping links and technical words as they are.
+    fn convert(&self, text: &str) -> (String, Direction) {
+        match self.forced {
+            Some(direction) => (self.map.convert_literal(text, direction), direction),
+            None => {
+                let direction = self.map.direction(text).unwrap_or(self.expected);
+                (self.map.convert_as(text, direction), direction)
+            }
+        }
+    }
+
+    /// Converts more text the way an earlier conversion went.
+    fn continue_as(&self, text: &str, last: &LastOp) -> String {
+        if last.literal {
+            self.map.convert_literal(text, last.direction)
+        } else {
+            self.map.convert_as(text, last.direction)
+        }
+    }
+
+    /// The order to try the two sides of the caret in on the key-based path. Arabic script runs
+    /// right to left, so in apps that move the caret visually "back" is the right arrow: the
+    /// likelier side first, unless this app has shown which side it is.
+    fn arrows(&self) -> [u16; 2] {
+        let likely = match self.expected {
+            Direction::ArabicToLatin => KEY_RIGHT,
+            Direction::LatinToArabic => KEY_LEFT,
+        };
+        let first = self.first_arrow.unwrap_or(likely);
+        [first, opposite(first)]
+    }
+}
+
 impl Controller {
-    fn convert(&mut self, front: &App) -> Outcome {
+    fn convert(&mut self, front: &App, mode: Mode) -> Outcome {
+        // A timed pause that has just run out is over, even if the clock check has not come round.
+        sync::resume_if_expired(&self.app);
         let settings = self.app.state::<AppState>().settings.lock().unwrap().clone();
         if settings.paused {
             return Outcome::Paused;
@@ -352,8 +467,22 @@ impl Controller {
 
         let expected =
             if layouts.current_is_arabic { Direction::ArabicToLatin } else { Direction::LatinToArabic };
-        let cx = Context { map: &map, layouts: &layouts, front, expected, switch_input_source: settings.switch_input_source };
+        let route = front.bundle_id.as_ref().and_then(|id| self.routes.get(id)).cloned().unwrap_or_default();
+        let cx = Context {
+            map: &map,
+            layouts: &layouts,
+            front,
+            expected,
+            forced: match mode {
+                Mode::To(direction) => Some(direction),
+                Mode::Auto | Mode::Line => None,
+            },
+            first_arrow: route.arrow,
+            switch_input_source: settings.switch_input_source,
+        };
         let mut target = Target::new(self.focused_element(front.pid));
+        target.copy_timeout = route.copy_timeout();
+        trace!("route: arrow {:?}, copy wait {:?} over {} answers", route.arrow, target.copy_timeout, route.copies);
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
         }
@@ -369,10 +498,23 @@ impl Controller {
             target.focused = None;
             target.method = Method::Pasteboard;
         }
-        let outcome = self.convert_in(&mut target, &cx);
+        let outcome = self.convert_in(&mut target, &cx, mode);
         self.path = Some(target.path());
         target.restore_pasteboard();
+        self.remember_route(front, &target, outcome);
         outcome
+    }
+
+    /// Keeps what this conversion learned about the app, or forgets the app on a failure or a ⌘C
+    /// answered after we stopped waiting: what worked before may no longer.
+    fn remember_route(&mut self, front: &App, target: &Target, outcome: Outcome) {
+        let Some(id) = front.bundle_id.clone() else { return };
+        if outcome == Outcome::Failed || target.late_copy {
+            trace!("route forgotten (failed: {}, late copy: {})", outcome == Outcome::Failed, target.late_copy);
+            self.routes.remove(&id);
+            return;
+        }
+        self.routes.entry(id).or_default().learn(target);
     }
 
     /// The focused element, waking the app's accessibility tree the first time it has none.
@@ -398,14 +540,13 @@ impl Controller {
         None
     }
 
-    fn convert_in(&mut self, target: &mut Target, cx: &Context) -> Outcome {
+    fn convert_in(&mut self, target: &mut Target, cx: &Context, mode: Mode) -> Outcome {
         // 1. An explicit selection wins.
         if let Some(text) = target.read_selection() {
             if text.chars().count() > MAX_CHARS {
                 return Outcome::TooLong;
             }
-            let direction = detect_direction(&text).unwrap_or(cx.expected);
-            let result = cx.map.convert_as(&text, direction);
+            let (result, direction) = cx.convert(&text);
             if result == text {
                 return Outcome::Unchanged;
             }
@@ -420,9 +561,20 @@ impl Controller {
             return Outcome::Converted;
         }
 
-        // 2. No selection, right after a conversion in this same app: take one more word.
+        // 2. "Convert Line": the line up to the caret.
+        if mode == Mode::Line {
+            return self.convert_line(target, cx);
+        }
+
+        // 3. No selection, right after a conversion in this same app by the same kind of command:
+        // take one more word.
         let previous = self.last.clone().filter(|l| {
-            l.at.elapsed() < EXTEND_WINDOW && l.words > 0 && l.undoable && l.app.pid == cx.front.pid
+            l.at.elapsed() < EXTEND_WINDOW
+                && l.words > 0
+                && l.undoable
+                && l.app.pid == cx.front.pid
+                && l.literal == cx.forced.is_some()
+                && cx.forced.is_none_or(|forced| forced == l.direction)
         });
         if let Some(last) = previous {
             match self.extend(target, cx, &last) {
@@ -435,8 +587,73 @@ impl Controller {
             }
         }
 
-        // 3. No selection: the word before the caret.
+        // 4. No selection: the word before the caret.
         self.convert_last_word(target, cx)
+    }
+
+    /// "Convert Line": everything from the start of the line to the caret, in one direction (the
+    /// majority's, as for a selection). A line break the text holds stays where it is.
+    fn convert_line(&mut self, target: &mut Target, cx: &Context) -> Outcome {
+        if target.method == Method::Accessibility {
+            if let Some((focused, (caret, 0))) =
+                target.focused.as_ref().and_then(|f| Some((f, f.selected_range()?)))
+            {
+                trace!("line: text range path, caret at {caret}");
+                let line = match line_before(focused, caret) {
+                    Ok(Some(line)) => line,
+                    Ok(None) => return Outcome::NoText,
+                    Err(outcome) => return outcome,
+                };
+                let (result, direction) = cx.convert(&line.text);
+                if result == line.text {
+                    return Outcome::Unchanged;
+                }
+                if !target.replace_range(&line, &result, caret) {
+                    return self.fail(Reason::WriteRejected);
+                }
+                self.finish(LastOp::new(line.text, result, direction, Some(line.start), 1), target, cx);
+                return Outcome::Converted;
+            }
+        }
+
+        // Key-based: select back to the paragraph's start (the logical line, not the visual edge
+        // of a wrapped one), convert what follows its leading whitespace, paste it back.
+        trace!("line: key path ({:?})", target.method);
+        let back = cx.arrows()[0];
+        let read = std::cell::Cell::new(None::<Outcome>);
+        let edit = target.edit_with_keys(keysynth::select_to_paragraph_start, opposite(back), |text| {
+            // At a paragraph's very start the keys select the paragraph before: nothing of this one.
+            let line_start = text.rfind('\n').map_or(0, |i| i + 1);
+            let keep = line_start + (text[line_start..].len() - text[line_start..].trim_start().len());
+            let line = &text[keep..];
+            if line.trim().is_empty() {
+                return None;
+            }
+            if line.chars().count() > MAX_CHARS {
+                read.set(Some(Outcome::TooLong));
+                return None;
+            }
+            let (converted, direction) = cx.convert(line);
+            if converted == line {
+                read.set(Some(Outcome::Unchanged));
+                return None;
+            }
+            Some(LineEdit { keep, converted, direction })
+        });
+        match edit {
+            KeyEdit::Done { original, result, direction } => {
+                self.finish(LastOp::new(original, result, direction, None, 1), target, cx);
+                Outcome::Converted
+            }
+            KeyEdit::Failed => self.fail(Reason::WriteRejected),
+            KeyEdit::NothingHere => match read.get() {
+                Some(outcome) => outcome,
+                None if target.focused.is_none() && target.copies.0 > 0 && target.copies.1 == 0 => {
+                    self.fail(Reason::CopyTimedOut)
+                }
+                None => Outcome::NoText,
+            },
+        }
     }
 
     fn convert_last_word(&mut self, target: &mut Target, cx: &Context) -> Outcome {
@@ -448,8 +665,7 @@ impl Controller {
             {
                 trace!("text range path, caret at {caret}");
                 let Some(word) = previous_word(focused, caret) else { return Outcome::NoText };
-                let direction = detect_direction(&word.text).unwrap_or(cx.expected);
-                let result = cx.map.convert_as(&word.text, direction);
+                let (result, direction) = cx.convert(&word.text);
                 if result == word.text {
                     return Outcome::Unchanged;
                 }
@@ -462,21 +678,17 @@ impl Controller {
         }
 
         trace!("key path ({:?})", target.method);
-        // Fallback for apps without a text range. Arabic script runs right to left, so in apps
-        // that move the caret visually "back" is the right arrow; try the likelier side first.
-        let arrows = match cx.expected {
-            Direction::ArabicToLatin => [KEY_RIGHT, KEY_LEFT],
-            Direction::LatinToArabic => [KEY_LEFT, KEY_RIGHT],
-        };
-        for arrow in arrows {
+        // Fallback for apps without a text range: select to the line's edge on one side of the
+        // caret, then the other ([`Context::arrows`]).
+        for arrow in cx.arrows() {
             let edit = target.edit_line_with_keys(arrow, |line| {
                 let tail = last_word_and_trailing_space(line)?;
-                let direction = detect_direction(tail).unwrap_or(cx.expected);
-                let converted = cx.map.convert_as(tail, direction);
+                let (converted, direction) = cx.convert(tail);
                 (converted != tail).then(|| LineEdit { keep: line.len() - tail.len(), converted, direction })
             });
             match edit {
                 KeyEdit::Done { original, result, direction } => {
+                    target.arrow = Some(arrow);
                     let mut op = LastOp::new(original, result, direction, None, 1);
                     op.back_arrow = arrow;
                     self.finish(op, target, cx);
@@ -513,7 +725,7 @@ impl Controller {
             let Some(gap) = focused.string_for_range(word.start + word.len, start - (word.start + word.len)) else {
                 return Extension::Unknown;
             };
-            let converted = cx.map.convert_as(&word.text, last.direction);
+            let converted = cx.continue_as(&word.text, last);
             if converted == word.text {
                 return Extension::Done(Outcome::Unchanged);
             }
@@ -536,7 +748,7 @@ impl Controller {
             }
             let word = last_word_and_trailing_space(&line[..start])?;
             let keep = start - word.len();
-            let converted = format!("{}{}", cx.map.convert_as(word, last.direction), &line[start..]);
+            let converted = format!("{}{}", cx.continue_as(word, last), &line[start..]);
             (converted != line[keep..]).then_some(LineEdit { keep, converted, direction: last.direction })
         });
         match edit {
@@ -558,6 +770,7 @@ impl Controller {
 
     /// Remembers a conversion that went through, with where it happened.
     fn finish(&mut self, mut op: LastOp, target: &Target, cx: &Context) {
+        op.literal = cx.forced.is_some();
         op.app = cx.front.clone();
         op.element = target.focused.clone();
         if cx.switch_input_source {
@@ -628,6 +841,31 @@ impl Controller {
         if settings.show_hud {
             let text = menu_text::strings(settings.language);
             hud::show(&self.app, notice(hud::Kind::Copied, text.hud_copied, settings.language == Language::Ar));
+        }
+    }
+}
+
+impl Controller {
+    /// "Exclude Current App": adds the app in front to the exceptions and confirms it. The menu
+    /// bar's menu never activates Baddel, so the app in front is the one the user was in.
+    fn exclude(&mut self, front: &App) {
+        let Some(id) = front.bundle_id.clone() else { return };
+        // With a settings window open Baddel itself may be in front; it has nothing to exclude.
+        if id == self.app.config().identifier {
+            return;
+        }
+        let previous = self.app.state::<AppState>().get();
+        if !previous.excluded_apps.contains(&id) {
+            let next = settings::update(&self.app, |s| s.excluded_apps.push(id.clone()));
+            sync::apply(&self.app, &previous, &next);
+        }
+        // Just confirmed: the "stays out of" notice need not follow at the next press.
+        self.rationed.excluded.insert(id);
+        let settings = self.app.state::<AppState>().get();
+        if let (true, Some(name)) = (settings.show_hud, app_name(front)) {
+            let text = menu_text::strings(settings.language);
+            let sentence = text.hud_excluded_now.replace("{app}", &name);
+            hud::show(&self.app, notice(hud::Kind::ExcludedNow, &sentence, settings.language == Language::Ar));
         }
     }
 }
@@ -810,6 +1048,7 @@ impl LastOp {
             start,
             back_arrow,
             words,
+            literal: false,
             at: Instant::now(),
             app: App::default(),
             element: None,
@@ -838,6 +1077,10 @@ impl Target {
             pending_copy: false,
             copies: (0, 0),
             keys: false,
+            copy_timeout: COPY_TIMEOUT,
+            copy_times: Vec::new(),
+            late_copy: false,
+            arrow: None,
         }
     }
 
@@ -852,7 +1095,9 @@ impl Target {
     /// While a ⌘C of ours may still be answered late, a change is counted as that answer.
     fn adopt_late_copy(&mut self) {
         if self.pending_copy {
-            self.ours = pasteboard::change_count();
+            let now = pasteboard::change_count();
+            self.late_copy |= now != self.ours;
+            self.ours = now;
         }
     }
 
@@ -904,11 +1149,13 @@ impl Target {
         self.adopt_late_copy();
         let before = pasteboard::change_count();
         keysynth::copy();
+        let sent = Instant::now();
         self.copies.0 += 1;
-        if !pasteboard::wait_for_change(before, COPY_TIMEOUT) {
+        if !pasteboard::wait_for_change(before, self.copy_timeout) {
             self.pending_copy = true;
             return None;
         }
+        self.copy_times.push(sent.elapsed());
         self.pending_copy = false;
         self.copies.1 += 1;
         self.ours = pasteboard::change_count();
@@ -1105,6 +1352,38 @@ fn previous_word(focused: &Focused, end: usize) -> Option<Word> {
     })
 }
 
+/// The line up to the caret (UTF-16 offset), without its leading whitespace: `Ok(None)` when it
+/// holds nothing but whitespace, `Err(TooLong)` when no line start is found within [`MAX_CHARS`].
+fn line_before(focused: &Focused, caret: usize) -> Result<Option<Word>, Outcome> {
+    // MAX_CHARS characters take at most twice as many UTF-16 units; one more tells a line that
+    // starts exactly there from one that goes on.
+    let from = caret.saturating_sub(2 * MAX_CHARS + 1);
+    let Some(text) = focused.string_for_range(from, caret - from) else { return Err(Outcome::NoText) };
+    if utf16_len(&text) != caret - from {
+        return Err(Outcome::NoText); // the app's idea of offsets is not UTF-16; do not guess
+    }
+    let Some(line) = line_tail(&text, from == 0) else { return Err(Outcome::TooLong) };
+    let start = from + utf16_len(&text[..text.len() - line.len()]);
+    if line.trim().is_empty() {
+        return Ok(None);
+    }
+    if line.chars().count() > MAX_CHARS {
+        return Err(Outcome::TooLong);
+    }
+    Ok(Some(Word { start, len: utf16_len(line), text: line.to_string() }))
+}
+
+/// The end of `text` after its last line break, leading whitespace dropped. `None` when there is
+/// no line break and `text` is not the start of the field (`at_start`): the line starts further back.
+fn line_tail(text: &str, at_start: bool) -> Option<&str> {
+    let line = match text.rfind(['\n', '\r', '\u{2028}', '\u{2029}']) {
+        Some(i) => &text[i + text[i..].chars().next().unwrap().len_utf8()..],
+        None if at_start => text,
+        None => return None,
+    };
+    Some(line.trim_start())
+}
+
 /// The last whitespace-delimited word of `line`, with any whitespace that follows it.
 fn last_word_and_trailing_space(line: &str) -> Option<&str> {
     let trimmed = line.trim_end();
@@ -1148,6 +1427,43 @@ mod tests {
         assert!(!fits_display(long, "hello world hello world hello"));
         assert!(fits_display(&"ب".repeat(DISPLAY_MAX), &"b".repeat(DISPLAY_MAX)));
         assert!(!fits_display(&"ب".repeat(DISPLAY_MAX + 1), "b"));
+    }
+
+    #[test]
+    fn the_line_is_what_follows_the_last_line_break() {
+        assert_eq!(line_tail("Dear team,\nsghl ugd;l", false), Some("sghl ugd;l"));
+        assert_eq!(line_tail("first\r\n  indented", false), Some("indented"));
+        assert_eq!(line_tail("a\u{2028}b", false), Some("b"));
+        assert_eq!(line_tail("only line", true), Some("only line"));
+        // No line break, and the field goes on further back: the line's start is out of reach.
+        assert_eq!(line_tail("no break here", false), None);
+        // Right after a line break: an empty line.
+        assert_eq!(line_tail("previous\n", false), Some(""));
+    }
+
+    #[test]
+    fn a_route_waits_for_copies_no_longer_than_the_app_needs() {
+        let mut route = Route::default();
+        assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
+        let mut target = Target::new(None);
+        target.copy_times = vec![Duration::from_millis(12), Duration::from_millis(30)];
+        target.arrow = Some(KEY_RIGHT);
+        route.learn(&target);
+        // Two answers are not enough to go on.
+        assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
+        assert_eq!(route.arrow, Some(KEY_RIGHT));
+        target.copy_times = vec![Duration::from_millis(20)];
+        target.arrow = None;
+        route.learn(&target);
+        assert_eq!(route.copy_timeout(), COPY_TIMEOUT_MIN.max(Duration::from_millis(60)));
+        // The arrow that worked stays until another one works.
+        assert_eq!(route.arrow, Some(KEY_RIGHT));
+        target.copy_times = vec![Duration::from_millis(100)];
+        route.learn(&target);
+        assert_eq!(route.copy_timeout(), Duration::from_millis(200));
+        target.copy_times = vec![Duration::from_millis(400)];
+        route.learn(&target);
+        assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
     }
 
     #[test]

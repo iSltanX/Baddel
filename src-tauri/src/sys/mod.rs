@@ -8,6 +8,7 @@
 pub mod app_icons;
 pub mod carbon;
 pub mod chrome;
+pub mod clock;
 pub mod frontmost;
 pub mod image;
 pub mod input_source;

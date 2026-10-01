@@ -4,7 +4,8 @@
     "status": {
       "ready": "Ready",
       "needsPermission": "Needs Permission",
-      "paused": "Paused"
+      "paused": "Paused",
+      "pausedUntil": "Paused until {time}"
     },
     "hint": "Convert the selection or last word",
     "undo": "Undo",
@@ -18,7 +19,14 @@
     "checkForUpdates": "Check for Updates…",
     "quit": "Quit Baddel",
     "installUpdate": "Install Update {version}…",
-    "reportProblem": "Report a Problem…"
+    "reportProblem": "Report a Problem…",
+    "convertLine": "Convert Line",
+    "toArabic": "Convert to Arabic",
+    "toLatin": "Convert to English",
+    "pauseFor15": "For 15 Minutes",
+    "pauseForHour": "For 1 Hour",
+    "pauseUntilResume": "Until I Resume",
+    "excludeCurrent": "Exclude Current App"
   },
   "settings": {
     "panes": {
@@ -63,11 +71,15 @@
       "rows": {
         "convert": "Convert selection or last word",
         "undo": "Undo last conversion",
-        "pause": "Pause Baddel"
+        "pause": "Pause Baddel",
+        "convertLine": "Convert Line",
+        "toArabic": "Convert to Arabic",
+        "toLatin": "Convert to English"
       },
       "footnote": "Pressing it again within two seconds extends the conversion one more word back.",
       "groupTitle": "Global shortcuts that work in every app",
-      "restoreDefaults": "Restore Defaults"
+      "restoreDefaults": "Restore Defaults",
+      "extraGroupTitle": "More commands — optional, no default shortcut"
     },
     "layouts": {
       "arabicLayout": "Arabic Layout",
@@ -84,7 +96,13 @@
       },
       "groupTitle": "Input layouts",
       "needsSetupBadge": "Needs setup",
-      "unavailable": "Unavailable"
+      "unavailable": "Unavailable",
+      "tryIt": {
+        "title": "Try it here",
+        "caption": "Uses your actual layouts and the same conversion as in your apps; nothing you type here is kept.",
+        "label": "Text to try",
+        "result": "Result"
+      }
     },
     "exceptions": {
       "description": "Baddel stays out of these apps — password managers, terminals and the like.",
@@ -141,9 +159,18 @@
       "fixed": "It’s fixed — keep typing",
       "note": "Press again within two seconds to reach one more word back. One Undo puts everything back.",
       "menuBar": {
-        "ready": { "label": "Ready", "body": "Converts on your shortcut" },
-        "paused": { "label": "Paused", "body": "Until you resume" },
-        "needs": { "label": "Needs Permission", "body": "Grant it from the menu" }
+        "ready": {
+          "label": "Ready",
+          "body": "Converts on your shortcut"
+        },
+        "paused": {
+          "label": "Paused",
+          "body": "Until you resume"
+        },
+        "needs": {
+          "label": "Needs Permission",
+          "body": "Grant it from the menu"
+        }
       }
     },
     "permission": {
@@ -186,7 +213,9 @@
     "notHere": "Converted text isn’t here — copy the original from the menu",
     "undoFailed": "Couldn’t undo here — try again",
     "copied": "Copied",
-    "convertedLong": "Converted — {count}"
+    "convertedLong": "Converted — {count}",
+    "pausedUntil": "Baddel paused until {time}",
+    "excludedNow": "{app} excluded — remove it in Settings"
   },
   "permission": {
     "granted": "Permission granted",

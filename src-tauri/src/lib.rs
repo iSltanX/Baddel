@@ -84,7 +84,12 @@ pub fn run() {
             sys::chrome::resign_activation();
 
             let handle = app.handle().clone();
-            let stored = settings::load(&handle);
+            let mut stored = settings::load(&handle);
+            // A timed pause that ran out while Baddel was not running is over.
+            if stored.pause_expired(sys::clock::now_ms()) {
+                stored.set_paused(false, None);
+                settings::save(&handle, &stored);
+            }
             *app.state::<AppState>().settings.lock().unwrap() = stored.clone();
 
             app.manage(controller::spawn(handle.clone()));
@@ -111,6 +116,8 @@ pub fn run() {
             let watcher = handle.clone();
             thread::Builder::new().name("baddel-permission".into()).spawn(move || loop {
                 thread::sleep(PERMISSION_POLL);
+                // The end of a timed pause rides on the same clock: nothing notifies us of it either.
+                sync::resume_if_expired(&watcher);
                 let now = permissions::is_trusted(false);
                 if now != trusted {
                     trusted = now;

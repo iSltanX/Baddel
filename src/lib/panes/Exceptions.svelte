@@ -2,13 +2,15 @@
   import AppListRow from '../components/AppListRow.svelte'
   import Button from '../components/Button.svelte'
   import Icon from '../components/Icon.svelte'
-  import { addExcludedApp, excludedApps, removeExcludedApp, t, type AppInfo } from '../state.svelte'
+  import { addExcludedApp, app, excludedApps, removeExcludedApp, t, type AppInfo, type Settings } from '../state.svelte'
 
   let apps = $state<AppInfo[]>([])
   let loaded = $state(false)
   let busy = $state(false)
 
   $effect(() => {
+    // Read again when the exceptions change elsewhere: "Exclude Current App" in the menu.
+    void (app.settings as Settings | null)?.excludedApps.length
     void excludedApps().then((list) => {
       apps = list
       loaded = true

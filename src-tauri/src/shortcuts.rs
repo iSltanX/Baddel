@@ -5,6 +5,8 @@ use std::str::FromStr;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
+use baddel_core::Direction;
+
 use crate::controller::{Command, Commands};
 use crate::settings::{Binding, Settings};
 use crate::sync;
@@ -63,6 +65,9 @@ fn fire(app: &AppHandle, binding: Binding) {
         Binding::Convert => app.state::<Commands>().send(Command::Convert),
         Binding::Undo => app.state::<Commands>().send(Command::Undo),
         Binding::Pause => sync::toggle_pause(app),
+        Binding::ConvertLine => app.state::<Commands>().send(Command::ConvertLine),
+        Binding::ToArabic => app.state::<Commands>().send(Command::ConvertTo(Direction::LatinToArabic)),
+        Binding::ToLatin => app.state::<Commands>().send(Command::ConvertTo(Direction::ArabicToLatin)),
     }
 }
 
@@ -133,6 +138,14 @@ mod tests {
         // The same keys written in another order are the same shortcut.
         assert_eq!(owner(&settings, Binding::Pause, "Shift+Alt+Space"), Some(Binding::Convert));
         assert_eq!(owner(&settings, Binding::Pause, "Alt+Shift+P"), None);
+    }
+
+    #[test]
+    fn the_optional_commands_conflict_like_the_others() {
+        let settings = Settings { shortcut_to_arabic: "Alt+Shift+A".into(), ..Settings::default() };
+        assert_eq!(owner(&settings, Binding::ToLatin, "Shift+Alt+A"), Some(Binding::ToArabic));
+        assert_eq!(owner(&settings, Binding::ConvertLine, "Alt+Shift+Space"), Some(Binding::Convert));
+        assert_eq!(owner(&settings, Binding::Undo, "Alt+Shift+A"), Some(Binding::ToArabic));
     }
 
     #[test]

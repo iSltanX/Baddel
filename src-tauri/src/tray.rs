@@ -9,14 +9,15 @@ use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Mutex;
 
 use tauri::image::Image;
-use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
+use baddel_core::Direction;
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{TrayIcon, TrayIconBuilder};
 use tauri::{AppHandle, Manager, Wry};
 
 use crate::controller::{Command, Commands};
 use crate::menu_text;
 use crate::settings::AppState;
-use crate::sys::permissions;
+use crate::sys::{clock, permissions};
 use crate::{settings, sync, updater, windows};
 
 const TRAY_ID: &str = "main";
@@ -135,9 +136,15 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let text = menu_text::strings(settings.language);
     let trusted = state.trusted.load(Ordering::SeqCst);
 
-    let status = match (trusted, settings.paused) {
-        (false, _) => text.needs_permission,
-        (_, true) => text.paused,
+    let until;
+    let status = match (trusted, settings.paused, settings.paused_until) {
+        (false, _, _) => text.needs_permission,
+        // Menu / Paused until 10:15.
+        (_, true, Some(ms)) => {
+            until = text.paused_until.replace("{time}", &clock::time_of_day(ms));
+            &until
+        }
+        (_, true, None) => text.paused,
         _ => text.ready,
     };
     // Everything below the header needs both the permission and an unpaused app.
@@ -184,6 +191,14 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         menu.append(&PredefinedMenuItem::separator(app)?)?;
     }
 
+    // Menu / Ready · full: the optional commands, while there is something to convert with.
+    if live {
+        menu.append(&item(app, "convert-line", text.convert_line, true)?)?;
+        menu.append(&item(app, "to-arabic", text.to_arabic, true)?)?;
+        menu.append(&item(app, "to-latin", text.to_latin, true)?)?;
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+    }
+
     let switch = CheckMenuItem::with_id(
         app,
         "switch",
@@ -194,9 +209,24 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     )?;
     menu.append(&switch)?;
     // Without the permission there is nothing to pause; the menu leads with granting it instead.
-    if trusted {
-        let pause_label = if settings.paused { text.resume } else { text.pause };
-        menu.append(&item(app, "pause", pause_label, true)?)?;
+    // Paused, one item resumes (Menu / Paused until 10:15); otherwise pausing asks for how long, and
+    // the app in front can be left out for good.
+    if settings.paused && trusted {
+        menu.append(&item(app, "resume", text.resume, true)?)?;
+    } else if trusted {
+        let pause = Submenu::with_id_and_items(
+            app,
+            "pause",
+            text.pause,
+            true,
+            &[
+                &item(app, "pause-15", text.pause_for_15, true)?,
+                &item(app, "pause-60", text.pause_for_hour, true)?,
+                &item(app, "pause-on", text.pause_until_resume, true)?,
+            ],
+        )?;
+        menu.append(&pause)?;
+        menu.append(&item(app, "exclude-current", text.exclude_current, true)?)?;
     }
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
@@ -230,6 +260,11 @@ fn on_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
     match event.id().as_ref() {
         "quit" => app.exit(0),
         "undo" => app.state::<Commands>().send(Command::Undo),
+        // A menu bar menu leaves the app in front where it was, so these act on it, as undo does.
+        "convert-line" => app.state::<Commands>().send(Command::ConvertLine),
+        "to-arabic" => app.state::<Commands>().send(Command::ConvertTo(Direction::LatinToArabic)),
+        "to-latin" => app.state::<Commands>().send(Command::ConvertTo(Direction::ArabicToLatin)),
+        "exclude-current" => app.state::<Commands>().send(Command::ExcludeCurrent),
         "copy-original" => app.state::<Commands>().send(Command::CopyOriginal),
         "grant" => {
             permissions::is_trusted(true);
@@ -240,7 +275,10 @@ fn on_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
             let next = settings::update(app, |s| s.switch_input_source = !s.switch_input_source);
             sync::apply(app, &previous, &next);
         }
-        "pause" => sync::toggle_pause(app),
+        "resume" => sync::toggle_pause(app),
+        "pause-15" => pause_for(app, Some(15)),
+        "pause-60" => pause_for(app, Some(60)),
+        "pause-on" => pause_for(app, None),
         "settings" => {
             let _ = windows::open_settings(app);
         }
@@ -250,5 +288,24 @@ fn on_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "updates" => updater::check_in_background(app, updater::Trigger::Menu),
         "install-update" => updater::install_in_background(app),
         _ => {}
+    }
+}
+
+/// A pause chosen from the menu. A timed one is confirmed with the time it ends (HUD ·
+/// PausedUntil); one until the user resumes shows in the menu bar icon, as the shortcut's does.
+fn pause_for(app: &AppHandle, minutes: Option<u64>) {
+    let Some(until) = sync::pause_for(app, minutes) else { return };
+    let settings = app.state::<AppState>().get();
+    if settings.show_hud {
+        let text = menu_text::strings(settings.language);
+        let notice = crate::hud::Notice {
+            kind: crate::hud::Kind::PausedUntil,
+            body: crate::hud::Body::Message(text.hud_paused_until.replace("{time}", &clock::time_of_day(until))),
+            badge: None,
+            rtl: settings.language == settings::Language::Ar,
+        };
+        // Off the main thread, where menu events arrive: showing the notice waits on that thread.
+        let app = app.clone();
+        std::thread::spawn(move || crate::hud::show(&app, notice));
     }
 }

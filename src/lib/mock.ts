@@ -26,10 +26,14 @@ const settings: Settings = {
   shortcutConvert: 'Alt+Shift+Space',
   shortcutUndo: '',
   shortcutPause: '',
+  shortcutConvertLine: '',
+  shortcutToArabic: '',
+  shortcutToLatin: '',
   arabicLayout: '',
   latinLayout: '',
   excludedApps: ['com.apple.Terminal', 'com.googlecode.iterm2', 'com.1password.1password'],
   paused: false,
+  pausedUntil: null,
   welcomed: false,
 }
 
@@ -135,6 +139,9 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
         convert: 'shortcutConvert',
         undo: 'shortcutUndo',
         pause: 'shortcutPause',
+        convertLine: 'shortcutConvertLine',
+        toArabic: 'shortcutToArabic',
+        toLatin: 'shortcutToLatin',
       } as const
       const field = fields[args?.binding as keyof typeof fields]
       // A shortcut another command has is refused by name, as in the app.
