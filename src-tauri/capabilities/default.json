@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Permissions for the settings, onboarding and report windows.",
   "windows": ["settings", "onboarding", "report"],
-  "permissions": ["core:default", "core:window:allow-start-dragging"]
+  "permissions": ["core:default", "core:window:allow-start-dragging", "core:window:allow-close"]
 }

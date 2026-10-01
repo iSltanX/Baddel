@@ -137,7 +137,12 @@
       "type": "Type as usual",
       "press": "Press the shortcut",
       "fixed": "It’s fixed — keep typing",
-      "note": "Press again within two seconds to reach one more word back. One Undo puts everything back."
+      "note": "Press again within two seconds to reach one more word back. One Undo puts everything back.",
+      "menuBar": {
+        "ready": { "label": "Ready", "body": "Converts on your shortcut" },
+        "paused": { "label": "Paused", "body": "Until you resume" },
+        "needs": { "label": "Needs Permission", "body": "Grant it from the menu" }
+      }
     },
     "permission": {
       "title": "One permission, for one reason",

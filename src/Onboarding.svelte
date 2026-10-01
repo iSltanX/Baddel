@@ -9,6 +9,7 @@
   import HowStep from './lib/components/HowStep.svelte'
   import Icon from './lib/components/Icon.svelte'
   import Keycap from './lib/components/Keycap.svelte'
+  import MenuBarLegend from './lib/components/MenuBarLegend.svelte'
   import PermissionCard from './lib/components/PermissionCard.svelte'
   import PracticeField from './lib/components/PracticeField.svelte'
   import WelcomeProgress from './lib/components/WelcomeProgress.svelte'
@@ -175,6 +176,7 @@
         <HowStep stage="fixed" number={3} label={t('onboarding.how.fixed')} from={t('onboarding.welcome.sampleFrom')} to={t('onboarding.welcome.sampleTo')} {keys} />
       </div>
       <p class="note">{t('onboarding.how.note')}</p>
+      <MenuBarLegend />
     {:else if step === 3}
       <span class="hero"><Icon name="accessibility" size={28} /></span>
       <h1>{t('onboarding.permission.title')}</h1>
@@ -288,7 +290,9 @@
     overflow-y: auto;
   }
 
-  /* The permission step and the "move it first" note carry more, so they sit tighter. */
+  /* The steps that carry more — how it works with its menu bar legend, the permission, and
+     the "move it first" note — sit tighter, so the window keeps its height. */
+  main.step-2,
   main.step-3,
   main.compact {
     gap: var(--space-12);

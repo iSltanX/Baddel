@@ -46,7 +46,7 @@ pub struct Strings {
 const AR: Strings = Strings {
     name: "بدّل",
     ready: "جاهز",
-    needs_permission: "تحتاج صلاحية",
+    needs_permission: "يحتاج صلاحية",
     paused: "متوقف مؤقتًا",
     hint: "حوّل التحديد أو آخر كلمة",
     undo: "تراجع",
