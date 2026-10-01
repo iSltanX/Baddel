@@ -7,7 +7,8 @@
 # 2. Builds for Apple Silicon and Intel in one bundle, signed with Baddel's identity
 #    (scripts/signing/create-keys.sh), with the updater archive signed by the updater key.
 # 3. Collects into release/<version>/: the DMG, the updater archive and its signature,
-#    and latest.json — the file the installed apps poll.
+#    latest.json — the file the installed apps poll — install.sh (the one-line terminal install)
+#    and SHA256SUMS, which install.sh checks the archive against.
 #
 # Publishing (tag + GitHub Release) is a separate, deliberate step: see EXECUTION.md.
 set -euo pipefail
@@ -29,7 +30,7 @@ OUT="release/$VERSION"
 # ── 1. Version ───────────────────────────────────────────────────────────────
 npm version "$VERSION" --no-git-tag-version --allow-same-version >/dev/null
 python3 - "$VERSION" <<'EOF'
-import json, re, sys
+import json, pathlib, re, sys
 version = sys.argv[1]
 path = "src-tauri/tauri.conf.json"
 config = json.load(open(path))
@@ -40,6 +41,14 @@ text = open(path).read()
 text, n = re.subn(r'(\[workspace\.package\][^\[]*?\nversion = ")[^"]+(")', rf'\g<1>{version}\2', text, count=1)
 assert n == 1, "workspace.package version not found in Cargo.toml"
 open(path, "w").write(text)
+# The download page names the version it links to (docs/index.html, docs/en/index.html).
+for page in ("docs/index.html", "docs/en/index.html"):
+    text = pathlib.Path(page).read_text()
+    text, n = re.subn(r'(data-version=")[^"]+(")', rf'\g<1>{version}\2', text)
+    text = re.sub(r'(releases/download/v)[0-9.]+(/Baddel_)[0-9.]+(_universal\.dmg)', rf'\g<1>{version}\g<2>{version}\3', text)
+    text = re.sub(r'(<span class="version">)[0-9.]+(</span>)', rf'\g<1>{version}\2', text)
+    assert n >= 1, f"no data-version in {page}"
+    pathlib.Path(page).write_text(text)
 EOF
 
 # ── 2. Build ─────────────────────────────────────────────────────────────────
@@ -63,6 +72,8 @@ ARCHIVE="Baddel_${VERSION}_universal.app.tar.gz"
 cp "$BUNDLE"/dmg/*.dmg "$OUT/$DMG"
 cp "$BUNDLE/macos/Baddel.app.tar.gz" "$OUT/$ARCHIVE"
 cp "$BUNDLE/macos/Baddel.app.tar.gz.sig" "$OUT/$ARCHIVE.sig"
+cp scripts/install.sh "$OUT/install.sh"
+(cd "$OUT" && shasum -a 256 "$DMG" "$ARCHIVE" > SHA256SUMS)
 
 python3 - "$VERSION" "$NOTES" "$REPO" "$ARCHIVE" "$OUT" <<'EOF'
 import datetime, json, sys

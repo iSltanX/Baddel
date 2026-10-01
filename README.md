@@ -3,19 +3,19 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/header-ar-dark.png">
-  <img alt="بدّل — Baddel: كتبتها باللغة الخطأ؟ بدّلها. lnpfh تصير مرحبا بالاختصار ⌥⇧Space" src="docs/assets/header-ar-light.png" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/header-dark.png">
+  <img alt="بدّل — Baddel: أيقونة بدّل، و«اثممخ» تصير hello" src="docs/assets/header-light.png" width="100%">
 </picture>
 
-[![Release](https://img.shields.io/github/v/release/iSltanX/Baddel?label=release&color=3F5673&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
-[![macOS 13+](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Universal-1C1917?style=flat-square)](#المتطلبات)
-[![Local only](https://img.shields.io/badge/local--only-no%20tracking-5F7F52?style=flat-square)](#الخصوصية)
-[![UI](https://img.shields.io/badge/UI-Arabic%20%C2%B7%20English-3F5673?style=flat-square)](#الميزات)
-[![License: MIT](https://img.shields.io/badge/license-MIT-6B665E?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/iSltanX/Baddel?label=release&color=12A191&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
+[![macOS 13+](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Universal-0F2A28?style=flat-square)](#المتطلبات)
+[![Local only](https://img.shields.io/badge/local--only-no%20tracking-0D786C?style=flat-square)](#الخصوصية)
+[![UI](https://img.shields.io/badge/UI-Arabic%20%C2%B7%20English-12A191?style=flat-square)](#الميزات)
+[![License: MIT](https://img.shields.io/badge/license-MIT-4A6764?style=flat-square)](LICENSE)
 
 ### [⬇︎ تنزيل أحدث إصدار](https://github.com/iSltanX/Baddel/releases/latest)
 
-<sub>مجاني ومفتوح المصدر · macOS 13 أو أحدث · Apple Silicon وIntel</sub>
+<sub>مجاني ومفتوح المصدر · macOS 13 أو أحدث · Apple Silicon وIntel · أو بسطر واحد في الطرفية: [التثبيت](#التثبيت)</sub>
 
 [الفكرة](#الفكرة) · [طريقة العمل](#طريقة-العمل) · [الميزات](#الميزات) · [التثبيت](#التثبيت) · [الاستخدام](#الاستخدام) · [لقطات الشاشة](#لقطات-الشاشة) · [معلومات تقنية](#معلومات-تقنية) · [الأسئلة المتكررة](#الأسئلة-المتكررة) · [English](README.en.md)
 
@@ -29,20 +29,14 @@
 
 **بدّل** أداة صغيرة في شريط القوائم تصلح هذا دون حذف ولا إعادة كتابة: اختصار واحد، فيُستبدل النص بما قصدته في مكانه، في أي تطبيق تقريبًا، وتنتقل لوحة المفاتيح إلى اللغة الصحيحة لتكمل.
 
-<!-- GIF العرض يُوضع هنا حين يُسجَّل: docs/assets/demo.gif -->
 <div align="center">
-  <img alt="إشعار بدّل بعد التحويل: اثممخ ← hello" src="docs/screenshots/hud-success-ar.png" width="330"><br>
-  <sub>إشعار صغير يؤكّد ما حدث، ثم يختفي دون أن يأخذ التركيز من التطبيق الذي تكتب فيه.</sub>
+  <img alt="في TextEdit: «اثممخ» مكتوبة بالتخطيط العربي، ثم ⌥⇧Space، فتصير hello ويظهر الإشعار، ثم تكمل الكتابة بالإنجليزية" src="docs/assets/demo.gif" width="100%"><br>
+  <sub>تسجيل حقيقي في TextEdit: كلمة بالتخطيط الخطأ، ثم <span dir="ltr">⌥⇧Space</span>، فتُصحَّح ويؤكّدها إشعار صغير لا يأخذ التركيز، وتنتقل لوحة المفاتيح معك.</sub>
 </div>
 
 ---
 
 ## طريقة العمل
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/steps-ar-dark.png">
-  <img alt="تكتب بالتخطيط الخطأ، ثم تضغط ⌥⇧Space، فيصير النص صحيحًا وتنتقل لوحة المفاتيح إلى اللغة الصحيحة" src="docs/assets/steps-ar-light.png" width="100%">
-</picture>
 
 | ما أمامك | ما يحدث حين تضغط الاختصار |
 | --- | --- |
@@ -81,31 +75,50 @@
 - **سريع.** من 7 إلى 95 ملّي ثانية في معظم التطبيقات المختبرة: TextEdit وNotes وSafari وChrome وBrave وLuma وClaude. أما Mail وFigma، ولا يكشفان نص الحقل، فيمرّ فيهما عبر لوحة المفاتيح في 0.3 إلى 1.2 ثانية.
 - **لا يراقب ما تكتب.** لا يطلب مراقبة الإدخال (Input Monitoring)، ولا يقرأ شيئًا قبل أن تضغط الاختصار، ولا يحفظ أي نص.
 - **خفيف.** نحو 15MB من الذاكرة في الخمول. نافذتا الإعدادات والترحيب تُنشآن عند فتحهما وتُهدمان عند الإغلاق.
+- **أوامر حين تحتاجها.** «حوّل السطر» بضغطة، و«حوّل إلى العربية / الإنجليزية» حين يلتبس الاتجاه، وإيقاف لمدة (15 دقيقة، أو ساعة، أو حتى تستأنفه)، و«استثنِ التطبيق الحالي»: من القائمة، أو باختصارات تعيّنها.
+- **يحمي ما لا يُحوَّل.** الروابط والبريد ومسارات الملفات والمصطلحات التقنية (`iPhone` و`mp3`) تبقى كما هي، ولا تقلب اتجاه الجملة.
+- **تراجع يعرف مكانه.** يعمل في التطبيق والحقل اللذين حوّلت فيهما وحدهما، ولا يضيع إن تعذّر لحظةً؛ وإن تعذّر نهائيًا، «انسخ النص الأصلي» في القائمة. ورسالة واضحة حين لا يحدث شيء، بسببه وبما تفعله.
+- **جرّب دون نص حقيقي.** «جرّبها هنا» في **الإعدادات ← التخطيطات** يحوّل ما تكتبه بتخطيطيك الفعليين ولا يحفظ شيئًا.
+- **أبلغ من داخله.** «أبلغ عن مشكلة…» بلا حساب، بمعاينة لكل ما سيُرسَل قبل أن تؤكّده.
 - **عربي أولًا.** واجهة من اليمين إلى اليسار بخطَّي Cairo وAlmarai، ونسخة إنجليزية كاملة، ووضعان فاتح وداكن يتبعان النظام.
 
 ---
 
 ## التثبيت
 
+### من ملف DMG
+
 1. نزّل ملف `Baddel_…_universal.dmg` من [صفحة الإصدارات](https://github.com/iSltanX/Baddel/releases/latest).
-2. افتحه واسحب **Baddel** إلى مجلد **التطبيقات**.
-3. شغّل بدّل. في المرة الأولى يظهر تحذير Gatekeeper، وطريقة تجاوزه في التنبيه أدناه.
+2. افتحه واسحب **Baddel** إلى مجلد **التطبيقات**، كما ترسمه نافذة القرص نفسها.
+3. افتحه من «التطبيقات». في المرة الأولى ينبّهك macOS، وطريقة الفتح في الصورة والتنبيه أدناه.
 4. تظهر شاشة الترحيب بأربع خطوات: امنح صلاحية **تسهيلات الاستخدام** في الثالثة، ثم جرّب الاختصار في الرابعة. وإن كان بدّل يعمل من صورة القرص فسيطلب نقله إلى «التطبيقات» أولًا.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/open-anyway-ar-dark.png">
+  <img alt="أول فتح في macOS 15 وما بعده: افتح بدّل من التطبيقات، ثم إعدادات النظام ← الخصوصية والأمن ← افتح على أي حال، ثم أكّد مرة واحدة" src="docs/assets/open-anyway-ar-light.png" width="100%">
+</picture>
 
 </div>
 
 > [!IMPORTANT]
-> **تنبيه Gatekeeper:** بدّل موقَّع بشهادة ذاتية ثابتة، لا بشهادة Apple Developer ID، ولم يمرّ بتوثيق Apple (Notarization)، لأنه مشروع شخصي. لذلك يرفض macOS فتحه أول مرة ويقول إن المطوّر غير معروف.
+> **لماذا التنبيه؟** بدّل موقَّع بشهادة ذاتية ثابتة، لا بشهادة Apple Developer ID، ولم يمرّ بتوثيق Apple (Notarization)، لأنه مشروع شخصي مجاني. لذلك ينبّه macOS حين تفتح ملفًا نزّلته بالمتصفح أول مرة.
 >
-> - **في macOS 15 فما بعد:** حاول فتحه مرة، ثم افتح **إعدادات النظام ← الخصوصية والأمن** (Privacy & Security)، وانزل إلى الرسالة عن Baddel، واضغط **افتح على أي حال** (Open Anyway).
+> - **في macOS 15 فما بعد:** حاول فتحه مرة، ثم **إعدادات النظام ← الخصوصية والأمن** (Privacy & Security) ← **افتح على أي حال** (Open Anyway) بجانب سطر Baddel، ثم أكّد.
 > - **في macOS 13 و14:** في Finder انقر على Baddel بالزر الأيمن ← **فتح** ← **فتح**.
 >
-> تكفي مرة واحدة. وإن استمر المنع، فمن الطرفية:
-> ```sh
-> xattr -dr com.apple.quarantine /Applications/Baddel.app
-> ```
+> تكفي مرة واحدة، والتحديثات بعدها لا تمر بهذا التنبيه.
 
 <div dir="rtl">
+
+### أو بسطر واحد في الطرفية
+
+```sh
+curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh | bash
+```
+
+ينزّل أحدث إصدار (حزمة المحدِّث نفسها)، ويتحقق من **SHA‑256**، ثم من أن التطبيق موقَّع **بشهادة بدّل** المثبّتة في السكربت، ثم يضعه في «التطبيقات» (أو <span dir="ltr">`~/Applications`</span>) ويفتحه. لا يحتاج `sudo`، ولا يمسّ Gatekeeper ولا إعدادات الأمن، ولا يحمل أي سر؛ ولا تنبيه لأن <span dir="ltr">`curl`</span> لا يضع وسم الحجر. الخيارات: <span dir="ltr">`--version X.Y.Z`</span> لإصدار بعينه، و<span dir="ltr">`--dest DIR`</span> لمجلد آخر، و<span dir="ltr">`--dry-run`</span> ليقول ما سيفعله دون تثبيت.
+
+اقرأه قبل تشغيله: [scripts/install.sh](scripts/install.sh). وإن فضّلت، نزّله ثم اقرأه ثم شغّله بـ <span dir="ltr">`bash install.sh`</span>.
 
 ### المتطلبات
 
@@ -151,7 +164,7 @@
         <img alt="الترحيب: كتبت بالتخطيط الخطأ؟ بدّل يصلحها بضغطة." src="docs/screenshots/onboarding-1-ar-light.png" width="100%">
       </picture><br>
       <b>الترحيب</b><br>
-      ثلاث خطوات: الفكرة، ثم الصلاحية، ثم تجربة حقيقية باختصارك.
+      أربع خطوات: مرحبًا، ثم كيف يعمل، ثم الصلاحية، ثم تجربة حقيقية باختصارك.
     </td>
     <td width="50%" align="center" valign="top">
       <picture>
@@ -169,12 +182,12 @@
         <img alt="الإعدادات: التخطيطات وخريطة المفاتيح" src="docs/screenshots/settings-layouts-ar-light.png" width="100%">
       </picture><br>
       <b>التخطيطات</b><br>
-      التخطيطان المستخدمان في التحويل، وخريطة المفاتيح كما يراها بدّل.
+      التخطيطان المستخدمان في التحويل، وخريطة المفاتيح كما يراها بدّل، و«جرّبها هنا».
     </td>
     <td width="50%" align="center" valign="top">
-      <img alt="قائمة بدّل في شريط القوائم، وفيها آخر تحويل وتراجع" src="docs/screenshots/menu-ar-dark.png" width="80%"><br>
+      <img alt="قائمة بدّل في شريط القوائم: حوّل السطر، وإلى العربية، وإلى الإنجليزية، والإيقاف المؤقت، واستثنِ التطبيق الحالي" src="docs/screenshots/menu-ar-dark.png" width="80%"><br>
       <b>القائمة</b><br>
-      الحالة، وآخر تحويل مع «تراجع» خلال 30 ثانية، والإيقاف المؤقت.
+      الحالة، والأوامر الإضافية، والإيقاف لمدة، واستثناء التطبيق الذي أمامك. وبعد التحويل: «تراجع» خلال 30 ثانية.
     </td>
   </tr>
 </table>
@@ -215,7 +228,7 @@
         <img alt="الإعدادات: الاختصارات" src="docs/screenshots/settings-shortcuts-ar-light.png" width="100%">
       </picture><br>
       <b>الاختصارات</b><br>
-      ثلاثة اختصارات عامة، ويُنبَّه على أي اختصار يستخدمه تطبيق آخر.
+      ثلاثة اختصارات عامة، وثلاثة أوامر اختيارية بلا اختصار افتراضي، ويُنبَّه على أي اختصار يستخدمه تطبيق آخر أو أمر آخر في بدّل.
     </td>
     <td width="50%" align="center" valign="top">
       <picture>
@@ -279,7 +292,7 @@
 | <span dir="ltr">`cargo test -p baddel-core`</span> | اختبارات النواة وحدها |
 | <span dir="ltr">`npm run dev`</span> | الواجهة في المتصفح، مع بدائل وهمية لأوامر Rust |
 | <span dir="ltr">`./scripts/dev-build.sh`</span> | حزمة debug موقَّعة في <span dir="ltr">`target/debug/bundle/macos/`</span> |
-| <span dir="ltr">`./scripts/release.sh <version>`</span> | إصدار Universal موقَّع: DMG وحزمة التحديث و<span dir="ltr">`latest.json`</span> |
+| <span dir="ltr">`./scripts/release.sh <version>`</span> | إصدار Universal موقَّع: DMG وحزمة التحديث و<span dir="ltr">`latest.json`</span> و<span dir="ltr">`install.sh`</span> و<span dir="ltr">`SHA256SUMS`</span> |
 
 صلاحية تسهيلات الاستخدام مربوطة بتوقيع التطبيق، فحزمة غير موقَّعة تفقدها مع كل بناء. يوقّع `dev-build.sh` بهوية المشروع إن وُجدت، وإلا بأول شهادة Apple Development في سلسلة المفاتيح. التفاصيل في [docs/signing.md](docs/signing.md).
 
@@ -294,9 +307,9 @@
 | <span dir="ltr">`src-tauri/src/settings.rs`</span> | التفضيلات وترحيلها |
 | <span dir="ltr">`src/`</span> | الواجهة (Svelte 5): الإعدادات والترحيب، عرضٌ فقط عبر <span dir="ltr">`invoke`</span> |
 | <span dir="ltr">`src/lib/i18n/`</span> | النصوص العربية والإنجليزية |
-| <span dir="ltr">`design/`</span> | الأيقونة (مُصدَّرة من Figma)، ومصدر صور README والغلاف |
+| <span dir="ltr">`design/`</span> | الأيقونة ورموز الشريط (مُصدَّرة من Figma) |
 | <span dir="ltr">`scripts/`</span> | الفحص والبناء والتوقيع والإصدار واختبار الجهاز |
-| <span dir="ltr">`docs/`</span> | التوقيع ومصفوفة الاختبار واللقطات والصور |
+| <span dir="ltr">`docs/`</span> | صفحة التعريف والتنزيل (GitHub Pages)، والتوقيع ومصفوفة الاختبار واللقطات والصور |
 
 سجل التغييرات في [CHANGELOG.md](CHANGELOG.md).
 </details>
@@ -308,7 +321,7 @@
 <details>
 <summary><strong>لماذا يحذّرني macOS حين أفتحه أول مرة؟</strong></summary><br>
 
-لأن بدّل موقَّع بشهادة ذاتية لا بشهادة Apple Developer ID (اشتراك سنوي مدفوع)، فلا يعرف Gatekeeper صاحبها. الشهادة ثابتة لكل الإصدارات، وهذا ما يحفظ صلاحيتك عبر التحديثات. طريقة الفتح في [التثبيت](#التثبيت).
+لأن بدّل موقَّع بشهادة ذاتية لا بشهادة Apple Developer ID (اشتراك سنوي مدفوع)، ولم يمرّ بتوثيق Apple، فلا يعرف Gatekeeper صاحبها. الشهادة ثابتة لكل الإصدارات، وهذا ما يحفظ صلاحيتك عبر التحديثات. طريقة الفتح في [التثبيت](#التثبيت)، أو ثبّته بسطر الطرفية فلا يظهر التنبيه أصلًا.
 </details>
 
 <details>

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Checks the links and images of the public documents before they go on GitHub.
 
-    python3 scripts/check-docs.py            relative paths, #anchors, and the RTL rules of README.md
+    python3 scripts/check-docs.py            relative paths, #anchors, and the RTL rules of README.md;
+                                             and the download page (docs/index.html, docs/en/index.html)
     python3 scripts/check-docs.py --online   external links too (HTTP)
 
 Anchors follow GitHub's rule: lowercase, keep letters/marks/digits/spaces/hyphens/
@@ -18,6 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ["README.md", "README.en.md", "CHANGELOG.md", "PRIVACY.md"]
+SITE = ["docs/index.html", "docs/en/index.html"]
 
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)|!\[[^\]]*\]\(([^)\s]+)\)")
 ATTR = re.compile(r'\b(?:src|href|srcset)="([^"]+)"')
@@ -115,6 +117,42 @@ def rtl_problems(path: Path) -> list:
     return found
 
 
+def site_problems(name: str, check_online: bool) -> tuple[list, int]:
+    """The download page: every relative file, #anchor and sprite symbol it names exists, both
+    languages link the same download, and the version matches the app's."""
+    path = ROOT / name
+    text = path.read_text(encoding="utf-8")
+    ids = set(re.findall(r'\bid="([^"]+)"', text))
+    found, checked = [], 0
+    for target in re.findall(r'\b(?:src|href)="([^"]+)"', text):
+        checked += 1
+        if target.startswith(("http://", "https://")):
+            if check_online and (status := online(target)):
+                found.append(f"{name}: {target} → {status}")
+            continue
+        file_part, _, fragment = target.partition("#")
+        if not file_part:
+            if fragment not in ids:
+                found.append(f"{name}: no id for #{fragment}")
+            continue
+        file_path = (path.parent / file_part).resolve()
+        if file_path.is_dir():
+            file_path = file_path / "index.html"
+        if not file_path.exists():
+            found.append(f"{name}: no such file {file_part}")
+        elif fragment and file_path.suffix == ".svg" and f'id="{fragment}"' not in file_path.read_text(encoding="utf-8"):
+            found.append(f"{name}: no symbol #{fragment} in {file_part}")
+    import json
+    version = json.loads((ROOT / "src-tauri/tauri.conf.json").read_text())["version"]
+    page = re.search(r'data-version="([^"]+)"', text)
+    if not page or page.group(1) != version:
+        found.append(f"{name}: data-version is not the app's version {version}")
+    dmg = f"releases/download/v{version}/Baddel_{version}_universal.dmg"
+    if text.count(dmg) != 2:
+        found.append(f"{name}: expected two download links to {dmg}")
+    return found, checked
+
+
 def online(url: str) -> str | None:
     request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "baddel-docs-check"})
     try:
@@ -154,6 +192,10 @@ def main() -> int:
                     problems.append(f"{where}: no heading for #{wanted} in {file_path.name}")
         if name == "README.md":
             problems += rtl_problems(path)
+    for name in SITE:
+        found, count = site_problems(name, check_online)
+        problems += found
+        checked += count
     for problem in problems:
         print("✗", problem)
     print(f"{checked} links checked, {len(problems)} problem(s){' (online)' if check_online else ''}")

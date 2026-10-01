@@ -5,21 +5,22 @@ for a set time and "Exclude Current App" from the menu bar menu, and the per-app
 ⚠️ Sends real key presses and menu clicks, with the same guard as matrix.py: before every key
 press the target app must be in front and hold the keyboard focus. Run only when the owner asks
 for device tests. Needs the debug build running with its stderr in $BADDEL_LOG, the test
-shortcuts bound (Control-Option-Shift-L / A / E) and an Arabic (Mac) layout enabled.
+shortcuts bound (Control-Option-Shift-L / A / E / U) and an Arabic (Mac) layout enabled.
 
     v12.py <label> <bundle-id> <case,...>
-    cases: line, line2, toar, toen, tech, pause, exclude   (and any matrix.py case)
+    cases: line, line2, toar, toen, tech, tech2, undo, undoline, pause, exclude   (and any matrix.py case)
 """
 import os, re, sys, time, subprocess
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import matrix as m  # noqa: E402
 
-KEY_L, KEY_E = 37, 14
+KEY_L, KEY_E, KEY_U = 37, 14, 32
 LINE = (KEY_L, ("control", "option", "shift"))
 TO_AR = (m.KEY_A, ("control", "option", "shift"))
 TO_EN = (KEY_E, ("control", "option", "shift"))
 AUTO = (m.KEY_SPACE, ("option", "shift"))
+UNDO = (KEY_U, ("control", "option", "shift"))
 
 # name: (text, select all first, [shortcut, …], expected)
 CASES = {
@@ -33,6 +34,9 @@ CASES = {
     # Automatic: the technical word stays, and does not outvote the Arabic beside it.
     "tech": ("sghl ugd;l iPhone", True, [AUTO], "سلام عليكم iPhone"),
     "tech2": ("اثممخ iPhone", True, [AUTO], "hello iPhone"),
+    # Convert, then undo with the test shortcut (Control-Option-Shift-U): the original is back.
+    "undo": ("مرحبا اثممخ", False, [AUTO, UNDO], "مرحبا اثممخ"),
+    "undoline": ("مرحبا\nsghl ugd;l", False, [LINE, UNDO], "مرحبا\nsghl ugd;l"),
 }
 
 

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-version="2.0.0">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>بدّل — Baddel · صحّح النص المكتوب باللغة الخطأ</title>
+  <meta name="description" content="أداة صغيرة لشريط قوائم macOS تصحّح ما كتبته بتخطيط لوحة المفاتيح الخطأ بين العربية والإنجليزية — باختصار واحد، في أي تطبيق، وعلى جهازك وحده.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f3f8f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1f1e" media="(prefers-color-scheme: dark)">
+  <meta property="og:title" content="بدّل — Baddel">
+  <meta property="og:description" content="كتبتها باللغة الخطأ؟ بدّلها.">
+  <meta property="og:image" content="https://isltanx.github.io/Baddel/assets/social-preview.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="alternate" hreflang="en" href="en/">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/app-icon.png">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="skip" href="#main">انتقل إلى المحتوى</a>
+
+  <header class="wrap nav">
+    <a class="lockup lockup-ar" href="./" aria-label="بدّل — الصفحة الرئيسية"><svg role="img" aria-hidden="true"><use href="assets/icons.svg#lockup-ar"/></svg></a>
+    <nav aria-label="الأقسام">
+      <ul>
+        <li><a href="#how">كيف يعمل</a></li>
+        <li><a href="#privacy">الخصوصية</a></li>
+        <li><a href="#install">التثبيت</a></li>
+        <li><a href="https://github.com/iSltanX/Baddel" lang="en">GitHub</a></li>
+        <li><a class="lang" href="en/" lang="en" hreflang="en">English</a></li>
+      </ul>
+    </nav>
+    <a class="lang lang-mobile nav-lang" href="en/" lang="en" hreflang="en">English</a>
+  </header>
+
+  <main id="main">
+    <div class="wrap hero">
+      <div>
+        <h1>كتبتها باللغة الخطأ؟ بدّلها.</h1>
+        <p class="lead desktop-only">أداة صغيرة لشريط قوائم macOS تصحّح ما كتبته بتخطيط لوحة المفاتيح الخطأ بين العربية والإنجليزية — باختصار واحد، في أي تطبيق، وعلى جهازك وحده.</p>
+        <p class="lead mobile-only">اختصار واحد يصحّح ما كتبته بتخطيط لوحة المفاتيح الخطأ — في أي تطبيق، وعلى جهازك وحده.</p>
+        <a class="cta" href="https://github.com/iSltanX/Baddel/releases/download/v2.0.0/Baddel_2.0.0_universal.dmg">نزّل لـ macOS</a>
+        <p class="meta desktop-only">الإصدار <span class="version">2.0.0</span> · macOS 13 أو أحدث · Apple Silicon وIntel · مجاني ومفتوح المصدر</p>
+        <p class="hint mobile-only">يُنزَّل على جهاز Mac — افتح هذه الصفحة من حاسوبك.</p>
+        <div class="chip desktop-only">$ curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh | bash</div>
+      </div>
+
+      <div class="desktop-only" aria-hidden="true">
+        <div class="window">
+          <div class="chrome"><i></i><i></i><i></i></div>
+          <div class="page">
+            <p>مرحبًا، أرسلت لك الملف</p>
+            <p>وأيضًا <mark>شكرًا</mark></p>
+            <div class="hud"><svg><use href="assets/icons.svg#checkCircle"/></svg><span class="from latin">a;nWh</span><svg class="arrow"><use href="assets/icons.svg#arrowLeft"/></svg><span class="to">شكرًا</span><span class="badge">ع</span></div>
+          </div>
+        </div>
+        <div class="keys"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>Space</kbd></div>
+        <p class="caption">«<span class="latin">a;nWh</span>» كُتبت بالتخطيط الإنجليزي فصارت «شكرًا»</p>
+      </div>
+
+      <div class="hero-card mobile-only" aria-hidden="true">
+        <div class="from">اثممخ</div>
+        <div class="down">↓</div>
+        <div class="to">hello</div>
+        <div class="hud"><svg><use href="assets/icons.svg#checkCircle"/></svg><span class="from">اثممخ</span><svg class="arrow"><use href="assets/icons.svg#arrowLeft"/></svg><span class="to latin">hello</span><span class="badge latin">EN</span></div>
+      </div>
+    </div>
+
+    <section id="how" class="band">
+      <div class="wrap">
+        <h2>كيف يعمل</h2>
+        <div class="grid-3">
+          <div class="step">
+            <span class="tile"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#textCursor"/></svg></span>
+            <div class="body"><span class="num">1</span><h3>اكتب كالمعتاد</h3><p>نسيت تبديل اللغة؟ أكمل؛ لا تحذف شيئًا.</p></div>
+          </div>
+          <div class="step">
+            <span class="tile"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#keyboard"/></svg></span>
+            <div class="body"><span class="num">2</span><h3>اضغط <span class="latin" dir="ltr">⌥⇧Space</span></h3><p>يحوّل التحديد أو آخر كلمة، وكل ضغطة تمدّ كلمة للخلف.</p></div>
+          </div>
+          <div class="step">
+            <span class="tile"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#swap"/></svg></span>
+            <div class="body"><span class="num">3</span><h3>أكمل باللغة الصحيحة</h3><p>يتبدّل تخطيط لوحة المفاتيح معه، وتراجع واحد يعيد كل شيء.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="before-after">
+      <div class="wrap">
+        <h2>قبل وبعد</h2>
+        <div class="grid-3 pairs">
+          <div class="pair"><span class="from">اثممخ</span><span class="down" aria-label="يصير">↓</span><span class="to latin" lang="en">hello</span></div>
+          <div class="pair"><span class="from latin" lang="en" dir="ltr">sghl ugd;l</span><span class="down" aria-label="يصير">↓</span><span class="to" lang="ar">سلام عليكم</span></div>
+          <div class="pair"><span class="from">فخوخققخص</span><span class="down" aria-label="يصير">↓</span><span class="to latin" lang="en">tomorrow</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy" class="band">
+      <div class="wrap">
+        <h2>خصوصيتك ليست إعدادًا</h2>
+        <div class="grid-4">
+          <div class="card"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#shield"/></svg><h3>محلي بالكامل</h3><p>كل التحويل على جهازك.</p></div>
+          <div class="card"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#noSave"/></svg><h3>بلا حساب</h3><p>لا تسجيل ولا بريد.</p></div>
+          <div class="card"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#noEye"/></svg><h3>بلا تتبّع</h3><p>لا تحليلات ولا تقارير تلقائية.</p></div>
+          <div class="card"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#accessibility"/></svg><h3>صلاحية واحدة فقط</h3><p>تسهيلات الاستخدام، لا مراقبة إدخال.</p></div>
+        </div>
+        <p class="note">لا يرسل بدّل نصك إلى أي مكان. والإبلاغ عن مشكلة لا يحدث إلا حين تراه كاملًا وتؤكّده.</p>
+      </div>
+    </section>
+
+    <section id="install" class="install">
+      <div class="wrap">
+        <h2>التثبيت</h2>
+        <div class="grid-3">
+          <div class="step-i"><span class="dot">1</span><div><h3>نزّل وافتح ملف DMG</h3><p>واسحب بدّل إلى «التطبيقات».</p></div></div>
+          <div class="step-i"><span class="dot">2</span><div><h3>افتحه وامنح الصلاحية</h3><p>مفتاح واحد في «تسهيلات الاستخدام».</p></div></div>
+          <div class="step-i"><span class="dot">3</span><div><h3>إن نبّهك macOS</h3><p>«افتح على أي حال» من الخصوصية والأمن، مرة واحدة.</p></div></div>
+        </div>
+        <a class="cta" href="https://github.com/iSltanX/Baddel/releases/download/v2.0.0/Baddel_2.0.0_universal.dmg">نزّل لـ macOS</a>
+        <p class="or">أو بسطر واحد في الطرفية</p>
+        <div class="terminal"><span>$</span>curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh | bash</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>
+        <span class="lockup lockup-ar"><svg role="img" aria-label="بدّل"><use href="assets/icons.svg#lockup-ar"/></svg></span>
+        <strong>تصميم وتطوير: سلطان</strong>
+        <p class="small">الرخصة MIT · <a href="https://github.com/iSltanX/Baddel" class="latin">github.com/iSltanX/Baddel</a></p>
+      </div>
+      <p class="maker">من الصانع نفسه: <a href="https://github.com/iSltanX/Raff">رفّ</a> · <a href="https://github.com/iSltanX/Luma" class="latin">Luma</a> · <a href="https://github.com/iSltanX/naffith">نفّذ</a></p>
+    </div>
+  </footer>
+</body>
+</html>

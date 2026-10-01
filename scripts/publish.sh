@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Publishes a release built by scripts/release.sh: the tag, then a GitHub Release carrying
-# the four files that new users and installed apps need.
+# the six files that new users and installed apps need.
 #
 #   ./scripts/publish.sh <version>          check everything and print what would happen
 #   ./scripts/publish.sh <version> --yes    publish
@@ -20,7 +20,7 @@ TAG="v$VERSION"
 OUT="release/$VERSION"
 DMG="Baddel_${VERSION}_universal.dmg"
 ARCHIVE="Baddel_${VERSION}_universal.app.tar.gz"
-FILES=("$OUT/$DMG" "$OUT/$ARCHIVE" "$OUT/$ARCHIVE.sig" "$OUT/latest.json")
+FILES=("$OUT/$DMG" "$OUT/$ARCHIVE" "$OUT/$ARCHIVE.sig" "$OUT/latest.json" "$OUT/install.sh" "$OUT/SHA256SUMS")
 
 fail() { echo "✗ $*" >&2; exit 1; }
 ok() { echo "✓ $*"; }
@@ -44,6 +44,11 @@ for name in ("darwin-aarch64", "darwin-x86_64"):
     assert platform["signature"] == signature, f"{name} signature differs from {archive}.sig"
 EOF
 ok "latest.json points at $TAG and carries the archive's signature"
+
+(cd "$OUT" && shasum -a 256 -c SHA256SUMS >/dev/null) || fail "SHA256SUMS does not match the files in $OUT"
+grep -q "  $DMG\$" "$OUT/SHA256SUMS" && grep -q "  $ARCHIVE\$" "$OUT/SHA256SUMS" || fail "SHA256SUMS must list $DMG and $ARCHIVE"
+cmp -s "$OUT/install.sh" scripts/install.sh || fail "$OUT/install.sh differs from scripts/install.sh — rebuild the release"
+ok "SHA256SUMS matches the DMG and the archive, and install.sh is current"
 
 grep -q "\"version\": \"$VERSION\"" src-tauri/tauri.conf.json || fail "tauri.conf.json is not at $VERSION"
 [ "$(git branch --show-current)" = "main" ] || fail "not on main"

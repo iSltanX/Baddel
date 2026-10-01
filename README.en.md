@@ -1,19 +1,19 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/header-en-dark.png">
-  <img alt="Baddel — بدّل: Typed it in the wrong layout? Switch it. lnpfh becomes مرحبا with ⌥⇧Space" src="docs/assets/header-en-light.png" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/header-dark.png">
+  <img alt="Baddel — بدّل: the Baddel icon, and «اثممخ» becoming hello" src="docs/assets/header-light.png" width="100%">
 </picture>
 
-[![Release](https://img.shields.io/github/v/release/iSltanX/Baddel?label=release&color=3F5673&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
-[![macOS 13+](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Universal-1C1917?style=flat-square)](#requirements)
-[![Local only](https://img.shields.io/badge/local--only-no%20tracking-5F7F52?style=flat-square)](#privacy)
-[![UI](https://img.shields.io/badge/UI-Arabic%20%C2%B7%20English-3F5673?style=flat-square)](#features)
-[![License: MIT](https://img.shields.io/badge/license-MIT-6B665E?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/iSltanX/Baddel?label=release&color=12A191&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
+[![macOS 13+](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Universal-0F2A28?style=flat-square)](#requirements)
+[![Local only](https://img.shields.io/badge/local--only-no%20tracking-0D786C?style=flat-square)](#privacy)
+[![UI](https://img.shields.io/badge/UI-Arabic%20%C2%B7%20English-12A191?style=flat-square)](#features)
+[![License: MIT](https://img.shields.io/badge/license-MIT-4A6764?style=flat-square)](LICENSE)
 
 ### [⬇︎ Download the latest release](https://github.com/iSltanX/Baddel/releases/latest)
 
-<sub>macOS 13 or later · Apple Silicon and Intel · Free and open source</sub>
+<sub>macOS 13 or later · Apple Silicon and Intel · Free and open source · or one line in Terminal: [Install](#install)</sub>
 
 [The idea](#the-idea) · [How it works](#how-it-works) · [Features](#features) · [Install](#install) · [Usage](#usage) · [Screenshots](#screenshots) · [Technical details](#technical-details) · [FAQ](#frequently-asked-questions) · [العربية](README.md)
 
@@ -27,20 +27,14 @@ Anyone who types in two languages knows this moment: you type a full sentence, l
 
 **Baddel** is a small menu bar tool that fixes this without deleting or retyping anything: one shortcut, and the text is replaced in place with what you meant, in almost any app, and the keyboard switches to the correct language so you can keep typing.
 
-<!-- The demo GIF goes here once recorded: docs/assets/demo.gif -->
 <div align="center">
-  <img alt="Baddel's notice after conversion: اثممخ → hello" src="docs/screenshots/hud-success-en.png" width="330"><br>
-  <sub>A small notice confirms what happened, then disappears without taking focus from the app you're typing in.</sub>
+  <img alt="In TextEdit: «اثممخ» typed on the Arabic layout, then ⌥⇧Space, and it becomes hello with the notice confirming, then typing goes on in English" src="docs/assets/demo.gif" width="100%"><br>
+  <sub>A real recording in TextEdit: a word on the wrong layout, then ⌥⇧Space — it's fixed, a small notice confirms it without taking focus, and the keyboard switches with you.</sub>
 </div>
 
 ---
 
 ## How it works
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/steps-en-dark.png">
-  <img alt="You type in the wrong layout, press ⌥⇧Space, and the text is fixed with the keyboard switched to the right language" src="docs/assets/steps-en-light.png" width="100%">
-</picture>
 
 | What you have | What happens when you press the shortcut |
 | --- | --- |
@@ -77,27 +71,46 @@ On **Arabic‑PC**, the <kbd>B</kbd> key types two characters together: «لا»
 - **Fast.** 7–95ms to convert in most of the tested apps: TextEdit, Notes, Safari, Chrome, Brave, Luma, and Claude. Mail and Figma don't expose the field's text, so there it goes through the keyboard and takes 0.3–1.2 seconds.
 - **Doesn't monitor what you type.** It doesn't request Input Monitoring, doesn't read anything before you press the shortcut, and doesn't save any text.
 - **Lightweight.** About 15MB of memory at idle. The Settings and Welcome windows are created when opened and destroyed when closed.
+- **Commands when you need them.** "Convert Line" in one press, "Convert to Arabic / to English" when the direction is ambiguous, a pause for a set time (15 minutes, 1 hour, or until you resume), and "Exclude Current App" — from the menu, or with shortcuts you set.
+- **It protects what shouldn't convert.** Links, email addresses, file paths and technical words (`iPhone`, `mp3`) stay exactly as they are, and don't flip the sentence's direction.
+- **Undo that knows where it belongs.** It works only in the app and field you converted in, and isn't lost if it can't go through for a moment; if it can't at all, "Copy Original Text" is in the menu. And a clear message when nothing happens, with why and what to do.
+- **Try it without real text.** "Try it here" in **Settings → Layouts** converts what you type with your actual layouts and keeps nothing.
+- **Report from inside.** "Report a Problem…" with no account, showing everything that will be sent before you confirm.
 - **Arabic first.** A right-to-left interface in Cairo and Almarai, with a complete English version, and light and dark modes that follow the system.
 
 ---
 
 ## Install
 
+### From the DMG
+
 1. Download `Baddel_<version>_universal.dmg` from the [releases page](https://github.com/iSltanX/Baddel/releases/latest).
-2. Open it and drag **Baddel** into the **Applications** folder.
-3. Launch Baddel. The first time, a Gatekeeper warning appears — how to get past it is in the note below.
+2. Open it and drag **Baddel** into the **Applications** folder, as the disk image's window shows.
+3. Open it from Applications. The first time, macOS warns you — how to open it is in the picture and the note below.
 4. The welcome window takes four steps: grant **Accessibility** permission in the third, then try the shortcut in the fourth. If Baddel is still running from the disk image, it asks you to move it to Applications first.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/open-anyway-en-dark.png">
+  <img alt="First open on macOS 15 and later: open Baddel from Applications, then System Settings → Privacy & Security → Open Anyway, then confirm once" src="docs/assets/open-anyway-en-light.png" width="100%">
+</picture>
+
 > [!IMPORTANT]
-> **Gatekeeper warning:** Baddel is signed with a fixed self-signed certificate, not an Apple Developer ID certificate, and it hasn't gone through Apple Notarization, because this is a personal project. So macOS refuses to open it the first time and says the developer is unidentified.
+> **Why the warning?** Baddel is signed with a fixed self-signed certificate, not an Apple Developer ID certificate, and it hasn't gone through Apple Notarization, because it's a free personal project. So macOS warns you the first time you open a file downloaded in a browser.
 >
-> - **macOS 15 and later:** Try opening it once, then open **System Settings → Privacy & Security**, scroll down to the message about Baddel, and click **Open Anyway**.
+> - **macOS 15 and later:** Try opening it once, then **System Settings → Privacy & Security** → **Open Anyway** next to the line about Baddel, then confirm.
 > - **macOS 13 and 14:** In Finder, right-click Baddel → **Open** → **Open**.
 >
-> One time is enough. If it's still blocked, from the terminal:
-> ```sh
-> xattr -dr com.apple.quarantine /Applications/Baddel.app
-> ```
+> One time is enough; updates after that don't go through this warning.
+
+### Or one line in Terminal
+
+```sh
+curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh | bash
+```
+
+It downloads the latest release (the updater's own package), checks its **SHA-256**, then checks that the app is signed with **Baddel's certificate**, pinned in the script, and puts it in Applications (or `~/Applications`) and opens it. It needs no `sudo`, doesn't touch Gatekeeper or any security setting, and carries no secrets; there's no warning because `curl` doesn't set the quarantine flag. Options: `--version X.Y.Z` for a specific release, `--dest DIR` for another folder, `--dry-run` to say what it would do without installing.
+
+Read it before you run it: [scripts/install.sh](scripts/install.sh). Or download it, read it, then run `bash install.sh`.
 
 ### Requirements
 
@@ -144,7 +157,7 @@ Every release is signed with the same certificate, and macOS ties the permission
         <img alt="Welcome: Typed with the wrong layout? Baddel fixes it in one press." src="docs/screenshots/onboarding-1-en-light.png" width="100%">
       </picture><br>
       <b>Welcome</b><br>
-      Three steps: the idea, then the permission, then a real try with your shortcut.
+      Four steps: welcome, how it works, the permission, then a real try with your shortcut.
     </td>
     <td width="50%" align="center" valign="top">
       <picture>
@@ -162,12 +175,12 @@ Every release is signed with the same certificate, and macOS ties the permission
         <img alt="Settings: Layouts and the key map" src="docs/screenshots/settings-layouts-en-light.png" width="100%">
       </picture><br>
       <b>Layouts</b><br>
-      The two layouts used for conversion, and the key map as Baddel sees it.
+      The two layouts used for conversion, the key map as Baddel sees it, and "Try it here".
     </td>
     <td width="50%" align="center" valign="top">
-      <img alt="Baddel's menu bar menu, with the last conversion and Undo" src="docs/screenshots/menu-en-dark.png" width="80%"><br>
+      <img alt="Baddel's menu bar menu: Convert Line, Convert to Arabic, Convert to English, Pause, and Exclude Current App" src="docs/screenshots/menu-en-dark.png" width="80%"><br>
       <b>The menu</b><br>
-      The status, the last conversion with Undo for 30 seconds, and Pause.
+      The status, the extra commands, a pause for a set time, and excluding the app in front. After a conversion: Undo for 30 seconds.
     </td>
   </tr>
 </table>
@@ -208,7 +221,7 @@ Every release is signed with the same certificate, and macOS ties the permission
         <img alt="Settings: Shortcuts" src="docs/screenshots/settings-shortcuts-en-light.png" width="100%">
       </picture><br>
       <b>Shortcuts</b><br>
-      Three global shortcuts, with a warning for any shortcut already used by another app.
+      Three global shortcuts and three optional commands with no default shortcut, with a warning for any shortcut already used by another app or another Baddel command.
     </td>
     <td width="50%" align="center" valign="top">
       <picture>
@@ -271,7 +284,7 @@ npm install
 cargo test -p baddel-core       # core only
 npm run dev                     # UI in the browser, with mock stand-ins for Rust commands
 ./scripts/dev-build.sh          # signed debug bundle in target/debug/bundle/macos/
-./scripts/release.sh <version>  # signed Universal release: DMG, update package, and latest.json
+./scripts/release.sh <version>  # signed Universal release: DMG, update package, latest.json, install.sh and SHA256SUMS
 ```
 
 Accessibility permission is tied to the app's signature, so an unsigned build loses it on every rebuild. `dev-build.sh` signs with the project's identity if one exists, otherwise with the first Apple Development certificate in the keychain. Details in [docs/signing.md](docs/signing.md).
@@ -287,9 +300,9 @@ src-tauri/src/
   settings.rs         Preferences and their migration
 src/                  UI (Svelte 5): Settings and Welcome, display only via invoke
   lib/i18n/           Arabic and English strings
-design/               The icon (exported from Figma), and the source of the README images and cover
+design/               The icon and menu bar glyphs (exported from Figma)
 scripts/              Checks, build, signing, release, and device testing
-docs/                 Signing, the test matrix, screenshots, and images
+docs/                 The download page (GitHub Pages), signing, the test matrix, screenshots, and images
 ```
 
 Changelog in [CHANGELOG.md](CHANGELOG.md).
@@ -302,7 +315,7 @@ Changelog in [CHANGELOG.md](CHANGELOG.md).
 <details>
 <summary><strong>Why does macOS warn me the first time I open it?</strong></summary><br>
 
-Because Baddel is signed with a self-signed certificate, not an Apple Developer ID (a paid annual subscription), so Gatekeeper doesn't recognize its owner. The certificate is fixed across all releases, which is what keeps your permission across updates. How to open it is in [Install](#install).
+Because Baddel is signed with a self-signed certificate, not an Apple Developer ID (a paid annual subscription), and hasn't gone through Apple Notarization, so Gatekeeper doesn't recognize its owner. The certificate is fixed across all releases, which is what keeps your permission across updates. How to open it is in [Install](#install) — or install it with the Terminal line and the warning never appears.
 </details>
 
 <details>
