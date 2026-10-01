@@ -61,7 +61,19 @@ pub struct TrayState {
     glyph: AtomicU8,
     /// The last conversion, for the "تراجع: اثممخ ← hello" item. Held in memory only,
     /// never written anywhere, and cleared as soon as undo is no longer offered.
-    last: Mutex<Option<(String, String)>>,
+    last: Mutex<Option<LastConversion>>,
+}
+
+/// The last conversion as the menu offers it.
+#[derive(Clone)]
+pub struct LastConversion {
+    pub original: String,
+    pub result: String,
+    /// "تراجع: اثممخ ← hello" — while undo can still work.
+    pub undoable: bool,
+    /// "انسخ النص الأصلي: اثممخ" — after an undo did not go through, so the original is never
+    /// lost while it is remembered: the user pastes it back themselves.
+    pub copyable: bool,
 }
 
 pub fn build(app: &AppHandle) -> tauri::Result<TrayIcon> {
@@ -86,7 +98,7 @@ pub fn set_trusted(app: &AppHandle, trusted: bool) {
 }
 
 /// Remembers the last conversion for the menu. `None` clears it.
-pub fn set_last_conversion(app: &AppHandle, last: Option<(String, String)>) {
+pub fn set_last_conversion(app: &AppHandle, last: Option<LastConversion>) {
     *app.state::<TrayState>().last.lock().unwrap() = last;
     rebuild(app);
 }
@@ -141,15 +153,34 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     }
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
-    if let Some((from, to)) = state.last.lock().unwrap().clone() {
+    if let Some(last) = state.last.lock().unwrap().clone().filter(|l| l.undoable || l.copyable) {
         // One item names what it undoes (A2 · Menu bar · Menus): "تراجع: اثممخ ← hello".
         // The line takes its direction from its first letter, so an Arabic original turned the
         // English line right-to-left and a Latin one the Arabic line left-to-right. Pin it to
         // the interface language and isolate each side.
         let (mark, arrow) =
             if settings.language == settings::Language::Ar { ('\u{200F}', '←') } else { ('\u{200E}', '→') };
-        let line = format!("{mark}{}: \u{2068}{from}\u{2069} {arrow} \u{2068}{to}\u{2069}", text.undo);
-        menu.append(&item(app, "undo", &line, live)?)?;
+        let (from, to) = (&last.original, &last.result);
+        // A long conversion is named, not shown (Menu / Long conversion): no paragraph in the menu.
+        let short = crate::controller::fits_display(from, to);
+        if last.undoable {
+            let line = if short {
+                format!("{mark}{}: \u{2068}{from}\u{2069} {arrow} \u{2068}{to}\u{2069}", text.undo)
+            } else {
+                text.undo_last.to_string()
+            };
+            menu.append(&item(app, "undo", &line, live)?)?;
+        }
+        // After a failed undo (Menu / After a failed undo): the original, to paste back by hand.
+        // Copying needs no permission, so it stays enabled while paused or untrusted.
+        if last.copyable {
+            let line = if short {
+                format!("{mark}{}: \u{2068}{from}\u{2069}", text.copy_original)
+            } else {
+                text.copy_original.to_string()
+            };
+            menu.append(&item(app, "copy-original", &line, true)?)?;
+        }
         menu.append(&PredefinedMenuItem::separator(app)?)?;
     }
 
@@ -199,6 +230,7 @@ fn on_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
     match event.id().as_ref() {
         "quit" => app.exit(0),
         "undo" => app.state::<Commands>().send(Command::Undo),
+        "copy-original" => app.state::<Commands>().send(Command::CopyOriginal),
         "grant" => {
             permissions::is_trusted(true);
             permissions::open_settings();

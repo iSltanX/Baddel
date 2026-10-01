@@ -1,7 +1,8 @@
 //! Behavioural tests against the bundled macOS layout snapshots.
 
 use baddel_core::{
-    detect_direction, is_english_word, Direction, Layer, LayoutMap, LayoutProvider, StaticLayout, KEYCODES,
+    detect_direction, is_english_word, is_protected, Direction, Layer, LayoutMap, LayoutProvider, StaticLayout,
+    KEYCODES,
 };
 
 fn mac() -> LayoutMap {
@@ -52,6 +53,88 @@ fn direction_mostly_arabic() {
 #[test]
 fn direction_mostly_latin() {
     assert_eq!(detect_direction("sghl ugd;l و"), Some(Direction::LatinToArabic));
+}
+
+// ── Links, email addresses and paths ─────────────────────────────────────────
+
+#[test]
+fn links_emails_and_paths_are_protected() {
+    for word in [
+        "https://example.com",
+        "http://x.org/a?b=c",
+        "(https://example.com/path).",
+        "www.example.com",
+        "WWW.Example.com/1",
+        "name@example.com",
+        "first.last@mail.example.org,",
+        "<name@example.com>",
+        "~/Documents",
+        "/usr/local/bin",
+        "/Applications/Baddel.app",
+    ] {
+        assert!(is_protected(word), "{word:?}");
+    }
+}
+
+#[test]
+fn ordinary_and_wrongly_typed_words_are_not_protected() {
+    for word in [
+        "hello",
+        "sghl",
+        "ugd;l",
+        // Arabic – PC: a lone "/" is «ظ», "." is «ز».
+        "/gl",
+        "/",
+        "//",
+        "z.d",
+        "@handle",
+        "name@",
+        "name@example",
+        "a@.com",
+        // Anything holding an Arabic letter is text to convert, whatever it looks like.
+        "اثممخ://",
+        "صصصز.com",
+        "123",
+    ] {
+        assert!(!is_protected(word), "{word:?}");
+    }
+}
+
+#[test]
+fn a_link_does_not_outvote_the_word_beside_it() {
+    // Five Arabic letters against the link's dozen Latin ones: the link no longer counts.
+    for map in [mac(), pc()] {
+        let fixed = map.convert("اثممخ https://example.com").unwrap();
+        assert_eq!(fixed.direction, Direction::ArabicToLatin);
+        assert_eq!(fixed.text, "hello https://example.com");
+    }
+}
+
+#[test]
+fn an_email_survives_a_sentence_typed_on_the_wrong_layout() {
+    // «ارسل الملف على name@example.com», typed entirely with the Latin layout on (Arabic – PC).
+    let fixed = pc().convert("hvsg hglgt ugn name@example.com").unwrap();
+    assert_eq!(fixed.direction, Direction::LatinToArabic);
+    assert_eq!(fixed.text, "ارسل الملف على name@example.com");
+}
+
+#[test]
+fn paths_are_kept_and_a_lone_slash_still_converts() {
+    assert_eq!(to_arabic(&pc(), "hgltg ~/Documents/a.txt"), format!("{} ~/Documents/a.txt", to_arabic(&pc(), "hgltg")));
+    assert_eq!(to_arabic(&pc(), "/gl"), "ظلم");
+}
+
+#[test]
+fn explicit_direction_still_leaves_protected_words_alone() {
+    for map in [mac(), pc()] {
+        assert_eq!(to_latin(&map, "www.example.com/1"), "www.example.com/1");
+        assert_eq!(to_arabic(&map, "name@example.com"), "name@example.com");
+    }
+}
+
+#[test]
+fn only_protected_text_has_no_direction() {
+    assert_eq!(detect_direction("https://example.com name@example.com"), None);
 }
 
 #[test]

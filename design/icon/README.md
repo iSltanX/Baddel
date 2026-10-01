@@ -44,4 +44,6 @@ swift design/icon/build.swift
 
 ## أيقونات الإشعار
 
-`src-tauri/icons/hud/*.png`: مكوّنات `Icon/*` من `02 — Components` (checkCircle وundo وlock وwarning وtextCursor بعرض 32، وarrowLeft وarrowRight بعرض 28)، Template بالأسود والشفافية يلوّنها `src-tauri/src/hud.rs` بألوان `color/hud/*`.
+`src-tauri/icons/hud/*.png`: مكوّنات `Icon/*` من `02 — Components` (checkCircle وundo وlock وwarning وtextCursor وkeyboard وaccessibility وpause وnoEye وcheck بعرض 32، وarrowLeft وarrowRight بعرض 28)، Template بالأسود والشفافية يلوّنها `src-tauri/src/hud.rs` بألوان `color/hud/*`.
+
+تُصدَّر من نسخة الأيقونة داخل متغيّر `HUD` الذي يستعملها (16pt) بمقياس 2: تُنسخ النسخة، وتُجعل حدودها سوداء، ثم `exportAsync` PNG، ثم تُحذف النسخة. أُضيفت keyboard وaccessibility وpause وnoEye وcheck في v1.1 بهذه الطريقة، واختبار `every_state_icon_is_a_black_template_at_2x` في `hud.rs` يتحقق من الأبعاد ومن أن كل بكسل أسود.

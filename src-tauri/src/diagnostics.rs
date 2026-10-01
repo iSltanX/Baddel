@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-use crate::controller::Outcome;
+use crate::controller::{Outcome, Reason};
 use crate::settings::{AppState, Language, Settings};
 use crate::sys::{input_source, on_main, permissions, system};
 
@@ -33,6 +33,7 @@ pub enum Path {
 
 struct Entry {
     outcome: Outcome,
+    reason: Option<Reason>,
     path: Option<Path>,
     took: Duration,
     at: Instant,
@@ -50,12 +51,12 @@ struct Inner {
 pub struct History(Mutex<Inner>);
 
 impl History {
-    pub fn record(&self, outcome: Outcome, path: Option<Path>, took: Duration, app: Option<String>) {
+    pub fn record(&self, outcome: Outcome, reason: Option<Reason>, path: Option<Path>, took: Duration, app: Option<String>) {
         let mut inner = self.0.lock().unwrap();
         if inner.recent.len() == RECENT {
             inner.recent.pop_front();
         }
-        inner.recent.push_back(Entry { outcome, path, took, at: Instant::now() });
+        inner.recent.push_back(Entry { outcome, reason, path, took, at: Instant::now() });
         inner.last_app = app;
     }
 }
@@ -105,6 +106,8 @@ pub struct LayoutChoice {
 #[derive(Clone, Debug, Serialize)]
 pub struct Recent {
     pub outcome: Outcome,
+    /// Why a `failed` outcome failed (`copy-timed-out`, `not-here`, …); `null` otherwise.
+    pub reason: Option<Reason>,
     pub path: Option<Path>,
     pub ms: u64,
     pub ago_s: u64,
@@ -178,6 +181,7 @@ pub fn collect(app: &AppHandle) -> Snapshot {
         let inner = history.0.lock().unwrap();
         let recent = inner.recent.iter().rev().map(|e| Recent {
             outcome: e.outcome,
+            reason: e.reason,
             path: e.path,
             ms: e.took.as_millis() as u64,
             ago_s: e.at.elapsed().as_secs(),
@@ -248,7 +252,7 @@ mod tests {
     fn the_ring_keeps_the_last_ten_newest_first() {
         let history = History::default();
         for i in 0..12u64 {
-            history.record(Outcome::Converted, Some(Path::Accessibility), Duration::from_millis(i), Some(format!("app.{i}")));
+            history.record(Outcome::Converted, None, Some(Path::Accessibility), Duration::from_millis(i), Some(format!("app.{i}")));
         }
         let inner = history.0.lock().unwrap();
         assert_eq!(inner.recent.len(), RECENT);

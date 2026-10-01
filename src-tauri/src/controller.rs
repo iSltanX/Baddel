@@ -3,6 +3,11 @@
 //! Runs on its own thread; commands arrive over a channel. Nothing the user typed
 //! is ever logged or written to disk — the last operation lives in memory only,
 //! for undo and for extending the conversion one word further back.
+//!
+//! The last operation remembers where it happened (the app, and the field when the
+//! accessibility API names it), so undo and extend never act anywhere else, and an undo
+//! that cannot go through right now does not forget it: the original stays on offer in
+//! the menu until the undo window closes.
 
 use std::collections::HashSet;
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
@@ -16,11 +21,13 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::diagnostics::{History, Path};
 use crate::menu_text;
 use crate::settings::{AppState, Language};
+use crate::sys::frontmost::{self, App};
 use crate::sys::input_source::Snapshot as Layouts;
 use crate::sys::keysynth::{self, KEY_LEFT, KEY_RIGHT};
 use crate::sys::text_access::{Focused, Selection};
-use crate::sys::{frontmost, input_source, on_main, pasteboard, permissions, sound, text_access};
-use crate::{hud, tray};
+use crate::sys::{input_source, on_main, pasteboard, permissions, sound, text_access};
+use crate::tray::LastConversion;
+use crate::{hud, sync, tray};
 
 // ── Timings ──────────────────────────────────────────────────────────────────
 /// How long we wait for the user to release the hotkey's modifiers.
@@ -42,11 +49,23 @@ const AX_WAKE_TIMEOUT: Duration = Duration::from_millis(600);
 const EXTEND_WINDOW: Duration = Duration::from_secs(2);
 /// Undo is offered for this long after a conversion.
 const UNDO_WINDOW: Duration = Duration::from_secs(30);
+/// The missing-permission notice is shown at most this often: the menu bar icon says it too.
+const PERMISSION_NOTICE_EVERY: Duration = Duration::from_secs(30);
 
 const MAX_CHARS: usize = 10_000;
+/// Longer than this, a conversion is not shown word for word in the notice or the menu: the
+/// notice gives its length and the menu a plain "Undo Last Conversion". The text itself still
+/// converts in full; this only keeps paragraphs off the screen.
+const DISPLAY_MAX: usize = 24;
+
+/// Whether a conversion is short enough to show as it is.
+pub fn fits_display(original: &str, result: &str) -> bool {
+    original.chars().count() <= DISPLAY_MAX && result.chars().count() <= DISPLAY_MAX
+}
 /// How far back from the caret we read when looking for the previous word (UTF-16 units).
 const LOOKBEHIND_UNITS: usize = 400;
-/// Undo reselects the result character by character; beyond this it is not worth it.
+/// On the key-based path, undo reselects the result character by character up to this length;
+/// a longer result within one paragraph is reselected to the paragraph's start instead.
 const MAX_UNDO_CHARS: usize = 300;
 
 /// Debug-build tracing of which path a conversion took. Never prints user text.
@@ -60,6 +79,8 @@ macro_rules! trace {
 pub enum Command {
     Convert,
     Undo,
+    /// "Copy Original Text" in the menu, after an undo did not go through.
+    CopyOriginal,
 }
 
 /// The channel into the conversion thread. Held in Tauri state so the menu and the
@@ -93,9 +114,32 @@ pub enum Outcome {
     Paused,
     NoPermission,
     NoLayouts,
+    /// See the [`Reason`] recorded with it.
     Failed,
 }
 
+/// Why a command failed: it picks the notice, and goes to diagnostics with the outcome.
+/// Carries no text.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Reason {
+    /// No ⌘C of ours was answered, and the app exposes no text: nothing to read.
+    CopyTimedOut,
+    /// The app refused the new text, or it never landed.
+    WriteRejected,
+    /// Undo, with another app in front than the one that converted.
+    OtherApp,
+    /// Undo: our text is not where we left it — another field, or the caret moved on.
+    NotHere,
+    /// Undo: in the very field we wrote to, our text has since been edited. Undo is over.
+    TextChanged,
+    /// Undo: the text could not be put back.
+    UndoRejected,
+    /// Undo on the key-based path of a result too long to reselect.
+    TooLong,
+}
+
+#[derive(Clone)]
 struct LastOp {
     original: String,
     result: String,
@@ -108,6 +152,48 @@ struct LastOp {
     /// Words converted so far without an explicit selection; 0 for a selection.
     words: usize,
     at: Instant,
+    /// The app it happened in; undo and extend act there and nowhere else.
+    app: App,
+    /// The field it happened in, when the accessibility API named one.
+    element: Option<Focused>,
+    /// False once undo can no longer work (our text was edited since). The original is then
+    /// kept only to be copied from the menu.
+    undoable: bool,
+    /// Set by a failed undo: the menu then offers the original for the user to paste back.
+    copyable: bool,
+}
+
+/// Notices for states the user expects (permission missing, paused, excluded app) are rationed:
+/// the first press explains, the next ones do not repeat it.
+#[derive(Default)]
+struct Rationed {
+    /// When the missing-permission notice last showed.
+    permission: Option<Instant>,
+    /// The pause during which the paused notice showed ([`sync::pause_epoch`]).
+    pause: Option<u64>,
+    /// Apps whose exclusion has been announced since launch.
+    excluded: HashSet<String>,
+}
+
+impl Rationed {
+    /// At most once every [`PERMISSION_NOTICE_EVERY`].
+    fn permission_due(&mut self) -> bool {
+        let due = self.permission.is_none_or(|at| at.elapsed() >= PERMISSION_NOTICE_EVERY);
+        if due {
+            self.permission = Some(Instant::now());
+        }
+        due
+    }
+
+    /// Once per pause: `epoch` changes each time Baddel is paused or resumed.
+    fn pause_due(&mut self, epoch: u64) -> bool {
+        self.pause.replace(epoch) != Some(epoch)
+    }
+
+    /// Once per app since launch.
+    fn excluded_due(&mut self, bundle_id: Option<&str>) -> bool {
+        bundle_id.is_some_and(|id| self.excluded.insert(id.to_string()))
+    }
 }
 
 pub fn spawn(app: AppHandle) -> Commands {
@@ -115,7 +201,15 @@ pub fn spawn(app: AppHandle) -> Commands {
     thread::Builder::new()
         .name("baddel-controller".into())
         .spawn(move || {
-            let mut controller = Controller { app, last: None, shown: None, woken: HashSet::new(), path: None };
+            let mut controller = Controller {
+                app,
+                last: None,
+                shown: None,
+                woken: HashSet::new(),
+                path: None,
+                reason: None,
+                rationed: Rationed::default(),
+            };
             loop {
                 // While a conversion is remembered, wake up when its undo window closes so the
                 // text leaves memory and the menu on time, not whenever the next command comes.
@@ -133,18 +227,24 @@ pub fn spawn(app: AppHandle) -> Commands {
                     Err(RecvTimeoutError::Disconnected) => break,
                 };
                 let started = Instant::now();
-                let app_id = frontmost::bundle_id();
+                let front = frontmost::current();
                 let outcome = match command {
-                    Command::Convert => controller.convert(),
-                    Command::Undo => controller.undo(),
+                    Command::Convert => controller.convert(&front),
+                    Command::Undo => controller.undo(&front),
+                    Command::CopyOriginal => {
+                        controller.copy_original();
+                        continue;
+                    }
                 };
-                #[cfg(debug_assertions)]
-                eprintln!("[baddel] {outcome:?} in {:?}", started.elapsed());
-                // For diagnostics: the outcome, its path and time, and the app — never the text.
+                // For diagnostics: the outcome, why, its path and time, and the app — never the text.
                 let path = controller.path.take();
-                controller.app.state::<History>().record(outcome, path, started.elapsed(), app_id);
+                let reason = controller.reason.take();
+                #[cfg(debug_assertions)]
+                eprintln!("[baddel] {outcome:?} in {:?} reason={reason:?}", started.elapsed());
+                let history = controller.app.state::<History>();
+                history.record(outcome, reason, path, started.elapsed(), front.bundle_id.clone());
                 controller.sync_menu();
-                controller.announce(outcome);
+                controller.announce(outcome, reason, &front);
                 // The event carries the outcome and nothing else: no converted text
                 // ever crosses into a webview.
                 let _ = controller.app.emit("conversion", outcome);
@@ -157,12 +257,16 @@ pub fn spawn(app: AppHandle) -> Commands {
 struct Controller {
     app: AppHandle,
     last: Option<LastOp>,
-    /// Which conversion the menu currently shows (by its time), so it is redrawn only on change.
-    shown: Option<Instant>,
+    /// What the menu currently shows of the last conversion (its time, and whether undo and
+    /// copy are offered), so it is redrawn only on change.
+    shown: Option<(Instant, bool, bool)>,
     /// Apps we already asked to switch their accessibility tree on.
     woken: HashSet<i32>,
     /// How the last command reached the text, for diagnostics; `None` when a guard stopped it first.
     path: Option<Path>,
+    /// Why the last command failed, when it did.
+    reason: Option<Reason>,
+    rationed: Rationed,
 }
 
 /// How the current text was obtained, and therefore how to write it back.
@@ -171,6 +275,14 @@ struct Target {
     method: Method,
     /// Pasteboard contents to put back, taken before our first ⌘C.
     saved: Option<pasteboard::Snapshot>,
+    /// The pasteboard's change count as our own last use of it left it. Different at the end
+    /// means someone else copied meanwhile, and their copy is kept rather than the snapshot.
+    ours: isize,
+    /// A ⌘C of ours went unanswered and we have not written since: a change now is far likelier
+    /// its late answer than the user's own copy.
+    pending_copy: bool,
+    /// ⌘C presses sent, and how many the app answered.
+    copies: (u32, u32),
     /// Whether synthetic arrow keys selected the text (diagnostics only).
     keys: bool,
 }
@@ -206,13 +318,15 @@ struct Word {
 struct Context<'a> {
     map: &'a LayoutMap,
     layouts: &'a Layouts,
+    /// The app in front, where the conversion happens.
+    front: &'a App,
     /// The direction implied by the active layout: the one the wrong text was typed with.
     expected: Direction,
     switch_input_source: bool,
 }
 
 impl Controller {
-    fn convert(&mut self) -> Outcome {
+    fn convert(&mut self, front: &App) -> Outcome {
         let settings = self.app.state::<AppState>().settings.lock().unwrap().clone();
         if settings.paused {
             return Outcome::Paused;
@@ -223,12 +337,12 @@ impl Controller {
         if permissions::secure_input_enabled() {
             return Outcome::Blocked;
         }
-        if frontmost::bundle_id().is_some_and(|id| settings.excluded_apps.contains(&id)) {
+        if front.bundle_id.as_ref().is_some_and(|id| settings.excluded_apps.contains(id)) {
             return Outcome::Excluded;
         }
         let (arabic, latin) = (settings.arabic_layout.clone(), settings.latin_layout.clone());
         let Some(layouts) = on_main(&self.app, move || input_source::snapshot(&arabic, &latin)) else {
-            return Outcome::Failed;
+            return Outcome::NoLayouts;
         };
         let map = build_map(&layouts);
         if map.is_empty() {
@@ -238,8 +352,8 @@ impl Controller {
 
         let expected =
             if layouts.current_is_arabic { Direction::ArabicToLatin } else { Direction::LatinToArabic };
-        let cx = Context { map: &map, layouts: &layouts, expected, switch_input_source: settings.switch_input_source };
-        let mut target = Target { focused: self.focused_element(), method: Method::Accessibility, saved: None, keys: false };
+        let cx = Context { map: &map, layouts: &layouts, front, expected, switch_input_source: settings.switch_input_source };
+        let mut target = Target::new(self.focused_element(front.pid));
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
         }
@@ -257,18 +371,16 @@ impl Controller {
         }
         let outcome = self.convert_in(&mut target, &cx);
         self.path = Some(target.path());
-        if let Some(saved) = &target.saved {
-            pasteboard::restore(saved);
-        }
+        target.restore_pasteboard();
         outcome
     }
 
     /// The focused element, waking the app's accessibility tree the first time it has none.
-    fn focused_element(&mut self) -> Option<Focused> {
+    fn focused_element(&mut self, pid: Option<i32>) -> Option<Focused> {
         if let Some(focused) = Focused::get() {
             return Some(focused);
         }
-        let pid = frontmost::pid()?;
+        let pid = pid?;
         if !self.woken.insert(pid) {
             return None;
         }
@@ -297,16 +409,23 @@ impl Controller {
             if result == text {
                 return Outcome::Unchanged;
             }
+            // Where the selection came through the text APIs, note where it starts, so undo can
+            // find the result by its place in the text — exactly, at any length — and not by
+            // reselecting it with the keyboard.
+            let start = target.selection_start(&text);
             if !target.write(&text, &result) {
-                return Outcome::Failed;
+                return self.fail(Reason::WriteRejected);
             }
-            self.finish(LastOp::new(text, result, direction, None, 0), cx);
+            self.finish(LastOp::new(text, result, direction, start, 0), target, cx);
             return Outcome::Converted;
         }
 
-        // 2. No selection, right after a conversion: take one more word.
-        if let Some(last) = self.last.take().filter(|l| l.at.elapsed() < EXTEND_WINDOW && l.words > 0) {
-            match self.extend(target, cx, last) {
+        // 2. No selection, right after a conversion in this same app: take one more word.
+        let previous = self.last.clone().filter(|l| {
+            l.at.elapsed() < EXTEND_WINDOW && l.words > 0 && l.undoable && l.app.pid == cx.front.pid
+        });
+        if let Some(last) = previous {
+            match self.extend(target, cx, &last) {
                 Extension::Done(outcome) => return outcome,
                 // The caret is somewhere else: this is a new conversion, not a continuation.
                 Extension::Elsewhere => {}
@@ -335,9 +454,9 @@ impl Controller {
                     return Outcome::Unchanged;
                 }
                 if !target.replace_range(&word, &result, caret) {
-                    return Outcome::Failed;
+                    return self.fail(Reason::WriteRejected);
                 }
-                self.finish(LastOp::new(word.text, result, direction, Some(word.start), 1), cx);
+                self.finish(LastOp::new(word.text, result, direction, Some(word.start), 1), target, cx);
                 return Outcome::Converted;
             }
         }
@@ -360,18 +479,24 @@ impl Controller {
                 KeyEdit::Done { original, result, direction } => {
                     let mut op = LastOp::new(original, result, direction, None, 1);
                     op.back_arrow = arrow;
-                    self.finish(op, cx);
+                    self.finish(op, target, cx);
                     return Outcome::Converted;
                 }
-                KeyEdit::Failed => return Outcome::Failed,
+                KeyEdit::Failed => return self.fail(Reason::WriteRejected),
                 KeyEdit::NothingHere => continue,
             }
+        }
+        // No text element, and not one ⌘C answered: this app gives us no way to its text. Say
+        // so, with what the user can do; an empty line elsewhere is simply "no text".
+        let (sent, answered) = target.copies;
+        if target.focused.is_none() && sent > 0 && answered == 0 {
+            return self.fail(Reason::CopyTimedOut);
         }
         Outcome::NoText
     }
 
     /// Converts the word before the text we produced last time.
-    fn extend(&mut self, target: &mut Target, cx: &Context, last: LastOp) -> Extension {
+    fn extend(&mut self, target: &mut Target, cx: &Context, last: &LastOp) -> Extension {
         if let (Some(start), Some(focused)) = (last.start, target.focused.as_ref()) {
             // Only a continuation if our text is still there and the caret still follows it.
             let end = start + utf16_len(&last.result);
@@ -393,11 +518,11 @@ impl Controller {
                 return Extension::Done(Outcome::Unchanged);
             }
             if !target.replace_range(&word, &converted, caret) {
-                return Extension::Done(Outcome::Failed);
+                return Extension::Done(self.fail(Reason::WriteRejected));
             }
             let original = format!("{}{gap}{}", word.text, last.original);
             let result = format!("{converted}{gap}{}", last.result);
-            self.finish(LastOp::new(original, result, last.direction, Some(word.start), last.words + 1), cx);
+            self.finish(LastOp::new(original, result, last.direction, Some(word.start), last.words + 1), target, cx);
             return Extension::Done(Outcome::Extended);
         }
 
@@ -418,15 +543,23 @@ impl Controller {
             KeyEdit::Done { original, result, direction } => {
                 let mut op = LastOp::new(original, result, direction, None, last.words + 1);
                 op.back_arrow = last.back_arrow;
-                self.finish(op, cx);
+                self.finish(op, target, cx);
                 Extension::Done(Outcome::Extended)
             }
-            KeyEdit::Failed => Extension::Done(Outcome::Failed),
+            KeyEdit::Failed => Extension::Done(self.fail(Reason::WriteRejected)),
             KeyEdit::NothingHere => Extension::Unknown,
         }
     }
 
-    fn finish(&mut self, op: LastOp, cx: &Context) {
+    fn fail(&mut self, reason: Reason) -> Outcome {
+        self.reason = Some(reason);
+        Outcome::Failed
+    }
+
+    /// Remembers a conversion that went through, with where it happened.
+    fn finish(&mut self, mut op: LastOp, target: &Target, cx: &Context) {
+        op.app = cx.front.clone();
+        op.element = target.focused.clone();
         if cx.switch_input_source {
             let wanted = match op.direction {
                 Direction::ArabicToLatin => &cx.layouts.latin,
@@ -439,71 +572,147 @@ impl Controller {
         self.last = Some(op);
     }
 
-    fn undo(&mut self) -> Outcome {
-        let Some(last) = self.last.take().filter(|l| l.at.elapsed() < UNDO_WINDOW) else {
+    fn undo(&mut self, front: &App) -> Outcome {
+        let Some(last) = self.last.clone().filter(|l| l.undoable && l.at.elapsed() < UNDO_WINDOW) else {
             return Outcome::NoText;
         };
-        if !permissions::is_trusted(false) || permissions::secure_input_enabled() {
-            return Outcome::Failed;
+        // Everything up to the write is a passing condition: the conversion stays remembered,
+        // and pressing undo again once it has cleared still works.
+        if !permissions::is_trusted(false) {
+            return Outcome::NoPermission;
+        }
+        if permissions::secure_input_enabled() {
+            return Outcome::Blocked;
+        }
+        if last.app.pid.is_some() && front.pid != last.app.pid {
+            return self.undo_failed(Reason::OtherApp);
         }
         keysynth::wait_for_modifiers_released(MODIFIER_RELEASE_TIMEOUT);
-        let mut target = Target { focused: Focused::get(), method: Method::Accessibility, saved: None, keys: false };
+        let mut target = Target::new(Focused::get());
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
-            return Outcome::Failed;
+            return Outcome::Blocked;
         }
-        let outcome = self.undo_in(&mut target, &last);
+        // As in a conversion: a stand-in element knows nothing of the text; the keyboard does.
+        if target.focused.as_ref().is_some_and(Focused::is_stand_in) {
+            target.method = Method::Pasteboard;
+        }
+        let result = undo_in(&mut target, &last);
         self.path = Some(target.path());
-        if let Some(saved) = &target.saved {
-            pasteboard::restore(saved);
+        target.restore_pasteboard();
+        match result {
+            Ok(()) => {
+                self.last = None;
+                Outcome::Undone
+            }
+            Err(reason) => self.undo_failed(reason),
         }
-        outcome
     }
 
-    fn undo_in(&mut self, target: &mut Target, last: &LastOp) -> Outcome {
-        if let (Some(start), Some(focused)) = (last.start, target.focused.as_ref()) {
-            let len = utf16_len(&last.result);
-            if focused.string_for_range(start, len).as_deref() != Some(last.result.as_str()) {
-                return Outcome::Failed;
-            }
-            let word = Word { start, len, text: last.result.clone() };
-            let caret = focused.selected_range().map_or(start + len, |(c, _)| c);
-            return if target.replace_range(&word, &last.original, caret) { Outcome::Undone } else { Outcome::Failed };
+    /// An undo that did not go through. From now on the menu also offers the original, to paste
+    /// back by hand; undo itself stays offered unless it can no longer work.
+    fn undo_failed(&mut self, reason: Reason) -> Outcome {
+        if let Some(last) = self.last.as_mut() {
+            last.undo_failed(reason);
         }
+        self.fail(reason)
+    }
 
-        let stops = caret_stops(&last.result);
-        if stops > MAX_UNDO_CHARS {
-            return Outcome::Failed;
+    /// "Copy Original Text": puts the original on the pasteboard and forgets the conversion.
+    fn copy_original(&mut self) {
+        let Some(last) = self.last.take_if(|l| l.copyable && l.at.elapsed() < UNDO_WINDOW) else { return };
+        // The user asked for this copy, so it is an ordinary one that clipboard managers may keep
+        // (PRIVACY.md), not the flagged, passing kind a conversion uses.
+        pasteboard::write_text(&last.original);
+        self.sync_menu();
+        let settings = self.app.state::<AppState>().get();
+        if settings.show_hud {
+            let text = menu_text::strings(settings.language);
+            hud::show(&self.app, notice(hud::Kind::Copied, text.hud_copied, settings.language == Language::Ar));
         }
-        target.keys = true;
-        for _ in 0..stops {
-            keysynth::select_char(last.back_arrow);
+    }
+}
+
+/// Puts `last.original` back where `last.result` is.
+fn undo_in(target: &mut Target, last: &LastOp) -> Result<(), Reason> {
+    if let Some(start) = last.start {
+        let Some(focused) = target.focused.as_ref() else { return Err(Reason::NotHere) };
+        let len = utf16_len(&last.result);
+        if focused.string_for_range(start, len).as_deref() != Some(last.result.as_str()) {
+            // In the very field we wrote to, a different text there means it was edited: undo
+            // would overwrite that. Anywhere else it may still be intact where we left it.
+            let same_field = last.element.as_ref().is_some_and(|e| focused.same_as(e));
+            return Err(if same_field { Reason::TextChanged } else { Reason::NotHere });
         }
-        match target.await_selection_where(|s| s == last.result) {
-            Some(selected) if selected == last.result && target.write(&selected, &last.original) => Outcome::Undone,
-            _ => {
-                keysynth::arrow(opposite(last.back_arrow));
-                Outcome::Failed
+        let word = Word { start, len, text: last.result.clone() };
+        let caret = focused.selected_range().map_or(start + len, |(c, _)| c);
+        return if target.replace_range(&word, &last.original, caret) { Ok(()) } else { Err(Reason::UndoRejected) };
+    }
+
+    // Key-based, and longer than is worth reselecting character by character: select back to
+    // the paragraph's start (a long line wraps, so its visual edge is not enough), check that
+    // our text still ends it, and paste it back with the original in its place. Nothing is
+    // touched unless the paragraph ends exactly with what we wrote. (A short result keeps the
+    // exact reselection below, which leaves the rest of the line — and its formatting — alone.)
+    let stops = caret_stops(&last.result);
+    if stops > MAX_UNDO_CHARS {
+        if last.result.contains('\n') {
+            return Err(Reason::TooLong);
+        }
+        let edit = target.edit_with_keys(keysynth::select_to_paragraph_start, opposite(last.back_arrow), |line| {
+            undo_line(line, &last.original, &last.result).map(|(keep, converted)| LineEdit {
+                keep,
+                converted,
+                direction: last.direction.reversed(),
+            })
+        });
+        return match edit {
+            KeyEdit::Done { .. } => Ok(()),
+            KeyEdit::NothingHere => Err(Reason::NotHere),
+            KeyEdit::Failed => Err(Reason::UndoRejected),
+        };
+    }
+
+    target.keys = true;
+    for _ in 0..stops {
+        keysynth::select_char(last.back_arrow);
+    }
+    match target.await_selection_where(|s| s == last.result) {
+        Some(selected) if selected == last.result => {
+            if target.write(&selected, &last.original) {
+                Ok(())
+            } else {
+                Err(Reason::UndoRejected)
             }
+        }
+        _ => {
+            keysynth::arrow(opposite(last.back_arrow));
+            Err(Reason::NotHere)
         }
     }
 }
 
 impl Controller {
-    /// Makes the menu's "last conversion" item match what undo can still act on: shown while
-    /// it is remembered, gone once it is undone, expired, or lost to a failed undo.
+    /// Makes the menu's "last conversion" items match what can still be done with it: undo while
+    /// it can work, the original to copy after an undo failed, nothing once it is undone,
+    /// copied or expired.
     fn sync_menu(&mut self) {
-        let current = self.last.as_ref().map(|l| l.at);
+        let current = self.last.as_ref().map(|l| (l.at, l.undoable, l.copyable));
         if current != self.shown {
             self.shown = current;
-            let last = self.last.as_ref().map(|l| (l.original.clone(), l.result.clone()));
+            let last = self.last.as_ref().map(|l| LastConversion {
+                original: l.original.clone(),
+                result: l.result.clone(),
+                undoable: l.undoable,
+                copyable: l.copyable,
+            });
             tray::set_last_conversion(&self.app, last);
         }
     }
 
     /// Shows the outcome: the notice panel and the click sound. The panel is native and
     /// reads the text straight out of memory — it is never written anywhere, nor handed
-    /// to a webview.
-    fn announce(&self, outcome: Outcome) {
+    /// to a webview. Every state reads as in `A2 — States`: one icon, one tone, one sentence.
+    fn announce(&mut self, outcome: Outcome, reason: Option<Reason>, front: &App) {
         let settings = self.app.state::<AppState>().settings.lock().unwrap().clone();
         let text = menu_text::strings(settings.language);
         let rtl = settings.language == Language::Ar;
@@ -515,25 +724,63 @@ impl Controller {
         if !settings.show_hud {
             return;
         }
+        let message = |kind, sentence: &str| Some(notice(kind, sentence, rtl));
         let notice = match outcome {
-            Outcome::Converted | Outcome::Extended => self.last.as_ref().map(|last| hud::Notice {
-                kind: hud::Kind::Success,
-                body: hud::Body::Conversion { from: last.original.clone(), to: last.result.clone() },
-                rtl,
-                badge: settings.switch_input_source.then(|| badge(last.direction).to_string()),
+            Outcome::Converted | Outcome::Extended => self.last.as_ref().map(|last| {
+                if !fits_display(&last.original, &last.result) {
+                    let count = menu_text::characters(settings.language, last.result.chars().count());
+                    return notice(hud::Kind::Success, &text.hud_converted_long.replace("{count}", &count), rtl);
+                }
+                hud::Notice {
+                    kind: hud::Kind::Success,
+                    body: hud::Body::Conversion { from: last.original.clone(), to: last.result.clone() },
+                    rtl,
+                    badge: settings.switch_input_source.then(|| badge(last.direction).to_string()),
+                }
             }),
-            Outcome::Undone => Some(notice(hud::Kind::Undone, text.hud_undone, rtl)),
-            Outcome::Blocked => Some(notice(hud::Kind::Blocked, text.hud_blocked, rtl)),
-            Outcome::TooLong => Some(notice(hud::Kind::TooLong, text.hud_too_long, rtl)),
-            Outcome::NoText | Outcome::Unchanged => Some(notice(hud::Kind::NoText, text.hud_no_text, rtl)),
-            // Paused, excluded, missing permission: the menu already says so, and a
-            // notice on every keypress would be noise.
-            _ => None,
+            Outcome::Undone => message(hud::Kind::Undone, text.hud_undone),
+            Outcome::Blocked => message(hud::Kind::Blocked, text.hud_blocked),
+            Outcome::TooLong => message(hud::Kind::TooLong, text.hud_too_long),
+            Outcome::NoText => message(hud::Kind::NoText, text.hud_no_text),
+            Outcome::Unchanged => message(hud::Kind::Unchanged, text.hud_unchanged),
+            Outcome::NoLayouts => message(hud::Kind::NoLayouts, text.hud_no_layouts),
+            Outcome::Failed => match reason {
+                Some(Reason::OtherApp) => match self.last.as_ref().and_then(|l| app_name(&l.app)) {
+                    Some(name) => message(hud::Kind::Elsewhere, &text.hud_elsewhere.replace("{app}", &name)),
+                    None => message(hud::Kind::NotHere, text.hud_not_here),
+                },
+                Some(Reason::NotHere | Reason::TextChanged) => message(hud::Kind::NotHere, text.hud_not_here),
+                Some(Reason::UndoRejected) => message(hud::Kind::UndoFailed, text.hud_undo_failed),
+                Some(Reason::TooLong) => message(hud::Kind::TooLong, text.hud_too_long),
+                Some(Reason::CopyTimedOut | Reason::WriteRejected) | None => {
+                    message(hud::Kind::Failed, text.hud_failed)
+                }
+            },
+            // Expected states. The menu bar icon and the menu say them too, so the notice is
+            // rationed: whoever pressed and saw nothing happen gets told once, not every time.
+            Outcome::NoPermission => {
+                self.rationed.permission_due().then(|| notice(hud::Kind::NoPermission, text.hud_no_permission, rtl))
+            }
+            Outcome::Paused => {
+                let due = self.rationed.pause_due(sync::pause_epoch());
+                due.then(|| notice(hud::Kind::Paused, text.hud_paused, rtl))
+            }
+            Outcome::Excluded => {
+                let due = self.rationed.excluded_due(front.bundle_id.as_deref());
+                due.then(|| app_name(front)).flatten().map(|name| {
+                    notice(hud::Kind::Excluded, &text.hud_excluded.replace("{app}", &name), rtl)
+                })
+            }
         };
         if let Some(notice) = notice {
             hud::show(&self.app, notice);
         }
     }
+}
+
+/// The name macOS shows for an app, falling back to its bundle identifier.
+fn app_name(app: &App) -> Option<String> {
+    app.name.clone().or_else(|| app.bundle_id.clone())
 }
 
 /// The input source the conversion switched to.
@@ -549,23 +796,95 @@ fn notice(kind: hud::Kind, text: &str, rtl: bool) -> hud::Notice {
 }
 
 impl LastOp {
+    /// `app` and `element` are filled in by [`Controller::finish`].
     fn new(original: String, result: String, direction: Direction, start: Option<usize>, words: usize) -> Self {
         // Walking back over the result: Latin text runs left to right, Arabic right to left.
         let back_arrow = match direction {
             Direction::ArabicToLatin => KEY_LEFT,
             Direction::LatinToArabic => KEY_RIGHT,
         };
-        LastOp { original, result, direction, start, back_arrow, words, at: Instant::now() }
+        LastOp {
+            original,
+            result,
+            direction,
+            start,
+            back_arrow,
+            words,
+            at: Instant::now(),
+            app: App::default(),
+            element: None,
+            undoable: true,
+            copyable: false,
+        }
+    }
+
+    /// After an undo that did not go through, the original is offered for copying; undo itself
+    /// stays unless it can no longer work.
+    fn undo_failed(&mut self, reason: Reason) {
+        self.copyable = true;
+        if matches!(reason, Reason::TextChanged | Reason::TooLong) {
+            self.undoable = false;
+        }
     }
 }
 
 impl Target {
+    fn new(focused: Option<Focused>) -> Self {
+        Target {
+            focused,
+            method: Method::Accessibility,
+            saved: None,
+            ours: 0,
+            pending_copy: false,
+            copies: (0, 0),
+            keys: false,
+        }
+    }
+
+    /// Takes the snapshot to put back, before our first use of the pasteboard.
+    fn save_pasteboard(&mut self) {
+        if self.saved.is_none() {
+            self.saved = Some(pasteboard::snapshot());
+            self.ours = pasteboard::change_count();
+        }
+    }
+
+    /// While a ⌘C of ours may still be answered late, a change is counted as that answer.
+    fn adopt_late_copy(&mut self) {
+        if self.pending_copy {
+            self.ours = pasteboard::change_count();
+        }
+    }
+
+    /// Puts the user's pasteboard back — unless they (or another app) copied something while we
+    /// worked. The newest copy wins: the snapshot is dropped rather than written over it.
+    fn restore_pasteboard(&mut self) {
+        self.adopt_late_copy();
+        if let Some(saved) = &self.saved {
+            if !pasteboard::restore_if_unchanged(saved, self.ours) {
+                trace!("the pasteboard changed while converting; keeping the newer copy");
+            }
+        }
+    }
+
     fn path(&self) -> Path {
         match (self.keys, self.method) {
             (true, _) => Path::Keys,
             (false, Method::Accessibility) => Path::Accessibility,
             (false, Method::Pasteboard) => Path::Pasteboard,
         }
+    }
+
+    /// Where `text`, just read as the selection, starts in the element (UTF-16) — when it was
+    /// read through the text APIs and the element's own range agrees with it.
+    fn selection_start(&self, text: &str) -> Option<usize> {
+        if self.method != Method::Accessibility {
+            return None;
+        }
+        let focused = self.focused.as_ref()?;
+        let (start, len) = focused.selected_range()?;
+        let agrees = len == utf16_len(text) && focused.string_for_range(start, len).as_deref() == Some(text);
+        agrees.then_some(start)
     }
 
     /// The selected text, or `None` when nothing is selected.
@@ -581,15 +900,23 @@ impl Target {
                 }
             }
         }
-        if self.saved.is_none() {
-            self.saved = Some(pasteboard::snapshot());
-        }
+        self.save_pasteboard();
+        self.adopt_late_copy();
         let before = pasteboard::change_count();
         keysynth::copy();
+        self.copies.0 += 1;
         if !pasteboard::wait_for_change(before, COPY_TIMEOUT) {
+            self.pending_copy = true;
             return None;
         }
+        self.pending_copy = false;
+        self.copies.1 += 1;
+        self.ours = pasteboard::change_count();
         let text = pasteboard::read_string().filter(|t| !t.is_empty())?;
+        // The app put the selection on the pasteboard as an ordinary copy, which a clipboard
+        // manager may record. Replace it at once with the same text flagged as passing, so the
+        // unflagged copy lasts milliseconds rather than the whole conversion.
+        self.ours = pasteboard::write_transient(&text);
         // Editors like VS Code copy the whole line when nothing is selected.
         let line_copy = text.ends_with('\n') && text.trim_end_matches('\n').lines().count() <= 1;
         (!line_copy).then_some(text)
@@ -628,13 +955,24 @@ impl Target {
     /// Arabic is full of — and walking back character by character goes astray in
     /// mixed-direction text. The line's edge is the one selection that is reliable everywhere.
     fn edit_line_with_keys(&mut self, arrow: u16, plan: impl Fn(&str) -> Option<LineEdit>) -> KeyEdit {
+        self.edit_with_keys(|| keysynth::select_to_line_edge(arrow), opposite(arrow), plan)
+    }
+
+    /// The same, with `select` choosing how far back to select, and `collapse` the arrow that
+    /// puts the caret back where it was when the plan declines.
+    fn edit_with_keys(
+        &mut self,
+        select: impl FnOnce() -> bool,
+        collapse: u16,
+        plan: impl Fn(&str) -> Option<LineEdit>,
+    ) -> KeyEdit {
         self.keys = true;
-        keysynth::select_to_line_edge(arrow);
+        select();
         let line = self.await_selection();
         trace!("key path: line read = {:?} chars", line.as_ref().map(|l| l.chars().count()));
         let Some(line) = line else { return KeyEdit::NothingHere };
         let Some(edit) = plan(&line) else {
-            keysynth::arrow(opposite(arrow)); // collapse back onto the caret
+            keysynth::arrow(collapse); // collapse back onto the caret
             return KeyEdit::NothingHere;
         };
         let replacement = format!("{}{}", &line[..edit.keep], edit.converted);
@@ -712,16 +1050,15 @@ impl Target {
             }
             self.method = Method::Pasteboard;
         }
-        if self.saved.is_none() {
-            self.saved = Some(pasteboard::snapshot());
-        }
+        self.save_pasteboard();
         // Where the app reports its selection, the paste can be seen landing: the selected
         // original gives way to the caret. Only then is it safe to put the user's pasteboard back.
         let watched = self
             .focused
             .as_ref()
             .filter(|f| matches!(f.selection(), Selection::Text(t) if t == original));
-        pasteboard::write_transient(result);
+        self.ours = pasteboard::write_transient(result);
+        self.pending_copy = false;
         let pasted = keysynth::paste();
         match watched {
             Some(focused) => {
@@ -739,6 +1076,16 @@ impl Target {
         }
         pasted
     }
+}
+
+/// Undo on a line read up to the caret: when the line ends with `result` (give or take trailing
+/// whitespace), how much of it to keep and what replaces the rest. `None` when it does not.
+fn undo_line(line: &str, original: &str, result: &str) -> Option<(usize, String)> {
+    let result = result.trim_end();
+    let end = line.trim_end().len();
+    let start = end.checked_sub(result.len())?;
+    let ours = !result.is_empty() && line.is_char_boundary(start) && line[start..end] == *result;
+    ours.then(|| (start, format!("{}{}", original.trim_end(), &line[end..])))
 }
 
 /// The last whitespace-delimited word ending at or before `end` (UTF-16 offset).
@@ -787,5 +1134,71 @@ fn opposite(arrow: u16) -> u16 {
         KEY_RIGHT
     } else {
         KEY_LEFT
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_short_conversions_are_shown_word_for_word() {
+        assert!(fits_display("اثممخ", "hello"));
+        let long = "اثممخ صخقمي اثممخ صخقمي اثممخ";
+        assert!(!fits_display(long, "hello world hello world hello"));
+        assert!(fits_display(&"ب".repeat(DISPLAY_MAX), &"b".repeat(DISPLAY_MAX)));
+        assert!(!fits_display(&"ب".repeat(DISPLAY_MAX + 1), "b"));
+    }
+
+    #[test]
+    fn undo_puts_the_original_back_at_the_end_of_the_line() {
+        assert_eq!(undo_line("Dear team, hello", "اثممخ", "hello"), Some((11, "اثممخ".into())));
+        // The space typed after the word stays where it was.
+        assert_eq!(undo_line("Dear team, hello ", "اثممخ ", "hello "), Some((11, "اثممخ ".into())));
+        assert_eq!(undo_line("السلام عليكم sghl", "sghl", "سلام").map(|(keep, _)| keep), None);
+        assert_eq!(undo_line("قال سلام", "sghl", "سلام"), Some(("قال ".len(), "sghl".into())));
+    }
+
+    #[test]
+    fn undo_leaves_a_line_alone_unless_it_ends_with_our_text() {
+        // The caret moved on, the word was edited, or the line is too short to hold it.
+        assert_eq!(undo_line("hello world", "اثممخ", "hello"), None);
+        assert_eq!(undo_line("Dear team, hellp", "اثممخ", "hello"), None);
+        assert_eq!(undo_line("llo", "اثممخ", "hello"), None);
+        assert_eq!(undo_line("anything", "", "   "), None);
+    }
+
+    #[test]
+    fn a_failed_undo_offers_the_original_and_keeps_undo_while_it_can_still_work() {
+        let fresh = || LastOp::new("اثممخ".into(), "hello".into(), Direction::ArabicToLatin, Some(0), 1);
+        for reason in [Reason::OtherApp, Reason::NotHere, Reason::UndoRejected] {
+            let mut op = fresh();
+            op.undo_failed(reason);
+            assert!(op.undoable && op.copyable, "{reason:?}");
+        }
+        for reason in [Reason::TextChanged, Reason::TooLong] {
+            let mut op = fresh();
+            op.undo_failed(reason);
+            assert!(!op.undoable && op.copyable, "{reason:?}");
+        }
+    }
+
+    #[test]
+    fn expected_states_are_announced_once_not_on_every_press() {
+        let mut rationed = Rationed::default();
+        assert!(rationed.permission_due());
+        assert!(!rationed.permission_due());
+        rationed.permission = Some(Instant::now() - PERMISSION_NOTICE_EVERY);
+        assert!(rationed.permission_due());
+
+        assert!(rationed.pause_due(4));
+        assert!(!rationed.pause_due(4));
+        // Resumed and paused again: a new pause, told once more.
+        assert!(rationed.pause_due(6));
+
+        assert!(rationed.excluded_due(Some("com.apple.Terminal")));
+        assert!(!rationed.excluded_due(Some("com.apple.Terminal")));
+        assert!(rationed.excluded_due(Some("com.googlecode.iterm2")));
+        assert!(!rationed.excluded_due(None));
     }
 }

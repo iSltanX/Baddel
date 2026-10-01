@@ -1,11 +1,24 @@
 use objc2::rc::autoreleasepool;
 use objc2_app_kit::NSWorkspace;
 
-/// Bundle identifier of the app that has keyboard focus.
-pub fn bundle_id() -> Option<String> {
+/// The app that has keyboard focus, as a conversion remembers it.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct App {
+    pub pid: Option<i32>,
+    pub bundle_id: Option<String>,
+    /// The name macOS shows for it ("Mail"), for the notices that name the app.
+    pub name: Option<String>,
+}
+
+/// The frontmost app, all three facts read at once.
+pub fn current() -> App {
     autoreleasepool(|_| {
-        let app = NSWorkspace::sharedWorkspace().frontmostApplication()?;
-        Some(app.bundleIdentifier()?.to_string())
+        let Some(app) = NSWorkspace::sharedWorkspace().frontmostApplication() else { return App::default() };
+        App {
+            pid: Some(app.processIdentifier()),
+            bundle_id: app.bundleIdentifier().map(|id| id.to_string()),
+            name: app.localizedName().map(|name| name.to_string()),
+        }
     })
 }
 
