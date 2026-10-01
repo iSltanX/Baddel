@@ -27,9 +27,17 @@ pub enum Selection {
 }
 
 /// The UI element with keyboard focus.
+#[derive(Clone)]
 pub struct Focused(CFType);
 
 impl Focused {
+    /// Whether this is the same element as `other` (`CFEqual`). Some apps (Chromium, Electron)
+    /// hand out a new element object for the same field after a focus change, so `false` means
+    /// "not provably the same", never "provably another field".
+    pub fn same_as(&self, other: &Focused) -> bool {
+        self.0 == other.0
+    }
+
     pub fn get() -> Option<Self> {
         // SAFETY: create rule. The messaging timeout keeps a hung app from hanging us.
         let system = unsafe {

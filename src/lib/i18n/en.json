@@ -8,6 +8,7 @@
     },
     "hint": "Convert the selection or last word",
     "undo": "Undo",
+    "copyOriginal": "Copy Original Text",
     "grantPermission": "Grant Permission…",
     "switchLayoutAfterConvert": "Switch keyboard layout after converting",
     "pause": "Pause Baddel",
@@ -173,7 +174,17 @@
     "undo": "Undone",
     "blocked": "Protected field — nothing converted",
     "tooLong": "Selection is too long",
-    "noSelection": "No text to convert"
+    "noSelection": "No text to convert",
+    "unchanged": "Nothing here needs converting",
+    "failed": "Couldn’t convert here — select the text and try again",
+    "noLayouts": "Couldn’t read your layouts — open Settings → Layouts",
+    "noPermission": "Baddel needs permission — open its menu",
+    "elsewhere": "Undo is only available in {app}",
+    "paused": "Baddel is paused",
+    "excluded": "Baddel stays out of {app}",
+    "notHere": "Converted text isn’t here — copy the original from the menu",
+    "undoFailed": "Couldn’t undo here — try again",
+    "copied": "Copied"
   },
   "permission": {
     "granted": "Permission granted",
@@ -188,7 +199,8 @@
     "recorder": {
       "empty": "Record Shortcut",
       "recording": "Press keys…",
-      "conflict": "This shortcut is used by another app"
+      "conflict": "This shortcut is used by another app",
+      "conflictInternal": "Already used by “{command}” in Baddel"
     }
   },
   "common": {

@@ -51,8 +51,10 @@ pub fn set_settings(app: AppHandle, patch: serde_json::Value) -> Result<Settings
 #[serde(rename_all = "camelCase")]
 pub struct ShortcutResult {
     pub settings: Settings,
-    /// True when macOS would not give us the shortcut: another app already holds it.
+    /// True when the shortcut was refused: another app holds it, or another Baddel command does.
     pub conflict: bool,
+    /// The Baddel command that already has it, when that is why.
+    pub conflict_with: Option<Binding>,
 }
 
 /// Tries to bind `accelerator`, keeping the old one if it is refused. An empty
@@ -61,7 +63,12 @@ pub struct ShortcutResult {
 pub fn set_shortcut(app: AppHandle, binding: Binding, accelerator: String) -> ShortcutResult {
     let previous = app.state::<AppState>().get();
     if !accelerator.is_empty() && !shortcuts::is_valid(&accelerator) {
-        return ShortcutResult { settings: previous, conflict: true };
+        return ShortcutResult { settings: previous, conflict: true, conflict_with: None };
+    }
+    // Checked before anything is registered: binding it would silently take the shortcut away
+    // from the other command, and the system would report nothing.
+    if let Some(other) = shortcuts::owner(&previous, binding, &accelerator) {
+        return ShortcutResult { settings: previous, conflict: true, conflict_with: Some(other) };
     }
     let next = settings::update(&app, |s| s.set_binding(binding, accelerator));
     let conflict = sync::apply(&app, &previous, &next).contains(&binding);
@@ -69,9 +76,9 @@ pub fn set_shortcut(app: AppHandle, binding: Binding, accelerator: String) -> Sh
         // Put the working shortcut back rather than leaving the user with none.
         let restored = settings::update(&app, |s| s.set_binding(binding, previous.binding(binding).to_string()));
         sync::apply(&app, &next, &restored);
-        return ShortcutResult { settings: restored, conflict: true };
+        return ShortcutResult { settings: restored, conflict: true, conflict_with: None };
     }
-    ShortcutResult { settings: next, conflict: false }
+    ShortcutResult { settings: next, conflict: false, conflict_with: None }
 }
 
 // ── Permission ───────────────────────────────────────────────────────────────

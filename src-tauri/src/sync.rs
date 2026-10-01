@@ -3,15 +3,29 @@
 //! Settings live in Rust, so every screen and the menu read the same values. When
 //! one of them changes something, this is what tells the rest.
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_autostart::ManagerExt;
 
 use crate::settings::{AppState, Binding, Settings};
 use crate::{settings, shortcuts, tray};
 
+/// Bumped every time Baddel is paused or resumed, so the "paused" notice can be shown once
+/// per pause rather than on every press of the shortcut.
+static PAUSE_EPOCH: AtomicU64 = AtomicU64::new(0);
+
+/// Which pause (or stretch between pauses) this is.
+pub fn pause_epoch() -> u64 {
+    PAUSE_EPOCH.load(Ordering::SeqCst)
+}
+
 /// Applies the difference between two settings snapshots and tells every open
 /// window about the new one. Returns the shortcuts macOS refused to bind.
 pub fn apply(app: &AppHandle, previous: &Settings, next: &Settings) -> Vec<Binding> {
+    if previous.paused != next.paused {
+        PAUSE_EPOCH.fetch_add(1, Ordering::SeqCst);
+    }
     if previous.launch_at_login != next.launch_at_login {
         let autostart = app.autolaunch();
         let _ = if next.launch_at_login { autostart.enable() } else { autostart.disable() };

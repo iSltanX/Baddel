@@ -313,7 +313,7 @@ mod tests {
                     source: "live",
                 },
                 layout_choice: LayoutChoice { arabic: "auto".into(), latin: "auto".into() },
-                recent: vec![Recent { outcome: Outcome::Converted, path: Some(Path::Keys), ms: 1240, ago_s: 42 }],
+                recent: vec![Recent { outcome: Outcome::Converted, reason: None, path: Some(Path::Keys), ms: 1240, ago_s: 42 }],
                 last_app: Some("com.apple.mail".into()),
                 settings: SettingsSummary {
                     language: Language::Ar,
@@ -399,7 +399,7 @@ mod tests {
         let recent = diagnostics["recent"][0].as_object().unwrap();
         let mut recent_keys: Vec<&str> = recent.keys().map(String::as_str).collect();
         recent_keys.sort_unstable();
-        assert_eq!(recent_keys, ["ago_s", "ms", "outcome", "path"]);
+        assert_eq!(recent_keys, ["ago_s", "ms", "outcome", "path", "reason"]);
     }
 
     #[test]

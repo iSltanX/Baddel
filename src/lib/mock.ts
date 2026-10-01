@@ -137,10 +137,18 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
         pause: 'shortcutPause',
       } as const
       const field = fields[args?.binding as keyof typeof fields]
-      // One combination is treated as taken, so the conflict state is reviewable.
-      const conflict = accelerator === 'Command+Shift+Space'
+      // A shortcut another command has is refused by name, as in the app.
+      const sameKeys = (a: string) => a.split('+').sort().join('+')
+      const conflictWith =
+        (accelerator &&
+          (Object.keys(fields) as (keyof typeof fields)[]).find(
+            (other) => other !== args?.binding && sameKeys(settings[fields[other]]) === sameKeys(accelerator),
+          )) ||
+        null
+      // One combination is treated as taken by another app, so that state is reviewable too.
+      const conflict = conflictWith !== null || accelerator === 'Command+Shift+Space'
       if (field && !conflict) settings[field] = accelerator
-      return answer({ settings: { ...settings }, conflict })
+      return answer({ settings: { ...settings }, conflict, conflictWith })
     }
     case 'permission_granted':
       return answer(permission)

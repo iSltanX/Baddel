@@ -190,13 +190,17 @@ export async function save(patch: Partial<Settings>): Promise<void> {
   app.settings = await invoke<Settings>('set_settings', { patch })
 }
 
-export async function setShortcut(binding: Binding, accelerator: string): Promise<boolean> {
-  const result = await invoke<{ settings: Settings; conflict: boolean }>('set_shortcut', {
-    binding,
-    accelerator,
-  })
+/** Why a shortcut was refused: another app holds it, or another Baddel command does. */
+export type ShortcutConflict = { with: Binding | null }
+
+/** Binds a shortcut; `null` when it took, the conflict when it was refused (the old one stays). */
+export async function setShortcut(binding: Binding, accelerator: string): Promise<ShortcutConflict | null> {
+  const result = await invoke<{ settings: Settings; conflict: boolean; conflictWith: Binding | null }>(
+    'set_shortcut',
+    { binding, accelerator },
+  )
   app.settings = result.settings
-  return result.conflict
+  return result.conflict ? { with: result.conflictWith } : null
 }
 
 export const listLayouts = () => invoke<LayoutEntry[]>('list_layouts')

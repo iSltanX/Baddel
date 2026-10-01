@@ -83,6 +83,11 @@ const ICON_UNDO: &[u8] = include_bytes!("../icons/hud/undo.png");
 const ICON_LOCK: &[u8] = include_bytes!("../icons/hud/lock.png");
 const ICON_WARNING: &[u8] = include_bytes!("../icons/hud/warning.png");
 const ICON_TEXT_CURSOR: &[u8] = include_bytes!("../icons/hud/text-cursor.png");
+const ICON_KEYBOARD: &[u8] = include_bytes!("../icons/hud/keyboard.png");
+const ICON_ACCESSIBILITY: &[u8] = include_bytes!("../icons/hud/accessibility.png");
+const ICON_PAUSE: &[u8] = include_bytes!("../icons/hud/pause.png");
+const ICON_NO_EYE: &[u8] = include_bytes!("../icons/hud/no-eye.png");
+const ICON_CHECKMARK: &[u8] = include_bytes!("../icons/hud/check.png");
 const ICON_ARROW_LEFT: &[u8] = include_bytes!("../icons/hud/arrow-left.png");
 const ICON_ARROW_RIGHT: &[u8] = include_bytes!("../icons/hud/arrow-right.png");
 
@@ -96,6 +101,7 @@ const FADE_OUT_STEPS: u32 = 8;
 const PRIME_CHECKS: u32 = 30;
 const PRIME_INTERVAL: Duration = Duration::from_millis(100);
 
+/// The `State` variants of `HUD` in 02 — Components, one per state of the shared state system.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Success,
@@ -103,6 +109,20 @@ pub enum Kind {
     Blocked,
     TooLong,
     NoText,
+    Unchanged,
+    Failed,
+    NoLayouts,
+    NoPermission,
+    /// Undo asked for in another app than the one that converted.
+    Elsewhere,
+    Paused,
+    Excluded,
+    /// Undo: the converted text is not where it was left.
+    NotHere,
+    /// Undo: the write did not go through; it can be tried again.
+    UndoFailed,
+    /// "Copy Original Text" from the menu.
+    Copied,
 }
 
 impl Kind {
@@ -112,9 +132,15 @@ impl Kind {
         match self {
             Kind::Success => (ICON_CHECK, HUD_MINT),
             Kind::Undone => (ICON_UNDO, HUD_MINT),
+            Kind::Copied => (ICON_CHECKMARK, HUD_MINT),
             Kind::Blocked => (ICON_LOCK, HUD_WARNING),
-            Kind::TooLong => (ICON_WARNING, HUD_WARNING),
-            Kind::NoText => (ICON_TEXT_CURSOR, HUD_MUTED),
+            Kind::TooLong | Kind::Failed | Kind::UndoFailed => (ICON_WARNING, HUD_WARNING),
+            Kind::NoLayouts => (ICON_KEYBOARD, HUD_WARNING),
+            Kind::NoPermission => (ICON_ACCESSIBILITY, HUD_WARNING),
+            Kind::Elsewhere | Kind::NotHere => (ICON_UNDO, HUD_WARNING),
+            Kind::NoText | Kind::Unchanged => (ICON_TEXT_CURSOR, HUD_MUTED),
+            Kind::Paused => (ICON_PAUSE, HUD_MUTED),
+            Kind::Excluded => (ICON_NO_EYE, HUD_MUTED),
         }
     }
 }
@@ -693,5 +719,45 @@ mod tests {
         let above = alpha(middle_x, SHADOW_PAD - SHADOW_Y);
         assert!(below > 0.02 && below < 0.2, "a soft shade under the pill: {below}");
         assert!(above < below, "the shadow falls downwards: above {above}, below {below}");
+    }
+
+    /// Every state's icon is a template exported from `Icon/*`: 16pt at @2x, black and alpha only,
+    /// so the tint alone decides its colour.
+    #[test]
+    fn every_state_icon_is_a_black_template_at_2x() {
+        let kinds = [
+            Kind::Success,
+            Kind::Undone,
+            Kind::Blocked,
+            Kind::TooLong,
+            Kind::NoText,
+            Kind::Unchanged,
+            Kind::Failed,
+            Kind::NoLayouts,
+            Kind::NoPermission,
+            Kind::Elsewhere,
+            Kind::Paused,
+            Kind::Excluded,
+            Kind::NotHere,
+            Kind::UndoFailed,
+            Kind::Copied,
+        ];
+        for kind in kinds {
+            let (png, _) = kind.icon();
+            let rep = NSBitmapImageRep::imageRepWithData(&NSData::with_bytes(png)).expect("a PNG");
+            assert_eq!((rep.pixelsWide(), rep.pixelsHigh()), (32, 32), "{kind:?}");
+            let mut ink = 0;
+            for y in 0..32 {
+                for x in 0..32 {
+                    let colour = rep.colorAtX_y(x, y).expect("a pixel");
+                    if colour.alphaComponent() > 0.0 {
+                        ink += 1;
+                        let rgb = [colour.redComponent(), colour.greenComponent(), colour.blueComponent()];
+                        assert!(rgb.iter().all(|&c| c < 0.01), "{kind:?}: a coloured pixel at {x},{y}");
+                    }
+                }
+            }
+            assert!(ink > 20, "{kind:?}: the glyph is there");
+        }
     }
 }

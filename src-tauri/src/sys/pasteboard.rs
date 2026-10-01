@@ -36,7 +36,19 @@ pub fn snapshot() -> Snapshot {
     })
 }
 
-pub fn restore(snapshot: &Snapshot) {
+/// Puts `snapshot` back, unless the pasteboard has moved on since `expected` — the change count
+/// right after our own last use of it. Anything newer was copied by the user (or another app)
+/// while the conversion ran, and the newest copy wins: writing the snapshot over it would wipe
+/// it out for good. Returns whether the snapshot went back.
+pub fn restore_if_unchanged(snapshot: &Snapshot, expected: isize) -> bool {
+    if change_count() != expected {
+        return false;
+    }
+    restore(snapshot);
+    true
+}
+
+fn restore(snapshot: &Snapshot) {
     autoreleasepool(|_| {
         let pasteboard = NSPasteboard::generalPasteboard();
         pasteboard.clearContents();
@@ -79,8 +91,9 @@ pub fn write_text(text: &str) {
     })
 }
 
-/// Puts `text` on the pasteboard, flagged so clipboard managers do not record it.
-pub fn write_transient(text: &str) {
+/// Puts `text` on the pasteboard, flagged so clipboard managers do not record it. Returns the
+/// change count it leaves, so the caller can tell later whether anyone wrote after it.
+pub fn write_transient(text: &str) -> isize {
     autoreleasepool(|_| {
         let pasteboard = NSPasteboard::generalPasteboard();
         pasteboard.clearContents();
@@ -92,6 +105,7 @@ pub fn write_transient(text: &str) {
         }
         let item = ProtocolObject::<dyn NSPasteboardWriting>::from_retained(item);
         pasteboard.writeObjects(&NSArray::from_retained_slice(&[item]));
+        pasteboard.changeCount()
     })
 }
 
