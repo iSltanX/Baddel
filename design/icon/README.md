@@ -1,31 +1,47 @@
-# أيقونة بدّل
+# أيقونة بدّل — D2 «النقطة تقرّر»
 
-**المصدر الوحيد:** ملف Figma المعتمد، صفحة `03 · App Icon`
+**المصدر الوحيد:** ملف Figma المعتمد، صفحة `04 — Identity`
 https://www.figma.com/design/le5J63MNuS9wV7kN8tYpsX/Badeel
 
-كل ما في هذا المجلد **مُصدَّر** من هناك. لا يُعدَّل يدويًا ولا يُرسم من الكود: غيّر الـMaster في Figma ثم أعد التصدير.
+كل ما في هذا المجلد وفي `src-tauri/icons/` **مُصدَّر** من هناك أو مبني من المُصدَّر، ولا يُرسم من الكود. ولتغيير الأيقونة: غيّر المكوّن في Figma، ثم أعد التصدير والبناء بالخطوات أدناه.
+
+- مرجع الهوية: `D2 — A1 Final Identity System` (`96:1563`) و`A2 — Identity Handoff` (`96:1834`).
+- رمز الشريط: `D2 — Final Menu Bar System` (`105:1701`)، وتصديره في `09 · Export Masters` (`107:1713`).
+- الأيقونة السابقة (مفتاحان A/ع) وطبقاتها في `90 — Archive`، وفي تاريخ git قبل تنفيذ A2.
+
+## الملفات
 
 | الملف | ما هو | من أين |
 |---|---|---|
-| `icon-macos-1024.png` | الأيقونة بشكل macOS (جسم 824 داخل 1024، مع الظل) — مدخل `tauri icon` | المكوّن `AppIcon / Master 1024` |
-| `0-background.svg` · `1-keycap-back.svg` · `2-keycap-front.svg` | طبقات Icon Composer: 1024 كاملة بلا قناع ولا ظلال، والحروف outlines، مرقّمة من الخلف للأمام | الإطار `Export / Icon Composer layers` |
-| `icon-flat.svg` | الطبقات الثلاث مركّبة | الإطار نفسه |
-| `preview.png` | اختبار المقاسات 512…16، مع مقارنة النسخة الصغيرة | اللوحة `Icon / Sizes` |
+| `app-icon-824.png` | المربع النعناعي وحده بلا هوامش، 824 بكسل: أصل كل المقاسات من 64 فما فوق | المكوّن `App Icon / 1024 · Mint` (`95:1482`) بعرض 824 |
+| `app-icon-small-26.png` | نسخة الأحجام الصغيرة بعرض 26: أصل مقاس 32 | المكوّن `App Icon / Small ≤32 · Mint` (`125:5211`) |
+| `app-icon-small-14.png` | النسخة نفسها بعرض 14: أصل مقاس 16 | المكوّن نفسه |
+| `icon-macos-1024.png` | الأيقونة على شبكة macOS: الجسم 824 في وسط لوحة 1024 شفافة | يبنيه `build.swift` |
+| `build.swift` | يبني أيقونات الحزمة من الأصول الثلاثة | — |
 
-## الهندسة (موثّقة بالقياسات في لوحة `Icon / Construction grid`)
+## الهندسة
 
-- جسم 824 داخل 1024 حسب قالب macOS، `r = 185`. المفتاح 400 بـ`r = 88` — النسبة نفسها (≈22%) في الاثنين.
-- الإزاحة بين المفتاحين 160 على قطر 45°، والعمق 24 (6%). كل الإحداثيات على شبكة 8px.
-- تصحيح بصري: المجموعة مُزاحة (−8, −8) لأن المفتاح الأبيض الأمامي وظلّه يسحبان مركز الثقل إلى أسفل اليمين.
-- الطبقات في هذا المجلد هي الـMaster نفسه مكبَّرًا بنسبة 1024/824 ليملأ اللوحة (Icon Composer يضيف القناع والعمق).
-- نسخة المقاسات الصغيرة (≤32px): المكوّن `AppIcon / Small ≤32` — مفاتيح 448، بلا «A»، و«ع» أثقل.
+- **مسطحة:** لا تدرّج ولا ظل في الرمز ولا في الحاوية (البند 11 في `baddel-brief.md`). macOS يضيف ظل الـ Dock بنفسه.
+- **الحاوية:** مربع بزوايا 22.37٪ ونعومة 60٪، بلون الهوية `brand/mint` ‎#14B8A6. الرمز أبيض ونقطته `brand/coral` ‎#FF6B4A.
+- **الرمز:** 62٪ من الحاوية، ومركزه البصري منزاح يمينًا 1.2٪ (الـ Handoff).
+- **شبكة macOS:** الجسم 824 من 1024 في كل المقاسات (هامش 100 من كل جهة بمقياس 1024)؛ فالمقاس 16 جسمه 14، و32 جسمه 26، و64 جسمه 52، وهكذا.
+- **الأحجام الصغيرة (16 و32):** بالـ Small-size Master: جسم الباء خط، والنقطة صلبة، والشبح بشفافية 55٪. من 64 فما فوق بالأصل.
 
-## إعادة توليد أيقونات الحزمة
+## إعادة التصدير والبناء
+
+1. صدّر من Figma بخلفية شفافة (PNG): `App Icon / 1024 · Mint` بعرض 824، و`App Icon / Small ≤32 · Mint` بعرضي 26 و14، بأسماء الملفات في الجدول.
+2. ابنِ أيقونات الحزمة:
 
 ```bash
-source scripts/env.sh
-npx tauri icon design/icon/icon-macos-1024.png -o /tmp/baddel-icons
-cp /tmp/baddel-icons/{32x32.png,128x128.png,128x128@2x.png,icon.icns,icon.ico,icon.png} src-tauri/icons/
+swift design/icon/build.swift
 ```
 
-أيقونات شريط القوائم (`src-tauri/icons/tray*.png`) مُصدَّرة من المكوّن `MenuBarGlyph` بمقياس 2× (32px) داخل لوحة 36px، أسود صِرف مع alpha (template image).
+يكتب `src-tauri/icons/icon.icns` (عبر `iconutil`)، و`32x32.png` و`128x128.png` و`128x128@2x.png` و`icon.png` و`icon.ico`، و`icon-macos-1024.png` هنا. الصورة داخل الواجهة (`src/assets/app-icon.png`) هي المكوّن نفسه بلا هوامش بعرض 512.
+
+## شريط القوائم
+
+`src-tauri/icons/tray.png` و`tray-paused.png` و`tray-needs-permission.png`: حالات المكوّن `Menu Bar / Status Glyph` (Idle وPaused وNeedsPermission)، مُصدَّرة من إطارات `tray` و`tray-paused` و`tray-needs-permission` في `09 · Export Masters` بمقياس @2x (36×36). أسود صِرف مع alpha، والتطبيق يعلنها Template فيلوّنها macOS في الفاتح والداكن وعند الضغط (`src-tauri/src/tray.rs`).
+
+## أيقونات الإشعار
+
+`src-tauri/icons/hud/*.png`: مكوّنات `Icon/*` من `02 — Components` (checkCircle وundo وlock وwarning وtextCursor بعرض 32، وarrowLeft وarrowRight بعرض 28)، Template بالأسود والشفافية يلوّنها `src-tauri/src/hud.rs` بألوان `color/hud/*`.
