@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-version="2.0.0">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Baddel — بدّل · Fix text typed in the wrong layout</title>
+  <meta name="description" content="A small macOS menu bar tool that fixes text typed with the wrong keyboard layout between Arabic and English — with one shortcut, in any app, entirely on your Mac.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f3f8f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1f1e" media="(prefers-color-scheme: dark)">
+  <meta property="og:title" content="Baddel — بدّل">
+  <meta property="og:description" content="Typed it in the wrong language? Switch it.">
+  <meta property="og:image" content="https://isltanx.github.io/Baddel/assets/social-preview.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="alternate" hreflang="ar" href="../">
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="apple-touch-icon" href="../assets/app-icon.png">
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="wrap nav">
+    <a class="lockup lockup-en" href="./" aria-label="Baddel — home"><svg role="img" aria-hidden="true"><use href="../assets/icons.svg#lockup-en"/></svg></a>
+    <nav aria-label="Sections">
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#privacy">Privacy</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="https://github.com/iSltanX/Baddel">GitHub</a></li>
+        <li><a class="lang" href="../" lang="ar" hreflang="ar">العربية</a></li>
+      </ul>
+    </nav>
+    <a class="lang lang-mobile" href="../" lang="ar" hreflang="ar">العربية</a>
+  </header>
+
+  <main id="main">
+    <div class="wrap hero">
+      <div>
+        <h1>Typed it in the wrong language? Switch it.</h1>
+        <p class="lead desktop-only">A small macOS menu bar tool that fixes text typed with the wrong keyboard layout between Arabic and English — with one shortcut, in any app, entirely on your Mac.</p>
+        <p class="lead mobile-only">One shortcut fixes text typed with the wrong keyboard layout — in any app, entirely on your Mac.</p>
+        <a class="cta" href="https://github.com/iSltanX/Baddel/releases/download/v2.0.0/Baddel_2.0.0_universal.dmg">Download for macOS</a>
+        <p class="meta desktop-only">Version <span class="version">2.0.0</span> · macOS 13 or later · Apple Silicon &amp; Intel · Free and open source</p>
+        <p class="hint mobile-only">Baddel runs on a Mac — open this page on your computer.</p>
+        <div class="chip desktop-only">$ curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh | bash</div>
+      </div>
+
+      <div class="desktop-only" aria-hidden="true">
+        <div class="window">
+          <div class="chrome"><i></i><i></i><i></i></div>
+          <div class="page">
+            <p>Hi, I sent you the file</p>
+            <p>and also <mark>thanks</mark></p>
+            <div class="hud"><svg><use href="../assets/icons.svg#checkCircle"/></svg><span class="from" lang="ar">فاشرنس</span><svg class="arrow" style="transform: scaleX(-1)"><use href="../assets/icons.svg#arrowLeft"/></svg><span class="to">thanks</span><span class="badge">EN</span></div>
+          </div>
+        </div>
+        <div class="keys"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>Space</kbd></div>
+        <p class="caption">“<span lang="ar">فاشرنس</span>” typed on the Arabic layout came back as “thanks”</p>
+      </div>
+
+      <div class="hero-card mobile-only" aria-hidden="true">
+        <div class="from" lang="ar">اثممخ</div>
+        <div class="down">↓</div>
+        <div class="to">hello</div>
+        <div class="hud"><svg><use href="../assets/icons.svg#checkCircle"/></svg><span class="from" lang="ar">اثممخ</span><svg class="arrow" style="transform: scaleX(-1)"><use href="../assets/icons.svg#arrowLeft"/></svg><span class="to">hello</span><span class="badge">EN</span></div>
+      </div>
+    </div>
+
+    <section id="how" class="band">
+      <div class="wrap">
+        <h2>How it works</h2>
+        <div class="grid-3">
+          <div class="step">
+            <span class="tile"><svg class="icon" aria-hidden="true"><use href="../assets/icons.svg#textCursor"/></svg></span>
+            <div class="body"><span class="num">1</span><h3>Type as usual</h3><p>Forgot to switch languages? Keep going — don’t delete.</p></div>
+          </div>
+          <div class="step">
+            <span class="tile"><svg class="icon" aria-hidden="true"><use href="../assets/icons.svg#keyboard"/></svg></span>
+            <div class="body"><span class="num">2</span><h3>Press ⌥⇧Space</h3><p>Converts the selection or the last word; each press reaches one word further back.</p></div>
+          </div>
+          <div class="step">
+            <span class="tile"><svg class="icon" aria-hidden="true"><use href="../assets/icons.svg#swap"/></svg></span>
+            <div class="body"><span class="num">3</span><h3>Keep typing</h3><p>The keyboard layout switches with it, and one Undo puts everything back.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="before-after">
+      <div class="wrap">
+        <h2>Before and after</h2>
+        <div class="grid-3 pairs">
+          <div class="pair"><span class="from" lang="ar">اثممخ</span><span class="down" aria-label="becomes">↓</span><span class="to">hello</span></div>
+          <div class="pair"><span class="from">sghl ugd;l</span><span class="down" aria-label="becomes">↓</span><span class="to" lang="ar">سلام عليكم</span></div>
+          <div class="pair"><span class="from" lang="ar">فخوخققخص</span><span class="down" aria-label="becomes">↓</span><span class="to">tomorrow</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy" class="band">
+      <div class="wrap">
+        <h2>Privacy isn’t a setting</h2>
+        <div class="grid-4">
+          <div class="card"><svg class="icon" aria-hidden="true"><use href="../assets/icons.svg#shield"/></svg><h3>Fully local</h3><p>Every conversion happens on your Mac.</p></div>
+          <div class="card"><svg class="icon" aria-hidden="true"><use href="../assets/icons.svg#noSave"/></svg><h3>No account</h3><p>No sign-up, no email.</p></div>
+          <div class="card"><svg class="icon" aria-hidden="true"><use href="../assets/icons.svg#noEye"/></svg><h3>No tracking</h3><p>No analytics, no automatic reports.</p></div>
+          <div class="card"><svg class="icon" aria-hidden="true"><use href="../assets/icons.svg#accessibility"/></svg><h3>One permission</h3><p>Accessibility — never input monitoring.</p></div>
+        </div>
+        <p class="note">Baddel never sends your text anywhere. A problem report goes out only after you’ve seen all of it and confirmed.</p>
+      </div>
+    </section>
+
+    <section id="install" class="install">
+      <div class="wrap">
+        <h2>Install</h2>
+        <div class="grid-3">
+          <div class="step-i"><span class="dot">1</span><div><h3>Download and open the DMG</h3><p>Drag Baddel to Applications.</p></div></div>
+          <div class="step-i"><span class="dot">2</span><div><h3>Open it and grant permission</h3><p>One switch in Accessibility.</p></div></div>
+          <div class="step-i"><span class="dot">3</span><div><h3>If macOS warns</h3><p>Open Anyway in Privacy &amp; Security, once.</p></div></div>
+        </div>
+        <a class="cta" href="https://github.com/iSltanX/Baddel/releases/download/v2.0.0/Baddel_2.0.0_universal.dmg">Download for macOS</a>
+        <p class="or">Or with one line in Terminal</p>
+        <div class="terminal"><span>$</span>curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh | bash</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>
+        <span class="lockup lockup-en"><svg role="img" aria-label="Baddel"><use href="../assets/icons.svg#lockup-en"/></svg></span>
+        <strong>Designed &amp; developed by Sultan</strong>
+        <p class="small">MIT License · <a href="https://github.com/iSltanX/Baddel">github.com/iSltanX/Baddel</a></p>
+      </div>
+      <p class="maker">From the same maker: <a href="https://github.com/iSltanX/Raff" lang="ar">رفّ</a> · <a href="https://github.com/iSltanX/Luma">Luma</a> · <a href="https://github.com/iSltanX/naffith" lang="ar">نفّذ</a></p>
+    </div>
+  </footer>
+</body>
+</html>
