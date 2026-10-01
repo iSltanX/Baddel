@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Captures the documentation screenshots from the built debug app: every screen,
-# in both languages and both appearances. Needs a debug build, because the window,
-# pane and appearance are chosen through the debug-only BADDEL_* variables.
+# Captures the screenshots README uses from the built debug app, in both languages and
+# both appearances. Needs a debug build, because the window, pane and appearance are
+# chosen through the debug-only BADDEL_* variables. (The menu shots, menu-*.png, are
+# taken separately, with the menu open.)
 #
 #   ./scripts/dev-build.sh && ./scripts/capture.sh
-#   CAPTURE_ONLY=onboarding:2 ./scripts/capture.sh  # only the windows starting so (no notices)
+#   CAPTURE_ONLY=onboarding:3 ./scripts/capture.sh  # only the windows starting so (no notices)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -13,12 +14,12 @@ store="$HOME/Library/Application Support/com.isltanx.baddel/settings.json"
 out="docs/screenshots"
 windows=(
   settings:general settings:shortcuts settings:layouts settings:exceptions settings:about
-  onboarding:1 onboarding:2 onboarding:3 onboarding:4
+  onboarding:1 onboarding:3
 )
 # The notice is dark in both appearances by design, so it is captured once per
 # language. It also draws itself to file: macOS will not let `screencapture`
 # photograph a floating, non-activating panel.
-notices=(success undone blocked too-long no-text)
+notices=(undone blocked no-text)
 if [ -n "${CAPTURE_ONLY:-}" ]; then
   filtered=()
   for window in "${windows[@]}"; do [[ $window == "$CAPTURE_ONLY"* ]] && filtered+=("$window"); done
