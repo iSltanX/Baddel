@@ -12,7 +12,7 @@ store="$HOME/Library/Application Support/com.isltanx.baddel/settings.json"
 out="docs/screenshots"
 windows=(
   settings:general settings:shortcuts settings:layouts settings:exceptions settings:about
-  onboarding:1 onboarding:2 onboarding:3
+  onboarding:1 onboarding:2 onboarding:3 onboarding:4
 )
 # The notice is dark in both appearances by design, so it is captured once per
 # language. It also draws itself to file: macOS will not let `screencapture`

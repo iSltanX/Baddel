@@ -48,7 +48,7 @@ const CHIP_RADIUS: f64 = 6.0;
 /// the pill on every side, so the shadow is drawn with it rather than left to the window.
 const SHADOW_Y: f64 = 6.0;
 const SHADOW_BLUR: f64 = 16.0;
-const SHADOW_PAD: f64 = 24.0;
+const SHADOW_PAD: f64 = 32.0;
 /// Distance from the top of the Dock to the bottom of the pill.
 const ABOVE_DOCK: f64 = 80.0;
 /// How far the pill travels upwards as it appears.

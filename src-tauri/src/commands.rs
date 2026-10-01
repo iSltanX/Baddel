@@ -444,7 +444,8 @@ pub fn preview_hud(app: AppHandle) {
 /// Whether the welcome window should ask the user to move Baddel to Applications first.
 #[tauri::command]
 pub fn app_needs_move() -> bool {
-    crate::sys::system::bundle_path().is_some_and(|bundle| crate::sys::system::is_temporary_location(&bundle))
+    crate::sys::system::bundle_path()
+        .is_some_and(|bundle| crate::sys::system::is_temporary_location(&bundle, &crate::sys::system::mounts()))
 }
 
 /// Shows the running app in Finder, so it can be dragged to Applications.

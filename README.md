@@ -142,7 +142,7 @@
     <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-1-ar-dark.png">
-        <img alt="الترحيب: كتبتها باللغة الخطأ؟ بدّلها." src="docs/screenshots/onboarding-1-ar-light.png" width="100%">
+        <img alt="الترحيب: كتبت بالتخطيط الخطأ؟ بدّل يصلحها بضغطة." src="docs/screenshots/onboarding-1-ar-light.png" width="100%">
       </picture><br>
       <b>الترحيب</b><br>
       ثلاث خطوات: الفكرة، ثم الصلاحية، ثم تجربة حقيقية باختصارك.
@@ -187,8 +187,8 @@
   <tr>
     <td width="50%" align="center" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-2-ar-dark.png">
-        <img alt="صلاحية واحدة فقط" src="docs/screenshots/onboarding-2-ar-light.png" width="100%">
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-3-ar-dark.png">
+        <img alt="صلاحية واحدة، لسبب واحد" src="docs/screenshots/onboarding-3-ar-light.png" width="100%">
       </picture><br>
       <b>صلاحية واحدة</b><br>
       تسهيلات الاستخدام، وسببها مكتوب قبل أن تمنحها. والبطاقة تتحقق منها حيًّا.

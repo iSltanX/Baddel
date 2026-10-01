@@ -30,11 +30,39 @@ pub fn bundle_path() -> Option<PathBuf> {
     (bundle.extension()? == "app").then(|| bundle.to_path_buf())
 }
 
-/// Whether the app runs from somewhere it should not stay: straight off the disk image
-/// (`/Volumes/…`), or from the read-only copy Gatekeeper makes of a downloaded app
-/// (`…/AppTranslocation/…`). Either way the permission and the updater would not survive.
-pub fn is_temporary_location(bundle: &Path) -> bool {
-    bundle.starts_with("/Volumes/") || bundle.components().any(|part| part.as_os_str() == "AppTranslocation")
+/// Whether the app runs from somewhere it should not stay: straight off a disk image, or from
+/// the read-only copy Gatekeeper makes of a downloaded app (`…/AppTranslocation/…`). Either
+/// way the permission and the updater would not survive.
+///
+/// A disk image mounts under `/Volumes/` read-only; an external drive mounts there too, but
+/// writable, and an app installed on one is where it means to be. `mounts` is the output of
+/// `/sbin/mount`.
+pub fn is_temporary_location(bundle: &Path, mounts: &str) -> bool {
+    if bundle.components().any(|part| part.as_os_str() == "AppTranslocation") {
+        return true;
+    }
+    if !bundle.starts_with("/Volumes/") {
+        return false;
+    }
+    // The volume the bundle lives on: the longest mount point that contains it.
+    mounts
+        .lines()
+        .filter_map(|line| {
+            let (_, rest) = line.split_once(" on ")?;
+            let (point, options) = rest.rsplit_once(" (")?;
+            Some((Path::new(point), options))
+        })
+        .filter(|(point, _)| bundle.starts_with(point))
+        .max_by_key(|(point, _)| point.as_os_str().len())
+        .is_some_and(|(_, options)| options.split(", ").any(|option| option.trim_end_matches(')') == "read-only"))
+}
+
+/// The system's list of mounted volumes, for [`is_temporary_location`].
+pub fn mounts() -> String {
+    Command::new("/sbin/mount")
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).into_owned())
+        .unwrap_or_default()
 }
 
 /// Opens a Finder window with `path` selected.
@@ -46,19 +74,27 @@ pub fn reveal_in_finder(path: &Path) {
 mod tests {
     use super::*;
 
+    const MOUNTS: &str = "/dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)
+/dev/disk7s1 on /Volumes/Projects Drive (apfs, local, nodev, nosuid, journaled, noowners)
+/dev/disk9s1 on /Volumes/Baddel 1.1.0 (apfs, local, nodev, nosuid, read-only, noowners, quarantine, mounted by me)
+";
+
     #[test]
     fn a_disk_image_or_a_translocated_copy_is_temporary() {
-        assert!(is_temporary_location(Path::new("/Volumes/Baddel/Baddel.app")));
-        assert!(is_temporary_location(Path::new(
-            "/private/var/folders/xy/T/AppTranslocation/0A1B-2C3D/d/Baddel.app"
-        )));
+        assert!(is_temporary_location(Path::new("/Volumes/Baddel 1.1.0/Baddel.app"), MOUNTS));
+        assert!(is_temporary_location(
+            Path::new("/private/var/folders/xy/T/AppTranslocation/0A1B-2C3D/d/Baddel.app"),
+            MOUNTS
+        ));
     }
 
     #[test]
-    fn applications_and_home_folders_are_not() {
-        assert!(!is_temporary_location(Path::new("/Applications/Baddel.app")));
-        assert!(!is_temporary_location(Path::new("/Users/me/Applications/Baddel.app")));
+    fn applications_home_folders_and_external_drives_are_not() {
+        assert!(!is_temporary_location(Path::new("/Applications/Baddel.app"), MOUNTS));
+        assert!(!is_temporary_location(Path::new("/Users/me/Applications/Baddel.app"), MOUNTS));
+        // A writable external drive: someone keeps their apps (or their builds) there.
+        assert!(!is_temporary_location(Path::new("/Volumes/Projects Drive/Apps/Baddel.app"), MOUNTS));
         // A folder that only mentions the word is not the system's translocation point.
-        assert!(!is_temporary_location(Path::new("/Users/me/AppTranslocationNotes/Baddel.app")));
+        assert!(!is_temporary_location(Path::new("/Users/me/AppTranslocationNotes/Baddel.app"), MOUNTS));
     }
 }

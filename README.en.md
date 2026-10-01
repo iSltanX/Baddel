@@ -136,7 +136,7 @@ Every release is signed with the same certificate, and macOS ties the permission
     <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-1-en-dark.png">
-        <img alt="Welcome: Typed it in the wrong language? Switch it." src="docs/screenshots/onboarding-1-en-light.png" width="100%">
+        <img alt="Welcome: Typed with the wrong layout? Baddel fixes it in one press." src="docs/screenshots/onboarding-1-en-light.png" width="100%">
       </picture><br>
       <b>Welcome</b><br>
       Three steps: the idea, then the permission, then a real try with your shortcut.
@@ -181,8 +181,8 @@ Every release is signed with the same certificate, and macOS ties the permission
   <tr>
     <td width="50%" align="center" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-2-en-dark.png">
-        <img alt="Just one permission" src="docs/screenshots/onboarding-2-en-light.png" width="100%">
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-3-en-dark.png">
+        <img alt="One permission, for one reason" src="docs/screenshots/onboarding-3-en-light.png" width="100%">
       </picture><br>
       <b>One permission</b><br>
       Accessibility, with the reason written before you grant it. The card checks it live.
