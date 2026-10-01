@@ -120,11 +120,16 @@ Every release is signed with the same certificate, and macOS ties the permission
 | Convert the selection or last word | <kbd>⌥</kbd><kbd>⇧</kbd><kbd>Space</kbd> |
 | Extend the conversion one more word back | The same shortcut again within two seconds |
 | Undo the last conversion | No default shortcut: set one from **Settings → Shortcuts**, or use "Undo" in the menu |
-| Pause Baddel | No default shortcut, or use the menu |
+| Pause Baddel | No default shortcut (it pauses until you resume); from the menu: for 15 minutes, for 1 hour, or until you resume |
+| Convert Line | No default shortcut, or use the menu |
+| Convert to Arabic / to English | No default shortcut, or use the menu |
+| Exclude Current App | From the menu |
 | Settings | <kbd>⌘</kbd><kbd>,</kbd> from the menu |
 
 - If the shortcut you record is already used by another app, or by another Baddel command, the recorder tells you and keeps your previous shortcut, so you're never left without one and no command stops working without you knowing.
-- Terminals and password managers are excluded by default; add or remove apps from **Settings → Exceptions**.
+- Terminals and password managers are excluded by default; add or remove apps from **Settings → Exceptions**, or exclude the app in front from the menu → **Exclude Current App**.
+- "Convert Line" converts from the start of the line to the cursor in one press. "Convert to Arabic / to English" force the direction and convert everything that belongs to it, nothing held back.
+- To try a conversion without touching real text: **Settings → Layouts → Try it here**.
 - Updates are checked automatically once a day, or from the menu → **Check for Updates…**.
 
 ---
@@ -228,7 +233,7 @@ A Tauri 2 app: a Rust core holds all the logic and state, and a Svelte 5 UI for 
 
 ### Privacy
 
-- **It only reads what it's about to convert,** and only the moment you press the shortcut: the selection, or as much text before the cursor as needed to find the word.
+- **It only reads what it's about to convert,** and only the moment you press the shortcut: the selection, or as much text before the cursor as needed to find the word (or the start of the line, for "Convert Line").
 - **It doesn't save any text,** not to disk and not in a log. The last conversion stays in memory for 30 seconds so it can be undone, then it's erased.
 - **The clipboard is restored** after every conversion — unless you copied something meanwhile, in which case the newer copy stays — and whatever Baddel puts on it is marked transient and concealed.
 - **No network access** except in two cases: the update check (a single request for a `latest.json` file from this repository's releases page, once a day, carrying nothing about you or your text, which you can turn off from **Settings → General**), and a report you write, see in full, and confirm (see [Reporting an issue](#reporting-an-issue)).
@@ -317,7 +322,9 @@ Baddel builds the map from the two layouts active on your Mac: it asks macOS for
 
 It converts by majority: if most of the characters are Arabic, the Arabic part is converted to English and the English part is left as is. «اثممخ صخقمي ok» becomes `hello world ok`. Spaces and emoji stay as they are, while digits follow the direction as the keyboard typed them: «فثسف ١٢٣» becomes `test 123`.
 
-Links, email addresses and file paths are left exactly as they are, and don't count toward the majority: «اثممخ https://example.com» becomes `hello https://example.com`.
+Links, email addresses and file paths are left exactly as they are, and don't count toward the majority: «اثممخ https://example.com» becomes `hello https://example.com`. So are technical words: a Latin word with digits in it (`mp3`, `x86_64`), or with a capital inside it that doesn't type an Arabic letter on your layout (`iPhone`, `macOS`): «اثممخ iPhone» becomes `hello iPhone`.
+
+To convert one of these anyway, or to force the direction when it's ambiguous, use "Convert to Arabic" or "Convert to English" from the menu: they convert everything that belongs to that direction, nothing held back.
 </details>
 
 <details>
