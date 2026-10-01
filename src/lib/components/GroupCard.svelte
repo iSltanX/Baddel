@@ -56,7 +56,7 @@
   }
 
   header {
-    min-height: 22px;
+    min-height: 18px;
   }
 
   /* Label/Strong: the group label is quieter than the rows it names. */

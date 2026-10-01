@@ -89,12 +89,6 @@
   --hud-brand: #2bd0bd;
   --hud-success: #2bd0bd;
   --hud-warning: #f2b544;
-
-  /* The maker's other apps, until their own icons ship with them. Their colours, not ours. */
-  --tint-raff: #7a5c3e;
-  --tint-luma: #c9862b;
-  --tint-nafidh: #3e6b5a;
-  --tint-on: #ffffff;
 }
 
 /* ── Color (`Color` collection · Dark) ─────────────────────────────────────── */

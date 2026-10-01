@@ -6,6 +6,10 @@
   import Icon from '../components/Icon.svelte'
   import { appVersion, closeWindow, copyDiagnostics, openExternal, openOnboarding, openReport, t } from '../state.svelte'
   import iconUrl from '../../assets/app-icon.png'
+  import iconDarkUrl from '../../assets/app-icon-dark.png'
+  import raffUrl from '../../assets/makers/raff.png'
+  import lumaUrl from '../../assets/makers/luma.png'
+  import nafidhUrl from '../../assets/makers/nafidh.png'
 
   const REPOSITORY = 'https://github.com/iSltanX/Baddel'
   const REPOSITORY_LABEL = 'github.com/iSltanX/Baddel'
@@ -25,8 +29,12 @@
     setTimeout(() => (copied = false), 1600)
   }
 
-  /** The maker's other apps; their tints live in theme.css until their own icons ship. */
-  const makers = ['raff', 'luma', 'nafidh'] as const
+  /** The maker's other apps, each with its own shipped icon (src/assets/makers/README.md). */
+  const makers = [
+    { key: 'raff', icon: raffUrl },
+    { key: 'luma', icon: lumaUrl },
+    { key: 'nafidh', icon: nafidhUrl },
+  ] as const
 
   async function welcome() {
     await openOnboarding()
@@ -35,7 +43,12 @@
 </script>
 
 <div class="identity">
-  <img src={iconUrl} alt="" width="104" height="104" />
+  <!-- Dark mode shows the identity's Ink version (`App Icon / 1024 · Ink (alt)`): the same
+       symbol, without a bright mint tile glaring on a dark window. -->
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset={iconDarkUrl} />
+    <img src={iconUrl} alt="" width="88" height="88" />
+  </picture>
   <h1>{t('settings.about.appName')}</h1>
   <p class="version">{t('settings.about.version', { version })}</p>
   <p class="tagline">{t('settings.about.tagline')}</p>
@@ -86,10 +99,10 @@
 
 <GroupCard title={t('settings.about.fromSameMaker')}>
   <ul class="makers">
-    {#each makers as maker (maker)}
-      {@const name = t(`settings.about.makerApps.${maker}`)}
+    {#each makers as maker (maker.key)}
+      {@const name = t(`settings.about.makerApps.${maker.key}`)}
       <li>
-        <span class="maker-icon {maker}" aria-hidden="true">{name.charAt(0)}</span>
+        <img class="maker-icon" src={maker.icon} alt="" width="32" height="32" />
         {name}
       </li>
     {/each}
@@ -114,12 +127,20 @@
     flex-direction: column;
     align-items: center;
     gap: var(--space-4);
-    padding-bottom: var(--space-4);
     text-align: center;
   }
 
   img {
     display: block;
+  }
+
+  /* The Ink tile is the window's own colour in dark mode: a hairline keeps its shape, traced
+     from the image itself so it follows the squircle exactly. */
+  @media (prefers-color-scheme: dark) {
+    .identity img {
+      filter: drop-shadow(1px 0 0 var(--border-default)) drop-shadow(-1px 0 0 var(--border-default))
+        drop-shadow(0 1px 0 var(--border-default)) drop-shadow(0 -1px 0 var(--border-default));
+    }
   }
 
   h1 {
@@ -215,36 +236,17 @@
   }
 
   .maker-icon {
-    display: grid;
-    place-items: center;
     width: 32px;
     height: 32px;
     flex: none;
-    border-radius: var(--radius-md);
-    color: var(--tint-on);
-    font-family: var(--font-heading);
-    font-size: var(--size-section);
-    font-weight: 700;
-    line-height: 1;
   }
 
-  .raff {
-    background: var(--tint-raff);
-  }
-
-  .luma {
-    background: var(--tint-luma);
-  }
-
-  .nafidh {
-    background: var(--tint-nafidh);
-  }
 
   footer {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-8);
+    gap: var(--space-4);
     text-align: center;
   }
 

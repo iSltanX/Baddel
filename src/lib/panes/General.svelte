@@ -161,7 +161,7 @@
   h2 {
     display: flex;
     align-items: center;
-    min-height: 22px;
+    min-height: 18px;
     padding-inline: var(--space-16);
     font-family: var(--font-body);
     font-size: var(--size-label);
