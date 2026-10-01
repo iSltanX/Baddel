@@ -188,7 +188,7 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
       return answer(converted === text ? null : converted)
     }
     case 'app_version':
-      return answer('2.0.0')
+      return answer('2.0.1')
     // The report window: `?report=fail` (or rate-limited, rejected) reviews the failure screens.
     case 'report_pick_image':
     case 'report_paste_image':
