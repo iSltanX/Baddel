@@ -15,15 +15,27 @@
     icon?: IconName
     /** Anything else that leads the row, such as an app icon (24px wide). */
     lead?: Snippet
+    /** A third line under the description, such as a disclosure link. */
+    detail?: Snippet
+    /** A read-only row (a field and its value) sits tighter than a control row. */
+    dense?: boolean
     first?: boolean
     labelFor?: string
     children?: Snippet
   }
 
-  const { title, description, tone = 'default', icon, lead, first = false, labelFor, children }: Props = $props()
+  const { title, description, tone = 'default', icon, lead, detail, dense = false, first = false, labelFor, children }: Props =
+    $props()
 </script>
 
-<div class="row" class:first class:described={!!description} class:with-icon={!!icon} class:with-lead={!!lead}>
+<div
+  class="row"
+  class:first
+  class:dense
+  class:described={!!description || !!detail}
+  class:with-icon={!!icon}
+  class:with-lead={!!lead}
+>
   {#if icon}
     <span class="icon"><Icon name={icon} /></span>
   {:else if lead}
@@ -38,6 +50,7 @@
     {#if description}
       <span class="description {tone}" role={tone === 'warning' ? 'alert' : undefined}>{description}</span>
     {/if}
+    {#if detail}{@render detail()}{/if}
   </div>
   {#if children}
     <div class="control">
@@ -51,13 +64,17 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: var(--row-height);
-    padding: 8px 16px;
+    gap: var(--space-12);
+    min-height: var(--row-min);
+    padding: var(--space-8) var(--space-16);
   }
 
   .described {
-    padding-block: 10px;
+    padding-block: var(--space-12);
+  }
+
+  .dense {
+    min-height: 0;
   }
 
   /* The hairline starts where the text starts: past the icon when there is one. */
@@ -65,7 +82,7 @@
     content: '';
     position: absolute;
     inset-block-start: 0;
-    inset-inline: 16px 0;
+    inset-inline: var(--space-16) 0;
     height: 1px;
     background: var(--border-subtle);
   }
@@ -100,19 +117,19 @@
   }
 
   .description {
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
     color: var(--text-secondary);
   }
 
   .warning {
-    color: var(--state-warning-text);
+    color: var(--warning-text);
   }
 
   .control {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-8);
     flex: none;
   }
 </style>

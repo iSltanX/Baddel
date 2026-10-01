@@ -61,10 +61,12 @@
 </main>
 
 <style>
+  /* Content: the 20pt side margins; 16 above, 20 below, and 16 between groups, so the
+     window is no taller than its pane needs. */
   main {
     display: flex;
     flex-direction: column;
-    gap: var(--group-gap);
-    padding: var(--window-pad);
+    gap: var(--space-16);
+    padding: var(--space-16) var(--space-20) var(--space-20);
   }
 </style>

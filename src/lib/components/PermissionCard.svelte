@@ -4,16 +4,27 @@
   import { app, requestPermission, t } from '../state.svelte'
 
   /**
-   * The Accessibility permission, in one of three states. Granted is a quiet
-   * status row; missing turns amber and is the only state with an action.
+   * `PermissionCard` in 02 — Components: the Accessibility permission in one of three
+   * states. Granted is a quiet status row; missing turns amber and is the only state
+   * with an action.
    */
   interface Props {
-    /** Before the first check we do not know yet, and say so rather than guessing. */
+    /**
+     * We do not know yet, and say so rather than guessing: before the first check, or
+     * while System Settings is open and Baddel watches for the switch.
+     */
     checking?: boolean
+    /** Called after the card's own button has opened System Settings. */
+    onrequest?: () => void
   }
 
-  const { checking = false }: Props = $props()
-  const state = $derived(checking ? 'checking' : app.permission ? 'granted' : 'missing')
+  const { checking = false, onrequest }: Props = $props()
+  const state = $derived(app.permission ? 'granted' : checking ? 'checking' : 'missing')
+
+  async function request() {
+    await requestPermission()
+    onrequest?.()
+  }
 </script>
 
 <div class="card {state}" role="status">
@@ -31,7 +42,7 @@
     <span class="description">{t(`permission.${state}Description`)}</span>
   </div>
   {#if state === 'missing'}
-    <Button variant="primary" onclick={requestPermission}>
+    <Button variant="primary" onclick={request}>
       {t('permission.openSystemSettings')}
     </Button>
   {/if}
@@ -41,17 +52,17 @@
   .card {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 60px;
-    padding: 12px 16px;
+    gap: var(--space-12);
+    min-height: 66px;
+    padding: var(--space-12) var(--space-16);
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-md);
     background: var(--bg-surface);
   }
 
   .missing {
-    border-color: color-mix(in srgb, var(--state-warning) 45%, transparent);
-    background: var(--state-warning-soft);
+    border-color: var(--warning);
+    background: var(--warning-soft);
   }
 
   .badge {
@@ -60,22 +71,22 @@
     width: 32px;
     height: 32px;
     flex: none;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
   }
 
   /* State is carried by the icon as well as the colour, never by colour alone. */
   .granted .badge {
-    background: var(--state-success-soft);
-    color: var(--state-success);
+    background: var(--success-soft);
+    color: var(--success);
   }
 
   .missing .badge {
     background: var(--bg-surface);
-    color: var(--state-warning);
+    color: var(--warning);
   }
 
   .checking .badge {
-    background: var(--bg-sunken);
+    background: var(--bg-surface-secondary);
     color: var(--text-secondary);
   }
 
@@ -95,12 +106,12 @@
 
   .description {
     color: var(--text-secondary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   .missing .description {
-    color: var(--state-warning-text);
+    color: var(--warning-text);
   }
 
   .spinner {

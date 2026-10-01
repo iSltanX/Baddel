@@ -1,9 +1,15 @@
 <script lang="ts">
+  import Button from '../components/Button.svelte'
+  import DiagnosticsDetails from '../components/DiagnosticsDetails.svelte'
   import FormRow from '../components/FormRow.svelte'
   import GroupCard from '../components/GroupCard.svelte'
   import Icon from '../components/Icon.svelte'
-  import { appVersion, closeWindow, openExternal, openOnboarding, t } from '../state.svelte'
+  import { appVersion, closeWindow, copyDiagnostics, openExternal, openOnboarding, openReport, t } from '../state.svelte'
   import iconUrl from '../../assets/app-icon.png'
+  import iconDarkUrl from '../../assets/app-icon-dark.png'
+  import raffUrl from '../../assets/makers/raff.png'
+  import lumaUrl from '../../assets/makers/luma.png'
+  import nafidhUrl from '../../assets/makers/nafidh.png'
 
   const REPOSITORY = 'https://github.com/iSltanX/Baddel'
   const REPOSITORY_LABEL = 'github.com/iSltanX/Baddel'
@@ -13,18 +19,22 @@
     void appVersion().then((value) => (version = value))
   })
 
-  const links = [
-    { key: 'sourceOnGithub', url: REPOSITORY, value: '' },
-    { key: 'reportIssue', url: `${REPOSITORY}/issues`, value: '' },
-    { key: 'license', url: `${REPOSITORY}/blob/main/LICENSE`, value: 'MIT' },
-  ]
+  let copied = $state(false)
+  /** "What's included?" — what the copy holds and what it never holds. */
+  let included = $state(false)
 
-  /** Tints for the maker's other apps until their own icons ship with them. */
+  async function copy() {
+    await copyDiagnostics()
+    copied = true
+    setTimeout(() => (copied = false), 1600)
+  }
+
+  /** The maker's other apps, each with its own shipped icon (src/assets/makers/README.md). */
   const makers = [
-    { key: 'raff', tint: '#7a5c3e' },
-    { key: 'luma', tint: '#c9862b' },
-    { key: 'nafidh', tint: '#3e6b5a' },
-  ]
+    { key: 'raff', icon: raffUrl },
+    { key: 'luma', icon: lumaUrl },
+    { key: 'nafidh', icon: nafidhUrl },
+  ] as const
 
   async function welcome() {
     await openOnboarding()
@@ -33,21 +43,52 @@
 </script>
 
 <div class="identity">
-  <img src={iconUrl} alt="" width="104" height="104" />
+  <!-- Dark mode shows the identity's Ink version (`App Icon / 1024 · Ink (alt)`): the same
+       symbol, without a bright mint tile glaring on a dark window. -->
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset={iconDarkUrl} />
+    <img src={iconUrl} alt="" width="88" height="88" />
+  </picture>
   <h1>{t('settings.about.appName')}</h1>
   <p class="version">{t('settings.about.version', { version })}</p>
   <p class="tagline">{t('settings.about.tagline')}</p>
 </div>
 
 <GroupCard>
-  {#each links as link, index (link.key)}
-    <button class="link" type="button" onclick={() => openExternal(link.url)}>
-      <FormRow first={index === 0} title={t(`settings.about.${link.key}`)}>
-        {#if link.value}<span class="value">{link.value}</span>{/if}
-        <span class="affordance"><Icon name="external" size={16} /></span>
-      </FormRow>
-    </button>
-  {/each}
+  <button class="link" type="button" onclick={() => openExternal(REPOSITORY)}>
+    <FormRow first title={t('settings.about.sourceOnGithub')}>
+      <span class="affordance"><Icon name="external" size={16} /></span>
+    </FormRow>
+  </button>
+  <button class="link" type="button" onclick={openReport}>
+    <FormRow title={t('settings.about.reportProblem')}>
+      <span class="affordance"><Icon name="chevronRight" size={16} flip /></span>
+    </FormRow>
+  </button>
+  <FormRow title={t('settings.about.copyDiagnostics')} description={t('settings.about.copyDiagnosticsDescription')}>
+    {#snippet detail()}
+      <button
+        class="disclosure"
+        type="button"
+        aria-expanded={included}
+        aria-controls="diagnostics-details"
+        onclick={() => (included = !included)}
+      >
+        {t('settings.about.whatsIncluded')}
+        <span aria-hidden="true">{included ? '▴' : '▾'}</span>
+      </button>
+    {/snippet}
+    <Button onclick={copy}>{copied ? t('settings.about.copied') : t('settings.about.copy')}</Button>
+  </FormRow>
+  {#if included}
+    <div class="details" id="diagnostics-details"><DiagnosticsDetails /></div>
+  {/if}
+  <button class="link" type="button" onclick={() => openExternal(`${REPOSITORY}/blob/main/LICENSE`)}>
+    <FormRow title={t('settings.about.license')}>
+      <span class="value">MIT</span>
+      <span class="affordance"><Icon name="external" size={16} /></span>
+    </FormRow>
+  </button>
   <button class="link" type="button" onclick={welcome}>
     <FormRow title={t('settings.about.showWelcome')}>
       <!-- Forward: right in English, mirrored to the left in Arabic. -->
@@ -61,7 +102,7 @@
     {#each makers as maker (maker.key)}
       {@const name = t(`settings.about.makerApps.${maker.key}`)}
       <li>
-        <span class="maker-icon" style:background={maker.tint} aria-hidden="true">{name.charAt(0)}</span>
+        <img class="maker-icon" src={maker.icon} alt="" width="32" height="32" />
         {name}
       </li>
     {/each}
@@ -85,8 +126,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding-block: 4px;
+    gap: var(--space-4);
     text-align: center;
   }
 
@@ -94,21 +134,28 @@
     display: block;
   }
 
+  /* The Ink tile is the window's own colour in dark mode: a hairline keeps its shape, traced
+     from the image itself so it follows the squircle exactly. */
+  @media (prefers-color-scheme: dark) {
+    .identity img {
+      filter: drop-shadow(1px 0 0 var(--border-default)) drop-shadow(-1px 0 0 var(--border-default))
+        drop-shadow(0 1px 0 var(--border-default)) drop-shadow(0 -1px 0 var(--border-default));
+    }
+  }
+
   h1 {
     font-size: var(--size-title);
     line-height: var(--leading-title);
-    font-weight: 700;
   }
 
   .version,
   .tagline {
-    margin: 0;
     color: var(--text-secondary);
   }
 
   .version {
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   /* A link is a whole row: the entire width is the target, not just the words. */
@@ -131,17 +178,40 @@
   }
 
   .link:focus-visible {
-    box-shadow: inset 0 0 0 var(--focus-width) var(--focus-ring);
+    box-shadow: inset var(--focus-ring);
   }
 
   .value {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-family: var(--font-latin);
+    font-size: var(--size-latin);
   }
 
   .affordance {
     display: grid;
     color: var(--text-tertiary);
+  }
+
+  .disclosure {
+    align-self: flex-start;
+    display: inline-flex;
+    gap: var(--space-4);
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-xs);
+    background: none;
+    color: var(--text-brand);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
+    font-weight: 700;
+  }
+
+  .disclosure:hover {
+    text-decoration: underline;
+  }
+
+  .details {
+    padding: 0 var(--space-16) var(--space-12);
   }
 
   .makers {
@@ -156,8 +226,8 @@
     flex: 1;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 12px 16px;
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-16);
     border-inline-start: 1px solid var(--border-subtle);
   }
 
@@ -166,36 +236,25 @@
   }
 
   .maker-icon {
-    display: grid;
-    place-items: center;
     width: 32px;
     height: 32px;
     flex: none;
-    border-radius: var(--radius-tab);
-    color: #fff;
-    font-family: var(--font-heading);
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1;
   }
+
 
   footer {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-4);
     text-align: center;
-  }
-
-  footer p {
-    margin: 0;
   }
 
   .made-by {
     display: flex;
-    gap: 6px;
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    gap: var(--space-8);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
     color: var(--text-secondary);
   }
 
@@ -206,14 +265,15 @@
   .repo {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 0 4px;
+    gap: var(--space-4);
+    padding: 0 var(--space-4);
     border: none;
-    border-radius: var(--radius-keycap);
+    border-radius: var(--radius-xs);
     background: none;
-    color: var(--accent-primary);
-    font-size: var(--size-caption);
-    line-height: var(--leading-small);
+    color: var(--text-brand);
+    font-family: var(--font-latin);
+    font-size: var(--size-latin-small);
+    line-height: var(--leading-label);
   }
 
   .repo:hover {

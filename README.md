@@ -9,7 +9,7 @@
 
 [![Release](https://img.shields.io/github/v/release/iSltanX/Baddel?label=release&color=3F5673&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Universal-1C1917?style=flat-square)](#المتطلبات)
-[![Local only](https://img.shields.io/badge/local--only-no%20network-5F7F52?style=flat-square)](#الخصوصية)
+[![Local only](https://img.shields.io/badge/local--only-no%20tracking-5F7F52?style=flat-square)](#الخصوصية)
 [![UI](https://img.shields.io/badge/UI-Arabic%20%C2%B7%20English-3F5673?style=flat-square)](#الميزات)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6B665E?style=flat-square)](LICENSE)
 
@@ -88,7 +88,7 @@
 1. نزّل ملف `Baddel_…_universal.dmg` من [صفحة الإصدارات](https://github.com/iSltanX/Baddel/releases/latest).
 2. افتحه واسحب **Baddel** إلى مجلد **التطبيقات**.
 3. شغّل بدّل. في المرة الأولى يظهر تحذير Gatekeeper، وطريقة تجاوزه في التنبيه أدناه.
-4. تظهر شاشة الترحيب: امنح صلاحية **تسهيلات الاستخدام** في الخطوة الثانية، ثم جرّب الاختصار في الخطوة الثالثة.
+4. تظهر شاشة الترحيب بأربع خطوات: امنح صلاحية **تسهيلات الاستخدام** في الثالثة، ثم جرّب الاختصار في الرابعة. وإن كان بدّل يعمل من صورة القرص فسيطلب نقله إلى «التطبيقات» أولًا.
 
 </div>
 
@@ -142,7 +142,7 @@
     <td width="50%" align="center" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-1-ar-dark.png">
-        <img alt="الترحيب: كتبتها باللغة الخطأ؟ بدّلها." src="docs/screenshots/onboarding-1-ar-light.png" width="100%">
+        <img alt="الترحيب: كتبت بالتخطيط الخطأ؟ بدّل يصلحها بضغطة." src="docs/screenshots/onboarding-1-ar-light.png" width="100%">
       </picture><br>
       <b>الترحيب</b><br>
       ثلاث خطوات: الفكرة، ثم الصلاحية، ثم تجربة حقيقية باختصارك.
@@ -187,8 +187,8 @@
   <tr>
     <td width="50%" align="center" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-2-ar-dark.png">
-        <img alt="صلاحية واحدة فقط" src="docs/screenshots/onboarding-2-ar-light.png" width="100%">
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/onboarding-3-ar-dark.png">
+        <img alt="صلاحية واحدة، لسبب واحد" src="docs/screenshots/onboarding-3-ar-light.png" width="100%">
       </picture><br>
       <b>صلاحية واحدة</b><br>
       تسهيلات الاستخدام، وسببها مكتوب قبل أن تمنحها. والبطاقة تتحقق منها حيًّا.
@@ -237,7 +237,7 @@
 - **لا يقرأ إلا ما سيحوّله،** وفي لحظة ضغطك الاختصار فقط: التحديد، أو ما قبل المؤشر بقدر ما يلزم لإيجاد الكلمة.
 - **لا يحفظ أي نص،** لا على القرص ولا في سجل. آخر تحويل يبقى في الذاكرة 30 ثانية ليمكن التراجع عنه، ثم يُمحى.
 - **الحافظة تعود كما كانت** بعد كل تحويل، وما يمرّ فيها موسوم بأنه مؤقت وسرّي.
-- **لا شبكة** إلا للتحقق من التحديثات: طلب واحد لملف `latest.json` من صفحة إصدارات هذا المستودع، مرة في اليوم. لا يحمل شيئًا عنك ولا عن نصّك، ويمكن إيقافه من **الإعدادات ← عام**.
+- **لا شبكة** إلا في حالتين: التحقق من التحديثات (طلب واحد لملف `latest.json` من صفحة إصدارات هذا المستودع، مرة في اليوم، لا يحمل شيئًا عنك ولا عن نصّك، ويمكن إيقافه من **الإعدادات ← عام**)، وبلاغ تكتبه أنت وتراه كاملًا وتؤكّده (القسم [الإبلاغ عن مشكلة](#الإبلاغ-عن-مشكلة)).
 - **لا حساب، ولا تحليلات، ولا تتبّع.** والواجهة لا تطلب أي مورد خارجي: الخطوط مضمَّنة، وسياسة المحتوى <span dir="ltr">`default-src 'self'`</span>.
 - **الحقول المحمية لا تُمسّ:** في حقل كلمة مرور، أو حين يفعّل macOS الإدخال الآمن (Secure Input)، لا يقرأ بدّل شيئًا ولا يكتب شيئًا.
 
@@ -366,9 +366,15 @@
 
 ## الإبلاغ عن مشكلة
 
-افتح مسألة في [صفحة المسائل](https://github.com/iSltanX/Baddel/issues)، واذكر: إصدار بدّل (من **الإعدادات ← حول**)، وإصدار macOS، والتطبيق الذي كنت تكتب فيه، والتخطيطين المستخدمين.
+من داخل بدّل، بلا حساب: القائمة ← **أبلغ عن مشكلة…**، أو **الإعدادات ← حول ← أبلغ عن مشكلة…**.
 
-> لا تنسخ نصًّا خاصًّا في المسألة. ما تكتبه هناك يصير علنيًّا.
+1. اختر نوع المشكلة، واكتب وصفًا قصيرًا (حتى 1000 حرف)، وأرفق صورة إن شئت: من ملف، أو الصقها بـ <kbd>⌘</kbd><kbd>V</kbd>. لا يطلب بدّل تسجيل الشاشة.
+2. **راجع ما سيُرسَل:** تعرض المعاينة كل حقل بقيمته، والصورة بحجمها، ومعلومات التشخيص كاملة. لا يُرسل غير ذلك: لا نص كتبته أو حوّلته، ولا محتوى الحافظة، ولا معرّف لك أو لجهازك.
+3. **أرسل،** فيصلك رقم البلاغ. يصل البلاغ إلى مستودع خاص يملكه المطوّر، لا إلى صفحة علنية.
+
+وإن تعذّر الإرسال، «انسخ البلاغ» يضعه في الحافظة لترسله بطريقتك. و**الإعدادات ← حول ← انسخ معلومات التشخيص** ينسخ الحقول نفسها دون أن يرسل شيئًا. التفاصيل في [PRIVACY.md](PRIVACY.md).
+
+ولسؤال عام، [صفحة المسائل](https://github.com/iSltanX/Baddel/issues) مفتوحة، وما تكتبه هناك علني.
 
 ## الرخصة
 

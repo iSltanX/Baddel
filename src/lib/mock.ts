@@ -8,10 +8,17 @@
  */
 import type { AppInfo, KeyboardMap, LayoutEntry, Settings } from './state.svelte'
 
+/**
+ * Query parameters that pick a state to review: `lang=en`, `permission=missing`,
+ * `move=1` (the welcome's "move to Applications" note), `report=fail|rate-limited|rejected`,
+ * `update=available|checking|installing|failed`.
+ */
+const query = new URLSearchParams(location.search)
+
 const settings: Settings = {
   launchAtLogin: false,
   showTrayIcon: true,
-  language: 'ar',
+  language: query.get('lang') === 'en' ? 'en' : 'ar',
   switchInputSource: true,
   showHud: true,
   sound: false,
@@ -53,8 +60,63 @@ const APPS: AppInfo[] = [
   { id: 'com.1password.1password', name: '1Password', icon: null },
 ]
 
-let permission = true
+/** A tiny grey PNG standing in for a screenshot. */
+const MOCK_IMAGE = {
+  name: '1.png',
+  mime: 'image/png',
+  bytes: 421_888,
+  width: 1280,
+  height: 800,
+  thumbnail:
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN88OjRfwAIQQN2f0XMWgAAAABJRU5ErkJggg==',
+}
+
+function mockPreview(draft: { problem: string; description: string }) {
+  const bug = ['wrong-conversion', 'no-effect', 'undo', 'shortcut'].includes(draft.problem)
+  const categories: Record<string, string> = { 'wrong-conversion': 'conversion', 'no-effect': 'no-effect', undo: 'undo', shortcut: 'shortcut' }
+  const diagnostics = {
+    accessibility: true,
+    secure_input: false,
+    layouts: { arabic: 'com.apple.keylayout.Arabic', arabic_name: 'Arabic', latin: 'com.apple.keylayout.ABC', latin_name: 'ABC', active: 'latin', source: 'live' },
+    layout_choice: { arabic: 'auto', latin: 'auto' },
+    recent: [{ outcome: 'converted', path: 'keys', ms: 1240, ago_s: 42 }],
+    last_app: 'com.apple.mail',
+    settings: { language: settings.language, switch_input_source: true },
+    build: 'debug',
+  }
+  return {
+    json: '{}',
+    diagnostics: JSON.stringify(diagnostics, null, 2),
+    description: draft.description.trim(),
+    kind: bug ? 'bug' : draft.problem,
+    category: categories[draft.problem] ?? null,
+    appVersion: '1.1.0',
+    osVersion: '27.0.1',
+    arch: 'arm64',
+    locale: settings.language,
+    test: true,
+    image: MOCK_IMAGE,
+  }
+}
+
+let permission = query.get('permission') !== 'missing'
 let apps = [...APPS]
+
+/** The app's events, played by the mock: the permission arriving, a conversion outcome. */
+const events = new EventTarget()
+
+export async function mockSubscribe<T>(event: string, handler: (payload: T) => void): Promise<() => void> {
+  const listener = (message: Event) => handler((message as CustomEvent<T>).detail)
+  events.addEventListener(event, listener)
+  return () => events.removeEventListener(event, listener)
+}
+
+function emit(event: string, detail: unknown) {
+  events.dispatchEvent(new CustomEvent(event, { detail }))
+}
+
+/** For trying the welcome's practice states by hand, from the browser console. */
+;(window as unknown as Record<string, unknown>).mockConversion = (outcome: string) => emit('conversion', outcome)
 
 /** A rough stand-in for the conversion engine: enough for the practice field. */
 const AR_TO_EN = new Map(ROWS.flat().map(([latin, arabic]) => [arabic, latin]))
@@ -83,8 +145,14 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
     case 'permission_granted':
       return answer(permission)
     case 'request_permission':
-      permission = !permission
+      // As if the user switched Baddel on in System Settings a moment later.
+      setTimeout(() => {
+        permission = true
+        emit('permission', true)
+      }, 2500)
       return answer(undefined)
+    case 'app_needs_move':
+      return answer(query.get('move') === '1')
     case 'list_layouts':
       return answer(LAYOUTS)
     case 'keyboard_map':
@@ -104,9 +172,22 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
     }
     case 'app_version':
       return answer('1.0.0')
+    // The report window: `?report=fail` (or rate-limited, rejected) reviews the failure screens.
+    case 'report_pick_image':
+    case 'report_paste_image':
+      return answer(MOCK_IMAGE)
+    case 'report_preview':
+      return answer(mockPreview(args?.draft as { problem: string; description: string }))
+    case 'report_send': {
+      const mode = query.get('report')
+      if (mode === 'fail') return Promise.reject({ kind: 'retry' })
+      if (mode === 'rate-limited') return Promise.reject({ kind: 'rate-limited', minutes: 42 })
+      if (mode === 'rejected') return Promise.reject({ kind: 'rejected', reason: 'invalid_field: description' })
+      return answer(128)
+    }
     // `?update=available` (or checking, installing, failed) reviews the other states.
     case 'update_status': {
-      const phase = new URLSearchParams(location.search).get('update') ?? 'upToDate'
+      const phase = query.get('update') ?? 'upToDate'
       const version = phase === 'available' || phase === 'installing' ? '1.1.0' : null
       return answer({ phase, version, lastChecked: Date.now() - 2 * 60 * 60 * 1000 })
     }

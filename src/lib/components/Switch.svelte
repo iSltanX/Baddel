@@ -1,4 +1,5 @@
 <script lang="ts">
+  /** `Toggle` in 02 — Components: 36×20, a 16px knob with a hairline, no shadow. */
   interface Props {
     checked: boolean
     disabled?: boolean
@@ -25,28 +26,29 @@
     width: 36px;
     height: 20px;
     flex: none;
-    padding: 2px;
+    padding: var(--space-2);
     border: none;
-    border-radius: 999px;
-    background: var(--track-off);
+    border-radius: var(--radius-full);
+    background: var(--control-track-off);
     transition: background-color 150ms ease-out;
   }
 
   button:hover:not(:disabled) {
-    box-shadow: inset 0 0 0 1px var(--border-strong);
+    box-shadow: inset 0 0 0 1px var(--border-default);
   }
 
   button[aria-checked='true'] {
-    background: var(--accent-primary);
+    background: var(--action-primary);
   }
 
   button[aria-checked='true']:hover:not(:disabled) {
-    background: var(--accent-hover);
+    background: var(--action-primary-hover);
     box-shadow: none;
   }
 
-  button:focus-visible {
-    box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+  button:focus-visible,
+  button:focus-visible:hover {
+    box-shadow: var(--focus-ring);
   }
 
   .knob {
@@ -55,7 +57,7 @@
     height: 16px;
     border-radius: 50%;
     background: var(--control-knob);
-    box-shadow: var(--shadow-knob);
+    box-shadow: inset 0 0 0 0.5px var(--border-default);
     /* A logical offset so the knob travels the right way in both directions. */
     margin-inline-start: 0;
     transition: margin-inline-start 150ms ease-out;

@@ -59,7 +59,7 @@ pub struct TrayState {
     trusted: AtomicBool,
     /// The glyph currently on the menu bar, so the icon is only replaced when it changes.
     glyph: AtomicU8,
-    /// The last conversion, for the "اثممخ ← hello · تراجع" item. Held in memory only,
+    /// The last conversion, for the "تراجع: اثممخ ← hello" item. Held in memory only,
     /// never written anywhere, and cleared as soon as undo is no longer offered.
     last: Mutex<Option<(String, String)>>,
 }
@@ -142,14 +142,14 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
     if let Some((from, to)) = state.last.lock().unwrap().clone() {
+        // One item names what it undoes (A2 · Menu bar · Menus): "تراجع: اثممخ ← hello".
         // The line takes its direction from its first letter, so an Arabic original turned the
-        // English line right-to-left ("hello → اثممخ") and a Latin one the Arabic line
-        // left-to-right. Pin it to the interface language and isolate each side.
+        // English line right-to-left and a Latin one the Arabic line left-to-right. Pin it to
+        // the interface language and isolate each side.
         let (mark, arrow) =
             if settings.language == settings::Language::Ar { ('\u{200F}', '←') } else { ('\u{200E}', '→') };
-        let line = format!("{mark}\u{2068}{from}\u{2069} {arrow} \u{2068}{to}\u{2069}");
-        menu.append(&item(app, "last", &line, false)?)?;
-        menu.append(&item(app, "undo", text.undo, live)?)?;
+        let line = format!("{mark}{}: \u{2068}{from}\u{2069} {arrow} \u{2068}{to}\u{2069}", text.undo);
+        menu.append(&item(app, "undo", &line, live)?)?;
         menu.append(&PredefinedMenuItem::separator(app)?)?;
     }
 
@@ -162,11 +162,15 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         None::<&str>,
     )?;
     menu.append(&switch)?;
-    let pause_label = if settings.paused { text.resume } else { text.pause };
-    menu.append(&item(app, "pause", pause_label, trusted)?)?;
+    // Without the permission there is nothing to pause; the menu leads with granting it instead.
+    if trusted {
+        let pause_label = if settings.paused { text.resume } else { text.pause };
+        menu.append(&item(app, "pause", pause_label, true)?)?;
+    }
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
     menu.append(&MenuItem::with_id(app, "settings", text.settings, true, Some("Cmd+,"))?)?;
+    menu.append(&item(app, "report", text.report_problem, true)?)?;
     match crate::updater::available_version(app) {
         Some(version) => menu.append(&item(app, "install-update", &text.install_update.replace("{version}", &version), true)?)?,
         None => menu.append(&item(app, "updates", text.check_updates, true)?)?,
@@ -207,6 +211,9 @@ fn on_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "pause" => sync::toggle_pause(app),
         "settings" => {
             let _ = windows::open_settings(app);
+        }
+        "report" => {
+            let _ = windows::open_report(app);
         }
         "updates" => updater::check_in_background(app, updater::Trigger::Menu),
         "install-update" => updater::install_in_background(app),

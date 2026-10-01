@@ -1,7 +1,9 @@
 mod commands;
 mod controller;
+mod diagnostics;
 mod hud;
 mod menu_text;
+mod report;
 mod settings;
 mod shortcuts;
 mod sync;
@@ -35,6 +37,8 @@ pub fn run() {
         .manage(AppState::default())
         .manage(TrayState::default())
         .manage(updater::UpdateState::default())
+        .manage(diagnostics::History::default())
+        .manage(report::ReportState::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::set_settings,
@@ -55,10 +59,21 @@ pub fn run() {
             commands::preview_hud,
             commands::open_onboarding,
             commands::finish_onboarding,
+            commands::app_needs_move,
+            commands::reveal_app_in_finder,
             commands::reveal_window,
             commands::set_content_height,
             commands::set_window_title,
             commands::open_external,
+            commands::copy_diagnostics,
+            commands::open_report,
+            commands::report_pick_image,
+            commands::report_paste_image,
+            commands::report_clear_image,
+            commands::report_preview,
+            commands::report_send,
+            commands::report_copy,
+            commands::report_copy_number,
         ])
         .setup(|app| {
             // Menu bar utility: no Dock icon, no app menu, until a window opens.
@@ -112,9 +127,20 @@ pub fn run() {
         // The app lives in the menu bar: closing the last window must not quit it.
         // `code` is only set for explicit exits (the Quit item).
         RunEvent::ExitRequested { api, code, .. } if code.is_none() => api.prevent_exit(),
+        // Opening Baddel again from Applications (or Spotlight) while it runs is the way back
+        // to its settings when the menu bar icon is hidden. With a window already up (the Dock
+        // icon is only there while one is), macOS brings that one forward on its own.
+        #[cfg(target_os = "macos")]
+        RunEvent::Reopen { has_visible_windows: false, .. } => {
+            let _ = windows::open_settings(app);
+        }
         // Windows are destroyed on close, so nothing of theirs survives; drop the
         // Dock icon again once the last one is gone.
-        RunEvent::WindowEvent { event: WindowEvent::Destroyed, .. } => {
+        RunEvent::WindowEvent { label, event: WindowEvent::Destroyed, .. } => {
+            // A report not sent is dropped with its window: image, preview and all.
+            if label == windows::REPORT {
+                app.state::<report::ReportState>().0.lock().unwrap().clear();
+            }
             windows::restore_activation_policy(app);
         }
         _ => {}

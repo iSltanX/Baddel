@@ -313,7 +313,7 @@ The UI ships two typefaces locally so the app makes no network requests at
 runtime. Both are sourced from the official Google Fonts repository
 (https://github.com/google/fonts).
 
-### Cairo (`Cairo-SemiBold.{woff2,ttf}`, `Cairo-Bold.{woff2,ttf}`)
+### Cairo (`Cairo-Bold.{woff2,ttf}`)
 
 - **Name / source:** Cairo
 - **Homepage / repository:** https://github.com/google/fonts/tree/main/ofl/cairo
@@ -321,18 +321,17 @@ runtime. Both are sourced from the official Google Fonts repository
 - **Authors:** The Cairo Project Authors
 - **License:** SIL Open Font License, Version 1.1. Full text at
   `src/assets/fonts/OFL-Cairo.txt`.
-- **Weights included:** 600 (SemiBold) and 700 (Bold) only, used for
-  headings.
+- **Weights included:** 700 (Bold) only, used for the brand and for
+  titles. (A 600 SemiBold instance shipped until the A2 design retired it.)
 - **Processing steps applied:** Google Fonts distributes Cairo as a single
   variable font (`Cairo[slnt,wght].ttf`, axes `wght` 200–1000 and `slnt`
-  -11–11). Two static instances were extracted with `fonttools
-  varLib.instancer` at `wght=600, slnt=0` and `wght=700, slnt=0`
-  (`--update-name-table`, which also sets `OS/2.usWeightClass` to 600/700
-  and the family/subfamily name records to `Cairo`/`SemiBold` and
-  `Cairo`/`Bold`). Each static TTF was then compressed to WOFF2 with
-  `fonttools ttLib.woff2`. The original variable font file was discarded
-  after extraction; the two static `.ttf` files are kept alongside the
-  `.woff2` files as source/backup.
+  -11–11). A static instance was extracted with `fonttools
+  varLib.instancer` at `wght=700, slnt=0` (`--update-name-table`, which
+  also sets `OS/2.usWeightClass` to 700 and the family/subfamily name
+  records to `Cairo`/`Bold`). The static TTF was then compressed to WOFF2
+  with `fonttools ttLib.woff2`. The original variable font file was
+  discarded after extraction; the static `.ttf` file is kept alongside the
+  `.woff2` file as source/backup.
 
 ### Almarai (`Almarai-Regular.{woff2,ttf}`, `Almarai-Bold.{woff2,ttf}`)
 

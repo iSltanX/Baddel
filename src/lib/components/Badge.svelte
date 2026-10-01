@@ -1,8 +1,11 @@
 <script lang="ts">
-  /** A status pill. The words carry the meaning; the dot and the colour only support them. */
+  /**
+   * `Badge` in 02 — Components. The words carry the meaning; the dot and the colour only
+   * support them. `attention` is the coral dot: the one thing on screen that needs a decision.
+   */
   interface Props {
     label: string
-    tone?: 'success' | 'warning' | 'neutral' | 'accent'
+    tone?: 'success' | 'warning' | 'neutral' | 'brand' | 'attention' | 'danger'
     dot?: boolean
   }
 
@@ -18,11 +21,11 @@
   .badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-8);
     height: 22px;
     flex: none;
-    padding: 0 8px;
-    border-radius: 999px;
+    padding: 0 var(--space-8);
+    border-radius: var(--radius-full);
     font-size: var(--size-caption);
     line-height: var(--leading-caption);
     font-weight: 700;
@@ -37,22 +40,36 @@
   }
 
   .success {
-    background: var(--state-success-soft);
-    color: var(--state-success);
+    background: var(--success-soft);
+    color: var(--success);
   }
 
   .warning {
-    background: var(--state-warning-soft);
-    color: var(--state-warning-text);
+    background: var(--warning-soft);
+    color: var(--warning-text);
   }
 
   .neutral {
-    background: var(--bg-sunken);
+    background: var(--bg-surface-secondary);
     color: var(--text-secondary);
   }
 
-  .accent {
-    background: var(--accent-soft);
-    color: var(--accent-primary);
+  .brand {
+    background: var(--bg-selected);
+    color: var(--text-brand);
+  }
+
+  .attention {
+    background: var(--bg-surface-secondary);
+    color: var(--text-primary);
+  }
+
+  .attention .dot {
+    background: var(--accent);
+  }
+
+  .danger {
+    background: var(--danger-soft);
+    color: var(--danger);
   }
 </style>

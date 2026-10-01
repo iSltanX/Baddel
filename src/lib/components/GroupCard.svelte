@@ -2,7 +2,8 @@
   import type { Snippet } from 'svelte'
 
   /**
-   * A grouped form card: a quiet label, an inset surface holding one to six rows,
+   * A grouped form card (the `Group` pattern in 03 — Product UI): a quiet label, a
+   * surface holding one to six rows,
    * and an optional footnote. The label, the rows' content and the footnote all
    * start on the same 16px line.
    */
@@ -43,50 +44,50 @@
   section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-8);
   }
 
   header,
   footer {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding-inline: 16px;
+    gap: var(--space-8);
+    padding-inline: var(--space-16);
   }
 
   header {
-    min-height: 22px;
+    min-height: 18px;
   }
 
+  /* Label/Strong: the group label is quieter than the rows it names. */
   h2 {
     flex: 1;
     font-family: var(--font-body);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
     font-weight: 700;
     color: var(--text-secondary);
   }
 
   footer {
-    gap: 12px;
+    gap: var(--space-12);
   }
 
   p {
     flex: 1;
-    margin: 0;
     color: var(--text-secondary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   .card {
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-md);
     background: var(--bg-surface);
     overflow: hidden;
   }
 
   .sunken {
-    background: var(--bg-sunken);
+    background: var(--bg-surface-secondary);
   }
 </style>

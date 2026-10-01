@@ -4,6 +4,7 @@
 # pane and appearance are chosen through the debug-only BADDEL_* variables.
 #
 #   ./scripts/dev-build.sh && ./scripts/capture.sh
+#   CAPTURE_ONLY=onboarding:2 ./scripts/capture.sh  # only the windows starting so (no notices)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -12,12 +13,18 @@ store="$HOME/Library/Application Support/com.isltanx.baddel/settings.json"
 out="docs/screenshots"
 windows=(
   settings:general settings:shortcuts settings:layouts settings:exceptions settings:about
-  onboarding:1 onboarding:2 onboarding:3
+  onboarding:1 onboarding:2 onboarding:3 onboarding:4
 )
 # The notice is dark in both appearances by design, so it is captured once per
 # language. It also draws itself to file: macOS will not let `screencapture`
 # photograph a floating, non-activating panel.
 notices=(success undone blocked too-long no-text)
+if [ -n "${CAPTURE_ONLY:-}" ]; then
+  filtered=()
+  for window in "${windows[@]}"; do [[ $window == "$CAPTURE_ONLY"* ]] && filtered+=("$window"); done
+  windows=("${filtered[@]}")
+  notices=()
+fi
 
 [ -x "$app" ] || { echo "build first: ./scripts/dev-build.sh" >&2; exit 1; }
 mkdir -p "$out" "$(dirname "$store")"
@@ -69,7 +76,7 @@ for language in ar en; do
     done
   done
 
-  for notice in "${notices[@]}"; do
+  for notice in ${notices[@]+"${notices[@]}"}; do
     name="hud-$notice-$language"
     launch dark "hud:$notice" "$PWD/$out/$name.png"
     [ -s "$out/$name.png" ] && echo "✓ $name" || echo "✗ $name"
