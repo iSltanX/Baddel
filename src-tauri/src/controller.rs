@@ -518,13 +518,14 @@ impl Controller {
         let notice = match outcome {
             Outcome::Converted | Outcome::Extended => self.last.as_ref().map(|last| hud::Notice {
                 kind: hud::Kind::Success,
-                text: hud::conversion_line(&last.original, &last.result, rtl),
+                body: hud::Body::Conversion { from: last.original.clone(), to: last.result.clone() },
+                rtl,
                 badge: settings.switch_input_source.then(|| badge(last.direction).to_string()),
             }),
-            Outcome::Undone => Some(notice(hud::Kind::Undone, text.hud_undone)),
-            Outcome::Blocked => Some(notice(hud::Kind::Blocked, text.hud_blocked)),
-            Outcome::TooLong => Some(notice(hud::Kind::TooLong, text.hud_too_long)),
-            Outcome::NoText | Outcome::Unchanged => Some(notice(hud::Kind::NoText, text.hud_no_text)),
+            Outcome::Undone => Some(notice(hud::Kind::Undone, text.hud_undone, rtl)),
+            Outcome::Blocked => Some(notice(hud::Kind::Blocked, text.hud_blocked, rtl)),
+            Outcome::TooLong => Some(notice(hud::Kind::TooLong, text.hud_too_long, rtl)),
+            Outcome::NoText | Outcome::Unchanged => Some(notice(hud::Kind::NoText, text.hud_no_text, rtl)),
             // Paused, excluded, missing permission: the menu already says so, and a
             // notice on every keypress would be noise.
             _ => None,
@@ -543,8 +544,8 @@ fn badge(direction: Direction) -> &'static str {
     }
 }
 
-fn notice(kind: hud::Kind, text: &str) -> hud::Notice {
-    hud::Notice { kind, text: text.to_string(), badge: None }
+fn notice(kind: hud::Kind, text: &str, rtl: bool) -> hud::Notice {
+    hud::Notice { kind, body: hud::Body::Message(text.to_string()), badge: None, rtl }
 }
 
 impl LastOp {

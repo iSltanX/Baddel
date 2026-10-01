@@ -68,10 +68,14 @@ objc2-app-kit = { version = "0.3", features = [
     "NSColor",
     "NSControl",
     "NSFont",
+    # SF Pro at the weights the A2 HUD sets its Latin runs in.
+    "NSFontDescriptor",
     "NSImageView",
     "NSPanel",
     "NSResponder",
     "NSScreen",
+    # The HUD's one soft shadow (Effect/HUD), drawn with the pill.
+    "NSShadow",
     "NSSound",
     "NSTextField",
     "NSView",

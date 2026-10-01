@@ -178,14 +178,19 @@ fn show_notice_repeatedly(app: &AppHandle, kind: String) {
         let language = app.state::<AppState>().get().language;
         let rtl = language == crate::settings::Language::Ar;
         let strings = crate::menu_text::strings(language);
-        let (kind, text, badge) = match kind.as_str() {
-            "undone" => (hud::Kind::Undone, strings.hud_undone.into(), None),
-            "blocked" => (hud::Kind::Blocked, strings.hud_blocked.into(), None),
-            "too-long" => (hud::Kind::TooLong, strings.hud_too_long.into(), None),
-            "no-text" => (hud::Kind::NoText, strings.hud_no_text.into(), None),
-            _ => (hud::Kind::Success, hud::conversion_line("اثممخ", "hello", rtl), Some("EN".to_string())),
+        let message = |text: &str| hud::Body::Message(text.into());
+        let (kind, body, badge) = match kind.as_str() {
+            "undone" => (hud::Kind::Undone, message(strings.hud_undone), None),
+            "blocked" => (hud::Kind::Blocked, message(strings.hud_blocked), None),
+            "too-long" => (hud::Kind::TooLong, message(strings.hud_too_long), None),
+            "no-text" => (hud::Kind::NoText, message(strings.hud_no_text), None),
+            _ => (
+                hud::Kind::Success,
+                hud::Body::Conversion { from: "اثممخ".into(), to: "hello".into() },
+                Some("EN".to_string()),
+            ),
         };
-        hud::show_pinned(&app, hud::Notice { kind, text, badge });
+        hud::show_pinned(&app, hud::Notice { kind, body, badge, rtl });
         // The panel cannot be photographed from outside, so it draws itself to file.
         if let Ok(path) = std::env::var("BADDEL_HUD_CAPTURE") {
             std::thread::sleep(std::time::Duration::from_millis(300));

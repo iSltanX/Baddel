@@ -434,10 +434,25 @@ pub fn preview_hud(app: AppHandle) {
         &app,
         hud::Notice {
             kind: hud::Kind::Success,
-            text: hud::conversion_line("اثممخ", "hello", rtl),
+            body: hud::Body::Conversion { from: "اثممخ".into(), to: "hello".into() },
             badge: Some("EN".into()),
+            rtl,
         },
     );
+}
+
+/// Whether the welcome window should ask the user to move Baddel to Applications first.
+#[tauri::command]
+pub fn app_needs_move() -> bool {
+    crate::sys::system::bundle_path().is_some_and(|bundle| crate::sys::system::is_temporary_location(&bundle))
+}
+
+/// Shows the running app in Finder, so it can be dragged to Applications.
+#[tauri::command]
+pub fn reveal_app_in_finder() {
+    if let Some(bundle) = crate::sys::system::bundle_path() {
+        crate::sys::system::reveal_in_finder(&bundle);
+    }
 }
 
 #[tauri::command]

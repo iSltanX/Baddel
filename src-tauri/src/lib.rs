@@ -59,6 +59,8 @@ pub fn run() {
             commands::preview_hud,
             commands::open_onboarding,
             commands::finish_onboarding,
+            commands::app_needs_move,
+            commands::reveal_app_in_finder,
             commands::reveal_window,
             commands::set_content_height,
             commands::set_window_title,
@@ -125,6 +127,13 @@ pub fn run() {
         // The app lives in the menu bar: closing the last window must not quit it.
         // `code` is only set for explicit exits (the Quit item).
         RunEvent::ExitRequested { api, code, .. } if code.is_none() => api.prevent_exit(),
+        // Opening Baddel again from Applications (or Spotlight) while it runs is the way back
+        // to its settings when the menu bar icon is hidden. With a window already up (the Dock
+        // icon is only there while one is), macOS brings that one forward on its own.
+        #[cfg(target_os = "macos")]
+        RunEvent::Reopen { has_visible_windows: false, .. } => {
+            let _ = windows::open_settings(app);
+        }
         // Windows are destroyed on close, so nothing of theirs survives; drop the
         // Dock icon again once the last one is gone.
         RunEvent::WindowEvent { label, event: WindowEvent::Destroyed, .. } => {
