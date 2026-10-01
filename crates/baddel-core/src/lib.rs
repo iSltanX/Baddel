@@ -24,7 +24,7 @@ mod disambiguate;
 mod layout;
 mod static_layouts;
 
-pub use convert::{detect_direction, Conversion, Direction};
+pub use convert::{detect_direction, is_protected, Conversion, Direction};
 pub use disambiguate::is_english_word;
 pub use layout::{Layer, LayoutMap, LayoutProvider, StaticLayout, KEYCODES};
 

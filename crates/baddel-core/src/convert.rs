@@ -30,9 +30,12 @@ pub struct Conversion {
 /// Majority vote between Arabic-script characters and Latin letters.
 /// `None` when the text has neither (digits, punctuation, whitespace only);
 /// a tie counts as Arabic, since Arabic text legitimately embeds Latin words more often than the reverse.
+///
+/// Links, email addresses and file paths ([`is_protected`]) do not vote: a URL's dozen Latin
+/// letters would otherwise outvote the short Arabic-typed word beside it.
 pub fn detect_direction(text: &str) -> Option<Direction> {
     let (mut arabic, mut latin) = (0usize, 0usize);
-    for c in text.chars() {
+    for c in split_keeping_whitespace(text).filter(|word| !is_protected(word)).flat_map(str::chars) {
         if is_arabic(c) {
             arabic += 1;
         } else if c.is_alphabetic() {
@@ -44,6 +47,43 @@ pub fn detect_direction(text: &str) -> Option<Direction> {
         (a, l) if a >= l => Some(Direction::ArabicToLatin),
         _ => Some(Direction::LatinToArabic),
     }
+}
+
+/// Whether a whitespace-delimited word is already right in Latin script and must be left exactly
+/// as it is: a link (`://`, or starting with `www.`), an email address (`name@host.tld`), or a
+/// file path (`~/…`, or `/…/…` with Latin letters between the first two slashes).
+///
+/// Wrongly typed Arabic cannot produce these: a word holding an Arabic letter is never protected,
+/// `@` types `@` on both layouts, no Arabic word starts with the shadda that `~` types, and on
+/// Arabic – PC a lone `/` is «ظ» — so the path rule asks for two.
+pub fn is_protected(word: &str) -> bool {
+    if word.chars().any(is_arabic) || !word.chars().any(|c| c.is_ascii_alphabetic()) {
+        return false;
+    }
+    let core = word.trim_start_matches(['(', '[', '{', '<', '"', '\'', '«', '“', '‘']);
+    is_link(core) || is_email(core) || is_path(core)
+}
+
+fn is_link(word: &str) -> bool {
+    word.contains("://") || word.get(..4).is_some_and(|start| start.eq_ignore_ascii_case("www."))
+}
+
+fn is_email(word: &str) -> bool {
+    let Some((local, domain)) = word.split_once('@') else { return false };
+    let domain = domain.trim_end_matches(['.', ',', ';', ':', '!', '?', ')', ']', '}', '>', '"', '\'', '»', '”', '’']);
+    let mut labels = domain.split('.');
+    local.chars().any(char::is_alphanumeric)
+        && domain.contains('.')
+        && labels.all(|label| !label.is_empty() && !label.contains('@'))
+}
+
+fn is_path(word: &str) -> bool {
+    if word.starts_with("~/") {
+        return true;
+    }
+    word.strip_prefix('/')
+        .and_then(|rest| rest.split_once('/'))
+        .is_some_and(|(first, _)| first.chars().any(|c| c.is_ascii_alphabetic()))
 }
 
 /// One matched key of the typed text.
@@ -64,12 +104,13 @@ impl LayoutMap {
         Some(Conversion { text: self.convert_as(text, direction), direction })
     }
 
-    /// Converts in a known direction. Characters outside the map pass through unchanged.
+    /// Converts in a known direction. Characters outside the map pass through unchanged, and so do
+    /// links, email addresses and file paths ([`is_protected`]).
     pub fn convert_as(&self, text: &str, direction: Direction) -> String {
         let mut out = String::with_capacity(text.len());
         // Word by word, so that the dictionary check in `disambiguate` sees whole words.
         for segment in split_keeping_whitespace(text) {
-            if segment.starts_with(char::is_whitespace) {
+            if segment.starts_with(char::is_whitespace) || is_protected(segment) {
                 out.push_str(segment);
                 continue;
             }
