@@ -47,7 +47,7 @@ Anyone who types in two languages knows this moment: you type a full sentence, l
 | **Selected text** | The whole selection is converted in place. |
 | **No selection** | The word before the cursor is converted. |
 | **A second press within two seconds** | The conversion extends one more word back, so consecutive presses fix a whole sentence. |
-| **Undo** | "Undo" in the menu, or a shortcut you assign, restores the original text within 30 seconds. |
+| **Undo** | "Undo" in the menu, or a shortcut you assign, restores the original text within 30 seconds, in the app you converted in and nowhere else. If it can't, "Copy Original Text" in the menu puts the original on the clipboard for you to paste. |
 
 The direction is detected automatically: if most of the characters are Arabic, the text is converted to English, and vice versa. Anything already in the other language is left as is.
 
@@ -73,7 +73,7 @@ On **Arabic‑PC**, the <kbd>B</kbd> key types two characters together: «لا»
 
 - **In almost any app.** It reads and replaces text through macOS's Accessibility interface, and when an app doesn't expose its text, it falls back to copy and paste.
 - **It knows your layouts.** It doesn't rely on a fixed table — it builds the map from the two layouts active on your Mac, key by key.
-- **The clipboard stays as you left it.** It's fully restored after every conversion, whether it held text or an image. Whatever passes through it briefly is tagged with the two [nspasteboard.org](http://nspasteboard.org) markers, so clipboard managers that respect them ignore it — including [Raff](https://github.com/iSltanX/Raff).
+- **The clipboard stays as you left it.** It's fully restored after every conversion, whether it held text or an image — and if you copy something while a conversion runs, your copy stays and nothing is written over it. Whatever Baddel puts on it briefly is tagged with the two [nspasteboard.org](http://nspasteboard.org) markers, so clipboard managers that respect them ignore it — including [Raff](https://github.com/iSltanX/Raff). The limits of that are in [PRIVACY.md](PRIVACY.md).
 - **Fast.** 7–95ms to convert in most of the tested apps: TextEdit, Notes, Safari, Chrome, Brave, Luma, and Claude. Mail and Figma don't expose the field's text, so there it goes through the keyboard and takes 0.3–1.2 seconds.
 - **Doesn't monitor what you type.** It doesn't request Input Monitoring, doesn't read anything before you press the shortcut, and doesn't save any text.
 - **Lightweight.** About 15MB of memory at idle. The Settings and Welcome windows are created when opened and destroyed when closed.
@@ -123,7 +123,7 @@ Every release is signed with the same certificate, and macOS ties the permission
 | Pause Baddel | No default shortcut, or use the menu |
 | Settings | <kbd>⌘</kbd><kbd>,</kbd> from the menu |
 
-- If the shortcut you record is already used by another app, the recorder tells you and keeps your previous shortcut, so you're never left without one.
+- If the shortcut you record is already used by another app, or by another Baddel command, the recorder tells you and keeps your previous shortcut, so you're never left without one and no command stops working without you knowing.
 - Terminals and password managers are excluded by default; add or remove apps from **Settings → Exceptions**.
 - Updates are checked automatically once a day, or from the menu → **Check for Updates…**.
 
@@ -230,7 +230,7 @@ A Tauri 2 app: a Rust core holds all the logic and state, and a Svelte 5 UI for 
 
 - **It only reads what it's about to convert,** and only the moment you press the shortcut: the selection, or as much text before the cursor as needed to find the word.
 - **It doesn't save any text,** not to disk and not in a log. The last conversion stays in memory for 30 seconds so it can be undone, then it's erased.
-- **The clipboard is restored** after every conversion, and whatever passes through it is marked transient and concealed.
+- **The clipboard is restored** after every conversion — unless you copied something meanwhile, in which case the newer copy stays — and whatever Baddel puts on it is marked transient and concealed.
 - **No network access** except in two cases: the update check (a single request for a `latest.json` file from this repository's releases page, once a day, carrying nothing about you or your text, which you can turn off from **Settings → General**), and a report you write, see in full, and confirm (see [Reporting an issue](#reporting-an-issue)).
 - **No account, no analytics, no tracking.** The interface doesn't request any external resource: fonts are bundled, and the content policy is `default-src 'self'`.
 - **Protected fields are never touched:** in a password field, or whenever macOS turns on Secure Input, Baddel reads nothing and writes nothing.
@@ -316,6 +316,8 @@ Baddel builds the map from the two layouts active on your Mac: it asks macOS for
 <summary><strong>What if the text is mixed?</strong></summary><br>
 
 It converts by majority: if most of the characters are Arabic, the Arabic part is converted to English and the English part is left as is. «اثممخ صخقمي ok» becomes `hello world ok`. Spaces and emoji stay as they are, while digits follow the direction as the keyboard typed them: «فثسف ١٢٣» becomes `test 123`.
+
+Links, email addresses and file paths are left exactly as they are, and don't count toward the majority: «اثممخ https://example.com» becomes `hello https://example.com`.
 </details>
 
 <details>
