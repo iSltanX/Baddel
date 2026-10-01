@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Phase 7: builds the signed debug app, relaunches it with its stderr captured, and runs the
-# automated part of the device matrix. ⚠️ Sends real key presses — phase 7 only, with the
-# user away from the machine. Afterwards: follow the clean-up list in EXECUTION.md.
+# Device test: builds the signed debug app, relaunches it with its stderr captured, and runs the
+# automated part of the device matrix. ⚠️ Sends real key presses — only when the owner asks,
+# with them away from the machine. Afterwards: the clean-up steps in docs/test-matrix.md.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

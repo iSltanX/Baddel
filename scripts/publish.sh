@@ -6,8 +6,7 @@
 #   ./scripts/publish.sh <version> --yes    publish
 #
 # Outward-facing and hard to undo: run with --yes only after the user has approved this
-# release in the session (EXECUTION.md, phase 6 step 5). The steps before and after it are
-# in docs/launch/release-checklist.md.
+# release in the session. The steps before and after it are in docs/development.md (Release).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

@@ -294,7 +294,7 @@ curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh
 | <span dir="ltr">`./scripts/dev-build.sh`</span> | حزمة debug موقَّعة في <span dir="ltr">`target/debug/bundle/macos/`</span> |
 | <span dir="ltr">`./scripts/release.sh <version>`</span> | إصدار Universal موقَّع: DMG وحزمة التحديث و<span dir="ltr">`latest.json`</span> و<span dir="ltr">`install.sh`</span> و<span dir="ltr">`SHA256SUMS`</span> |
 
-صلاحية تسهيلات الاستخدام مربوطة بتوقيع التطبيق، فحزمة غير موقَّعة تفقدها مع كل بناء. يوقّع `dev-build.sh` بهوية المشروع إن وُجدت، وإلا بأول شهادة Apple Development في سلسلة المفاتيح. التفاصيل في [docs/signing.md](docs/signing.md).
+صلاحية تسهيلات الاستخدام مربوطة بتوقيع التطبيق، فحزمة غير موقَّعة تفقدها مع كل بناء. يوقّع `dev-build.sh` بهوية المشروع إن وُجدت، وإلا بأول شهادة Apple Development في سلسلة المفاتيح. التفاصيل في [docs/signing.md](docs/signing.md). والبنية والثوابت ونظام التصميم وخطوات الإصدار في [docs/development.md](docs/development.md).
 
 | المسار | ما فيه |
 | --- | --- |
@@ -309,7 +309,7 @@ curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh
 | <span dir="ltr">`src/lib/i18n/`</span> | النصوص العربية والإنجليزية |
 | <span dir="ltr">`design/`</span> | الأيقونة ورموز الشريط (مُصدَّرة من Figma) |
 | <span dir="ltr">`scripts/`</span> | الفحص والبناء والتوقيع والإصدار واختبار الجهاز |
-| <span dir="ltr">`docs/`</span> | صفحة التعريف والتنزيل (GitHub Pages)، والتوقيع ومصفوفة الاختبار واللقطات والصور |
+| <span dir="ltr">`docs/`</span> | صفحة التعريف والتنزيل (GitHub Pages)، ودليل التطوير والتوقيع ومصفوفة الاختبار، واللقطات والصور |
 
 سجل التغييرات في [CHANGELOG.md](CHANGELOG.md).
 </details>

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Phase 7 clean-up: closes the test page's tabs in every browser, and discards TextEdit's
+# Device-test clean-up: closes the test page's tabs in every browser, and discards TextEdit's
 # untitled documents (the test's scratch documents; named documents are left alone).
 # On recent macOS TextEdit files a new document in iCloud Drive at once, so "untitled" is
 # told by the window's name, not by the absence of a file; `close … saving no` does not
 # close them, so each goes through its own close sheet and that sheet's Delete button.
 # Untitled files the run left in TextEdit's iCloud folder go to the Trash (never deleted),
 # and only those newer than the marker run.sh leaves when it starts.
-# Anything else the run opened (a note, a draft, an app) is closed by hand: see EXECUTION.md.
+# Anything else the run opened (a note, a draft, an app) is closed by hand: see docs/test-matrix.md.
 set -uo pipefail
 
 osascript -e 'tell application "Safari" to repeat with w in (every window)

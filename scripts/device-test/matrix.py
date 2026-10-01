@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Phase-7 device test: drives the real hotkey in a real app and checks the result.
+"""Device test: drives the real hotkey in a real app and checks the result.
 
-⚠️ Sends real key presses to the front app. Run only inside phase 7, when the user has
-said they are away from the machine. Before every key press it checks that the target
+⚠️ Sends real key presses to the front app. Run only when the owner has asked for a device
+test and said they are away from the machine. Before every key press it checks that the target
 app is in front and holds the keyboard focus, and stops otherwise, so a stray window —
 or a system prompt that took the keys while the app stayed in front — never receives them.
 

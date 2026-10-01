@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase gate: Rust tests + lints, frontend type-check, frontend build.
+# The gate before any commit: Rust tests + lints, frontend type-check, frontend build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/env.sh

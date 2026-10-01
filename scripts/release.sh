@@ -10,7 +10,7 @@
 #    latest.json — the file the installed apps poll — install.sh (the one-line terminal install)
 #    and SHA256SUMS, which install.sh checks the archive against.
 #
-# Publishing (tag + GitHub Release) is a separate, deliberate step: see EXECUTION.md.
+# Publishing (tag + GitHub Release) is a separate, deliberate step: scripts/publish.sh.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/env.sh

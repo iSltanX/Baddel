@@ -1,6 +1,6 @@
 # التوقيع والتحديث
 
-**القرار (2026-09-21):** بلا اشتراك Apple Developer (99$/سنة)، فالتوقيع **بشهادة ذاتية ثابتة**. الخيار الثاني في الخطة التفصيلية §5.
+**القرار (2026-09-21):** بلا اشتراك Apple Developer (99$/سنة)، فالتوقيع **بشهادة ذاتية ثابتة**.
 
 ## لماذا شهادة «ثابتة»؟
 
@@ -14,9 +14,9 @@ identifier "com.isltanx.baddel" and certificate leaf = H"abeadcf9647763862bc4924
 
 ## الثمن
 
-- **Gatekeeper لا يثق بالشهادة** (`spctl` ← `rejected`). عند أول فتح يقول macOS إن المطوّر مجهول. طريقة الفتح توثَّق في README (المرحلة 6): **Finder ← زر الفأرة الأيمن على بدّل ← فتح**. وفي macOS 15 فما بعد: **إعدادات النظام ← الخصوصية والأمان ← «افتح على أي حال»**.
+- **Gatekeeper لا يثق بالشهادة** (`spctl` ← `rejected`). عند أول فتح يقول macOS إن المطوّر مجهول. طريقة الفتح مصوَّرة في README: **إعدادات النظام ← الخصوصية والأمان ← «افتح على أي حال»** (وقبل macOS 15: **Finder ← زر الفأرة الأيمن على بدّل ← فتح**). وسطر الطرفية (`install.sh`) لا يضع وسم الحجر فلا يظهر التحذير.
 - لا Notarization.
-- المتوقع ألا تمر التحديثات التالية بهذا التحذير، لأن المحدِّث ينزّل الحزمة بنفسه فلا يضع عليها وسم الحجر (quarantine). **يُتحقَّق من ذلك في المرحلة 7.**
+- التحديثات لا تمر بهذا التحذير، لأن المحدِّث ينزّل الحزمة بنفسه فلا يضع عليها وسم الحجر (quarantine)، وتبقى الصلاحية. تحقّق ذلك في التحديث 1.0.0 ← 2.0.0 ← 2.0.1.
 
 ## المفاتيح
 
@@ -42,15 +42,16 @@ identifier "com.isltanx.baddel" and certificate leaf = H"abeadcf9647763862bc4924
 ## الإصدار
 
 ```bash
-./scripts/release.sh 0.9.1 "ملاحظات الإصدار"
+./scripts/release.sh <version> "<title>"
 ```
 
-يرفع النسخة في `package.json` و`Cargo.toml` و`tauri.conf.json`، ويبني universal (Apple Silicon + Intel)، ويتحقق من التوقيع، ويجمع في `release/<version>/`:
+يرفع النسخة في `package.json` و`Cargo.toml` و`tauri.conf.json` وصفحة التنزيل، ويبني universal (Apple Silicon + Intel)، ويتحقق من التوقيع، ويجمع في `release/<version>/`:
 - `Baddel_<v>_universal.dmg` للتثبيت.
 - `Baddel_<v>_universal.app.tar.gz` و`.sig` للمحدِّث.
 - `latest.json`، وهو ما تستطلعه التطبيقات المثبَّتة من `https://github.com/iSltanX/Baddel/releases/latest/download/latest.json`.
+- `install.sh` و`SHA256SUMS` للتثبيت بسطر الطرفية، الذي يتحقق من الأرشيف بهما ومن توقيعه.
 
-النشر (وسم `v<version>`، ثم GitHub Release بالملفات الأربعة) خطوة منفصلة في المرحلة 6. **المستودع خاص الآن، فالمحدِّث لا يصل إلى `latest.json` حتى يصير عامًا.**
+النشر (وسم `v<version>`، ثم GitHub Release بالملفات الستة) خطوة منفصلة بـ `scripts/publish.sh`، وخطواته كاملة في [development.md](development.md#الإصدار).
 
 ## المحدِّث في التطبيق
 

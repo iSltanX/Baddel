@@ -287,7 +287,7 @@ npm run dev                     # UI in the browser, with mock stand-ins for Rus
 ./scripts/release.sh <version>  # signed Universal release: DMG, update package, latest.json, install.sh and SHA256SUMS
 ```
 
-Accessibility permission is tied to the app's signature, so an unsigned build loses it on every rebuild. `dev-build.sh` signs with the project's identity if one exists, otherwise with the first Apple Development certificate in the keychain. Details in [docs/signing.md](docs/signing.md).
+Accessibility permission is tied to the app's signature, so an unsigned build loses it on every rebuild. `dev-build.sh` signs with the project's identity if one exists, otherwise with the first Apple Development certificate in the keychain. Details in [docs/signing.md](docs/signing.md). Architecture, invariants, the design system and the release steps are in [docs/development.md](docs/development.md) (Arabic).
 
 ```
 crates/baddel-core/   Core: maps, conversion, and لا-key resolution — pure Rust, no Tauri, no macOS
@@ -302,7 +302,7 @@ src/                  UI (Svelte 5): Settings and Welcome, display only via invo
   lib/i18n/           Arabic and English strings
 design/               The icon and menu bar glyphs (exported from Figma)
 scripts/              Checks, build, signing, release, and device testing
-docs/                 The download page (GitHub Pages), signing, the test matrix, screenshots, and images
+docs/                 The download page (GitHub Pages), the developer guide, signing, the test matrix, screenshots, and images
 ```
 
 Changelog in [CHANGELOG.md](CHANGELOG.md).

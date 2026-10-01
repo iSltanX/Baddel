@@ -1,4 +1,4 @@
-// Phase 7: finds the text fields of the front app's focused window and, with `focus N`,
+// Device test: finds the text fields of the front app's focused window and, with `focus N`,
 // gives the Nth one keyboard focus through accessibility — no mouse, no guessing where it is.
 // For apps without an AppleScript way in (Electron, Tauri). Prints each field's role, label
 // and current length, so a field that already holds the user's text can be left alone.
