@@ -132,6 +132,63 @@ fn explicit_direction_still_leaves_protected_words_alone() {
     }
 }
 
+// ── Technical words (iPhone, macOS, mp3) ─────────────────────────────────────
+
+#[test]
+fn technical_words_are_kept_where_the_vote_goes_latin_to_arabic() {
+    // «سلام عليكم» typed with the Latin layout on, then a product name typed correctly.
+    for map in [mac(), pc()] {
+        let typed = "sghl ugd;l iPhone";
+        let fixed = map.convert(typed).unwrap();
+        assert_eq!(fixed.direction, Direction::LatinToArabic);
+        assert_eq!(fixed.text, format!("{} iPhone", to_arabic(&map, "sghl ugd;l")));
+        for word in ["macOS", "mp3", "x86_64", "v2", "H264", "utf8,"] {
+            assert_eq!(to_arabic(&map, word), word, "{word:?}");
+        }
+    }
+}
+
+#[test]
+fn a_technical_word_does_not_outvote_the_word_beside_it() {
+    // Five Arabic letters against iPhone's six Latin ones: iPhone no longer counts.
+    for map in [mac(), pc()] {
+        let fixed = map.convert("اثممخ iPhone").unwrap();
+        assert_eq!(fixed.direction, Direction::ArabicToLatin);
+        assert_eq!(fixed.text, "hello iPhone");
+    }
+}
+
+#[test]
+fn capitals_that_type_hamza_or_marks_still_convert() {
+    // Arabic – PC: Shift-H types «أ», so «سأل» typed with the Latin layout on is `sHg`.
+    assert_eq!(to_arabic(&pc(), "sHg"), "سأل");
+    // Arabic (Mac): Shift-B types «أ», Shift-Q a fatha.
+    assert_eq!(to_arabic(&mac(), "sBg"), "سأل");
+    assert_eq!(to_arabic(&mac(), "kQl"), to_arabic(&mac(), "k") + "\u{64e}" + &to_arabic(&mac(), "l"));
+    // A capital at either end of the word is no sign: «أنا» starts with Shift-H on PC.
+    assert_eq!(to_arabic(&pc(), "Hkh"), "أنا");
+}
+
+#[test]
+fn which_capitals_mark_a_technical_word_depends_on_the_layout() {
+    // `I` types ÷ on Arabic – PC and a shadda on Arabic (Mac).
+    assert_eq!(to_arabic(&pc(), "getElementById"), "getElementById");
+    assert_ne!(to_arabic(&mac(), "getElementById"), "getElementById");
+}
+
+#[test]
+fn the_literal_conversion_keeps_nothing_back() {
+    for map in [mac(), pc()] {
+        assert_ne!(map.convert_literal("iPhone", Direction::LatinToArabic), "iPhone");
+        assert_ne!(map.convert_literal("name@example.com", Direction::LatinToArabic), "name@example.com");
+        // Otherwise the same conversion.
+        assert_eq!(map.convert_literal("sghl ugd;l", Direction::LatinToArabic), to_arabic(&map, "sghl ugd;l"));
+        assert_eq!(map.convert_literal("اثممخ", Direction::ArabicToLatin), "hello");
+        // The other script is left as it is.
+        assert_eq!(map.convert_literal("hello", Direction::ArabicToLatin), "hello");
+    }
+}
+
 #[test]
 fn only_protected_text_has_no_direction() {
     assert_eq!(detect_direction("https://example.com name@example.com"), None);

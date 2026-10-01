@@ -123,6 +123,10 @@ pub enum Kind {
     UndoFailed,
     /// "Copy Original Text" from the menu.
     Copied,
+    /// A pause for a set time, chosen from the menu: "Baddel paused until 10:15".
+    PausedUntil,
+    /// "Exclude Current App" from the menu, confirmed.
+    ExcludedNow,
 }
 
 impl Kind {
@@ -133,6 +137,9 @@ impl Kind {
             Kind::Success => (ICON_CHECK, HUD_MINT),
             Kind::Undone => (ICON_UNDO, HUD_MINT),
             Kind::Copied => (ICON_CHECKMARK, HUD_MINT),
+            // Confirmations of what the user just chose, in the success tint (HUD / All states).
+            Kind::PausedUntil => (ICON_PAUSE, HUD_MINT),
+            Kind::ExcludedNow => (ICON_CHECK, HUD_MINT),
             Kind::Blocked => (ICON_LOCK, HUD_WARNING),
             Kind::TooLong | Kind::Failed | Kind::UndoFailed => (ICON_WARNING, HUD_WARNING),
             Kind::NoLayouts => (ICON_KEYBOARD, HUD_WARNING),
@@ -744,6 +751,8 @@ mod tests {
             Kind::NotHere,
             Kind::UndoFailed,
             Kind::Copied,
+            Kind::PausedUntil,
+            Kind::ExcludedNow,
         ];
         for kind in kinds {
             let (png, _) = kind.icon();

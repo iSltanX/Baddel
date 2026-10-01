@@ -50,17 +50,22 @@ pub enum Language {
     En,
 }
 
-/// Which of the three shortcuts a binding belongs to.
+/// Which shortcut a binding belongs to: the three general ones, then the optional commands that
+/// have no default shortcut.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Binding {
     Convert,
     Undo,
     Pause,
+    ConvertLine,
+    ToArabic,
+    ToLatin,
 }
 
 impl Binding {
-    pub const ALL: [Binding; 3] = [Binding::Convert, Binding::Undo, Binding::Pause];
+    pub const ALL: [Binding; 6] =
+        [Binding::Convert, Binding::Undo, Binding::Pause, Binding::ConvertLine, Binding::ToArabic, Binding::ToLatin];
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -78,6 +83,9 @@ pub struct Settings {
     pub shortcut_convert: String,
     pub shortcut_undo: String,
     pub shortcut_pause: String,
+    pub shortcut_convert_line: String,
+    pub shortcut_to_arabic: String,
+    pub shortcut_to_latin: String,
     // التخطيطات — an input source id, or empty to follow whatever macOS has enabled.
     pub arabic_layout: String,
     pub latin_layout: String,
@@ -85,6 +93,9 @@ pub struct Settings {
     pub excluded_apps: Vec<String>,
     // Not shown in the UI.
     pub paused: bool,
+    /// With `paused`: when the pause ends by itself, in milliseconds since the Unix epoch. `None`
+    /// pauses until the user resumes.
+    pub paused_until: Option<u64>,
     /// Set once the welcome window has been completed or skipped.
     pub welcomed: bool,
     /// When updates were last checked, in milliseconds since the Unix epoch.
@@ -112,10 +123,14 @@ impl Default for Settings {
             shortcut_convert: DEFAULT_SHORTCUT.to_string(),
             shortcut_undo: String::new(),
             shortcut_pause: String::new(),
+            shortcut_convert_line: String::new(),
+            shortcut_to_arabic: String::new(),
+            shortcut_to_latin: String::new(),
             arabic_layout: String::new(),
             latin_layout: String::new(),
             excluded_apps: DEFAULT_EXCLUDED.iter().map(|(id, _)| id.to_string()).collect(),
             paused: false,
+            paused_until: None,
             welcomed: false,
             last_update_check: None,
             defaults_version: DEFAULTS_VERSION,
@@ -129,6 +144,9 @@ impl Settings {
             Binding::Convert => &self.shortcut_convert,
             Binding::Undo => &self.shortcut_undo,
             Binding::Pause => &self.shortcut_pause,
+            Binding::ConvertLine => &self.shortcut_convert_line,
+            Binding::ToArabic => &self.shortcut_to_arabic,
+            Binding::ToLatin => &self.shortcut_to_latin,
         }
     }
 
@@ -137,7 +155,21 @@ impl Settings {
             Binding::Convert => self.shortcut_convert = accelerator,
             Binding::Undo => self.shortcut_undo = accelerator,
             Binding::Pause => self.shortcut_pause = accelerator,
+            Binding::ConvertLine => self.shortcut_convert_line = accelerator,
+            Binding::ToArabic => self.shortcut_to_arabic = accelerator,
+            Binding::ToLatin => self.shortcut_to_latin = accelerator,
         }
+    }
+
+    /// Pauses (`Some(until)`, or indefinitely with `None`) or resumes.
+    pub fn set_paused(&mut self, paused: bool, until: Option<u64>) {
+        self.paused = paused;
+        self.paused_until = if paused { until } else { None };
+    }
+
+    /// Whether a timed pause has run out at `now` (milliseconds since the Unix epoch).
+    pub fn pause_expired(&self, now: u64) -> bool {
+        self.paused && self.paused_until.is_some_and(|until| now >= until)
     }
 }
 
@@ -226,6 +258,29 @@ mod tests {
         settings.excluded_apps.retain(|id| id != "com.apple.Passwords");
         assert!(!settings.adopt_new_defaults());
         assert!(!settings.excluded_apps.contains(&"com.apple.Passwords".to_string()));
+    }
+
+    #[test]
+    fn a_timed_pause_runs_out_and_resuming_forgets_its_end() {
+        let mut settings = Settings::default();
+        settings.set_paused(true, Some(1_000));
+        assert!(!settings.pause_expired(999));
+        assert!(settings.pause_expired(1_000));
+        settings.set_paused(true, None);
+        assert!(!settings.pause_expired(u64::MAX));
+        settings.set_paused(false, Some(5));
+        assert_eq!((settings.paused, settings.paused_until), (false, None));
+    }
+
+    #[test]
+    fn a_file_from_before_the_optional_commands_reads_them_as_unbound() {
+        let json = serde_json::json!({ "shortcutConvert": "Alt+Shift+K", "paused": true });
+        let settings: Settings = serde_json::from_value(json).unwrap();
+        assert_eq!(settings.binding(Binding::Convert), "Alt+Shift+K");
+        for binding in [Binding::ConvertLine, Binding::ToArabic, Binding::ToLatin] {
+            assert_eq!(settings.binding(binding), "");
+        }
+        assert_eq!((settings.paused, settings.paused_until), (true, None));
     }
 
     #[test]

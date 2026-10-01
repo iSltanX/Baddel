@@ -118,6 +118,9 @@ pub struct Shortcuts {
     pub convert: String,
     pub undo: String,
     pub pause: String,
+    pub convert_line: String,
+    pub to_arabic: String,
+    pub to_latin: String,
 }
 
 /// The general preferences. The exceptions are a count, not a list: bundle identifiers would
@@ -132,6 +135,8 @@ pub struct SettingsSummary {
     pub sound: bool,
     pub auto_update: bool,
     pub paused: bool,
+    /// Whether the pause ends by itself. The time is left out: it says nothing about a problem.
+    pub paused_timed: bool,
     pub shortcuts: Shortcuts,
     pub excluded_count: usize,
     /// Whether the exceptions are exactly the defaults.
@@ -234,10 +239,14 @@ fn summary(s: &Settings) -> SettingsSummary {
         sound: s.sound,
         auto_update: s.auto_update,
         paused: s.paused,
+        paused_timed: s.paused && s.paused_until.is_some(),
         shortcuts: Shortcuts {
             convert: s.shortcut_convert.clone(),
             undo: s.shortcut_undo.clone(),
             pause: s.shortcut_pause.clone(),
+            convert_line: s.shortcut_convert_line.clone(),
+            to_arabic: s.shortcut_to_arabic.clone(),
+            to_latin: s.shortcut_to_latin.clone(),
         },
         excluded_count: s.excluded_apps.len(),
         excluded_default: current == defaults,

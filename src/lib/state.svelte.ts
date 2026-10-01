@@ -13,7 +13,7 @@ import ar from './i18n/ar.json'
 import en from './i18n/en.json'
 
 export type Language = 'ar' | 'en'
-export type Binding = 'convert' | 'undo' | 'pause'
+export type Binding = 'convert' | 'undo' | 'pause' | 'convertLine' | 'toArabic' | 'toLatin'
 
 export interface Settings {
   launchAtLogin: boolean
@@ -26,10 +26,14 @@ export interface Settings {
   shortcutConvert: string
   shortcutUndo: string
   shortcutPause: string
+  shortcutConvertLine: string
+  shortcutToArabic: string
+  shortcutToLatin: string
   arabicLayout: string
   latinLayout: string
   excludedApps: string[]
   paused: boolean
+  pausedUntil: number | null
   welcomed: boolean
 }
 

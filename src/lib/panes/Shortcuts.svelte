@@ -10,12 +10,21 @@
   /** Which row, if any, was last refused, and why. */
   let conflict = $state<{ row: Binding; reason: ShortcutConflict } | null>(null)
 
+  type Row = { binding: Binding; key: keyof Settings; fallback: string }
+
   /** Keep in step with `Settings::default` in `src-tauri/src/settings.rs`. */
-  const rows: { binding: Binding; key: keyof Settings; fallback: string }[] = [
+  const general: Row[] = [
     { binding: 'convert', key: 'shortcutConvert', fallback: 'Alt+Shift+Space' },
     { binding: 'undo', key: 'shortcutUndo', fallback: '' },
     { binding: 'pause', key: 'shortcutPause', fallback: '' },
   ]
+  /** The optional commands: never a default shortcut. */
+  const extra: Row[] = [
+    { binding: 'convertLine', key: 'shortcutConvertLine', fallback: '' },
+    { binding: 'toArabic', key: 'shortcutToArabic', fallback: '' },
+    { binding: 'toLatin', key: 'shortcutToLatin', fallback: '' },
+  ]
+  const rows = [...general, ...extra]
 
   const isDefault = $derived(rows.every((row) => settings[row.key] === row.fallback))
 
@@ -39,8 +48,8 @@
   }
 </script>
 
-<GroupCard title={t('settings.shortcuts.groupTitle')} footnote={t('settings.shortcuts.footnote')}>
-  {#each rows as row, index (row.binding)}
+{#snippet recorderRows(group: Row[])}
+  {#each group as row, index (row.binding)}
     <FormRow
       first={index === 0}
       title={t(`settings.shortcuts.rows.${row.binding}`)}
@@ -55,6 +64,15 @@
       />
     </FormRow>
   {/each}
+{/snippet}
+
+<GroupCard title={t('settings.shortcuts.groupTitle')}>
+  {@render recorderRows(general)}
+</GroupCard>
+
+<!-- `Settings / الاختصارات · ستة أوامر`: the optional commands in a group of their own. -->
+<GroupCard title={t('settings.shortcuts.extraGroupTitle')} footnote={t('settings.shortcuts.footnote')}>
+  {@render recorderRows(extra)}
   {#snippet footAction()}
     <Button variant="plain" disabled={isDefault} onclick={restoreDefaults}>
       {t('settings.shortcuts.restoreDefaults')}
