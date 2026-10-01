@@ -32,10 +32,15 @@ pub struct Conversion {
 /// a tie counts as Arabic, since Arabic text legitimately embeds Latin words more often than the reverse.
 ///
 /// Links, email addresses and file paths ([`is_protected`]) do not vote: a URL's dozen Latin
-/// letters would otherwise outvote the short Arabic-typed word beside it.
+/// letters would otherwise outvote the short Arabic-typed word beside it. [`LayoutMap::direction`]
+/// also leaves technical words out, which takes the layout to tell.
 pub fn detect_direction(text: &str) -> Option<Direction> {
+    vote(text, is_protected)
+}
+
+fn vote(text: &str, skip: impl Fn(&str) -> bool) -> Option<Direction> {
     let (mut arabic, mut latin) = (0usize, 0usize);
-    for c in split_keeping_whitespace(text).filter(|word| !is_protected(word)).flat_map(str::chars) {
+    for c in split_keeping_whitespace(text).filter(|word| !skip(word)).flat_map(str::chars) {
         if is_arabic(c) {
             arabic += 1;
         } else if c.is_alphabetic() {
@@ -96,21 +101,79 @@ pub(crate) struct Token<'a> {
     pub(crate) alt: Option<String>,
 }
 
+/// Whether a word, typed as it is with the Latin layout, can only be a technical token — a name
+/// like `iPhone` or `macOS`, or letters run together with digits (`mp3`, `x86_64`, `v2`) — and so
+/// stays as it is. Never on the strength of a dictionary: only by shape, and only where wrongly
+/// typed Arabic cannot take that shape.
+///
+/// - **Letters with digits.** The digit keys type digits on every Arabic layout, and an Arabic word
+///   does not run into a number.
+/// - **A capital inside a word** (between two letters) whose key types neither an Arabic letter
+///   nor a mark on the paired Arabic layout. Shift types أ إ آ ؤ ئ ء and the vowel marks there,
+///   and those land inside wrongly typed Arabic all the time (`sHg` is «سأل» on Arabic – PC); a
+///   capital that types `[`, `؛` or `«` instead never does. That makes it depend on the layout:
+///   `getElementById` is protected on Arabic – PC (I types ÷) but not on Arabic (I types a shadda).
+fn is_technical(map: &LayoutMap, word: &str) -> bool {
+    if word.chars().any(is_arabic) || !word.chars().any(|c| c.is_ascii_alphabetic()) {
+        return false;
+    }
+    if word.chars().any(|c| c.is_ascii_digit()) {
+        return true;
+    }
+    let table = &map.table(Direction::LatinToArabic).map;
+    let chars: Vec<char> = word.chars().collect();
+    chars.windows(3).any(|w| {
+        w[0].is_ascii_alphabetic() && w[1].is_ascii_uppercase() && w[2].is_ascii_alphabetic() && {
+            let typed = table.get(w[1].encode_utf8(&mut [0; 4]) as &str);
+            !typed.is_some_and(|out| out.chars().all(is_arabic_letter_or_mark))
+        }
+    })
+}
+
+/// Arabic letters (with the lam-alef ligatures a key may type) and the vowel marks — not the
+/// Arabic punctuation (، ؛ ؟), digits or the tatweel, which a key may type too.
+fn is_arabic_letter_or_mark(c: char) -> bool {
+    matches!(c as u32, 0x0621..=0x063A | 0x0641..=0x065F | 0x0670 | 0xFEF5..=0xFEFC)
+}
+
 impl LayoutMap {
     /// Detects the direction and converts. `None` when there is nothing to go on
     /// (no letters of either script) — the caller should leave the text alone.
     pub fn convert(&self, text: &str) -> Option<Conversion> {
-        let direction = detect_direction(text)?;
+        let direction = self.direction(text)?;
         Some(Conversion { text: self.convert_as(text, direction), direction })
     }
 
+    /// The majority vote of [`detect_direction`], with technical words left out as well as links:
+    /// in «اثممخ iPhone» the five Arabic letters decide, not iPhone's six Latin ones.
+    pub fn direction(&self, text: &str) -> Option<Direction> {
+        vote(text, |word| self.keeps(word))
+    }
+
     /// Converts in a known direction. Characters outside the map pass through unchanged, and so do
-    /// links, email addresses and file paths ([`is_protected`]).
+    /// links, email addresses and file paths ([`is_protected`]) and technical words such as `iPhone`
+    /// or `mp3` ([`is_technical`]).
     pub fn convert_as(&self, text: &str, direction: Direction) -> String {
+        self.convert_words(text, direction, |word| self.keeps(word))
+    }
+
+    /// Converts everything that belongs to `direction`, leaving nothing out: what the explicit
+    /// "Convert to Arabic / to English" commands do. They are the way to convert a word the
+    /// protections would otherwise keep, so they apply none.
+    pub fn convert_literal(&self, text: &str, direction: Direction) -> String {
+        self.convert_words(text, direction, |_| false)
+    }
+
+    /// Whether a word is kept exactly as it is in automatic conversion.
+    fn keeps(&self, word: &str) -> bool {
+        is_protected(word) || is_technical(self, word)
+    }
+
+    fn convert_words(&self, text: &str, direction: Direction, keep: impl Fn(&str) -> bool) -> String {
         let mut out = String::with_capacity(text.len());
         // Word by word, so that the dictionary check in `disambiguate` sees whole words.
         for segment in split_keeping_whitespace(text) {
-            if segment.starts_with(char::is_whitespace) || is_protected(segment) {
+            if segment.starts_with(char::is_whitespace) || keep(segment) {
                 out.push_str(segment);
                 continue;
             }
