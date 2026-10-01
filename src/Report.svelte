@@ -8,7 +8,8 @@
   import FormRow from './lib/components/FormRow.svelte'
   import GroupCard from './lib/components/GroupCard.svelte'
   import Icon from './lib/components/Icon.svelte'
-  import Keycap from './lib/components/Keycap.svelte'
+  import ReportDescription from './lib/components/ReportDescription.svelte'
+  import ReportImageField from './lib/components/ReportImageField.svelte'
   import Select from './lib/components/Select.svelte'
   import {
     clearReportImage,
@@ -55,10 +56,9 @@
     return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
   }
 
-  function imageLine(i: ReportImage, withName: boolean): string {
-    const format = i.mime === 'image/jpeg' ? 'JPEG' : 'PNG'
-    const parts = withName ? [i.name, i.mime] : [format]
-    return [...parts, size(i.bytes), `${i.width}×${i.height}`].join(' · ')
+  /** The preview names the image exactly as it is sent: file name, type, size, dimensions. */
+  function imageLine(i: ReportImage): string {
+    return [i.name, i.mime, size(i.bytes), `${i.width}×${i.height}`].join(' · ')
   }
 
   async function attach(task: () => Promise<ReportImage | null>) {
@@ -121,6 +121,8 @@
     setTimeout(() => (copied = null), 1600)
   }
 
+  const rejected = $derived(failure?.kind === 'rejected')
+
   const failureText = $derived.by(() => {
     if (!failure) return ''
     if (failure.kind === 'rate-limited') return t('report.failedRateLimited', { minutes: failure.minutes })
@@ -163,53 +165,9 @@
           </FormRow>
         </GroupCard>
 
-        <section class="group">
-          <h2><label for="description">{t('report.description')}</label></h2>
-          <textarea
-            id="description"
-            class="field"
-            dir={description ? 'auto' : undefined}
-            rows="5"
-            maxlength={MAX + 200}
-            placeholder={t('report.descriptionPlaceholder')}
-            bind:value={description}
-          ></textarea>
-          <div class="note">
-            <p>{t('report.descriptionHint')}</p>
-            <span class="counter" class:over={count > MAX}>{t('report.counter', { count, max: MAX })}</span>
-          </div>
-        </section>
+        <ReportDescription bind:value={description} max={MAX} />
 
-        <section class="group">
-          <h2>{t('report.image')}</h2>
-          <div class="card">
-            {#if image}
-              <div class="image-row">
-                <img class="thumb" src={image.thumbnail} alt="" />
-                <div class="image-text">
-                  <span>{t('report.attached')}</span>
-                  <span class="meta ltr">{imageLine(image, false)}</span>
-                </div>
-                <Button variant="plain" onclick={removeImage}>{t('report.remove')}</Button>
-              </div>
-            {:else}
-              <div class="image-row">
-                <span class="paste">
-                  {t('report.pasteHint')}
-                  <span class="keys ltr"><Keycap label="⌘" /><Keycap label="V" /></span>
-                </span>
-                <Button onclick={() => attach(pickReportImage)}>{t('report.chooseImage')}</Button>
-              </div>
-            {/if}
-          </div>
-          {#if image}
-            <p class="warning"><Icon name="warning" size={16} />{t('report.imageWarning')}</p>
-          {/if}
-          {#if imageError}
-            <p class="warning" role="alert"><Icon name="warning" size={16} />{imageError}</p>
-          {/if}
-          <div class="note"><p>{t('report.imageLimits')}</p></div>
-        </section>
+        <ReportImageField {image} error={imageError} onchoose={() => attach(pickReportImage)} onremove={removeImage} />
       {:else if screen === 'preview' && preview}
         <div class="lead">
           <p class="strong">{t('report.previewIntro')}</p>
@@ -217,16 +175,16 @@
         </div>
 
         <GroupCard title={t('report.groups.report')}>
-          <FormRow first title={t('report.fields.type')}>
+          <FormRow dense first title={t('report.fields.type')}>
             <span class="value ltr">{preview.kind}{preview.category ? ` · ${preview.category}` : ''}</span>
           </FormRow>
-          <FormRow title={t('report.fields.app')}><span class="value ltr">baddel {preview.appVersion}</span></FormRow>
-          <FormRow title={t('report.fields.system')}>
+          <FormRow dense title={t('report.fields.app')}><span class="value ltr">baddel {preview.appVersion}</span></FormRow>
+          <FormRow dense title={t('report.fields.system')}>
             <span class="value ltr">macos {preview.osVersion} · {preview.arch}</span>
           </FormRow>
-          <FormRow title={t('report.fields.locale')}><span class="value ltr">{preview.locale}</span></FormRow>
+          <FormRow dense title={t('report.fields.locale')}><span class="value ltr">{preview.locale}</span></FormRow>
           {#if preview.test}
-            <FormRow title={t('report.fields.test')}><span class="value ltr">true</span></FormRow>
+            <FormRow dense title={t('report.fields.test')}><span class="value ltr">true</span></FormRow>
           {/if}
         </GroupCard>
 
@@ -241,7 +199,7 @@
             <div class="card">
               <div class="image-row">
                 <img class="thumb" src={preview.image.thumbnail} alt="" />
-                <span class="meta ltr grow">{imageLine(preview.image, true)}</span>
+                <span class="meta ltr">{imageLine(preview.image)}</span>
               </div>
             </div>
           </section>
@@ -266,8 +224,10 @@
         </div>
       {:else if screen === 'failed'}
         <div class="result">
-          <span class="result-icon warning-tone"><Icon name="warning" size={44} /></span>
-          <h1>{t('report.failedTitle')}</h1>
+          <span class="result-icon" class:warning-tone={!rejected} class:danger-tone={rejected}>
+            <Icon name="warning" size={44} />
+          </span>
+          <h1>{rejected ? t('report.rejectedTitle') : t('report.failedTitle')}</h1>
           <p class="secondary">{failureText}</p>
           <p class="caption">{t('report.copyHint')}</p>
         </div>
@@ -285,8 +245,11 @@
     {:else if screen === 'sent'}
       <Button variant="primary" onclick={closeWindow}>{t('report.done')}</Button>
     {:else if screen === 'failed'}
-      <Button onclick={() => copy('report')}>{copied === 'report' ? t('report.copied') : t('report.copyReport')}</Button>
-      {#if failure?.kind !== 'rejected'}
+      <!-- A refused report cannot be retried: copying it is the one way left, so it leads. -->
+      <Button variant={rejected ? 'primary' : 'secondary'} disabled={busy} onclick={() => copy('report')}>
+        {copied === 'report' ? t('report.copied') : t('report.copyReport')}
+      </Button>
+      {#if !rejected}
         <Button variant="primary" loading={busy} onclick={send}>{t('report.retry')}</Button>
       {/if}
     {/if}
@@ -309,33 +272,39 @@
   .inner {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: var(--window-pad);
+    gap: var(--space-16);
+    padding: var(--space-20);
   }
 
   footer {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 14px var(--window-pad);
+    gap: var(--space-8);
+    min-height: 56px;
+    padding: 0 var(--space-20);
     border-top: 1px solid var(--border-subtle);
-  }
-
-  p {
-    margin: 0;
   }
 
   .intro,
   .secondary {
     color: var(--text-secondary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+  }
+
+  .intro {
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   .lead {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-2);
+  }
+
+  .lead .secondary {
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   .strong {
@@ -346,14 +315,14 @@
   .group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-8);
   }
 
   h2 {
     min-height: 22px;
-    padding-inline: 16px;
+    padding-inline: var(--space-16);
     font-family: var(--font-body);
-    font-size: var(--size-small);
+    font-size: var(--size-label);
     line-height: 22px;
     font-weight: 700;
     color: var(--text-secondary);
@@ -361,68 +330,21 @@
 
   .card {
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-md);
     background: var(--bg-surface);
     overflow: hidden;
   }
 
   .sunken {
-    background: var(--bg-sunken);
-  }
-
-  .note {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    padding-inline: 16px;
-    color: var(--text-secondary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
-  }
-
-  .note p {
-    flex: 1;
-  }
-
-  .counter {
-    flex: none;
-    color: var(--text-tertiary);
-  }
-
-  .counter.over {
-    color: var(--state-danger);
-  }
-
-  .field {
-    display: block;
-    width: 100%;
-    min-height: 120px;
-    padding: 8px 12px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-control);
-    background: var(--bg-surface);
-    box-shadow: var(--shadow-control);
-    font-size: var(--size-body);
-    line-height: var(--leading-body);
-    resize: none;
-    user-select: text;
-    cursor: text;
-  }
-
-  .field::placeholder {
-    color: var(--text-tertiary);
-  }
-
-  .field:focus-visible {
-    box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+    background: var(--bg-surface-secondary);
   }
 
   .image-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: var(--row-height);
-    padding: 10px 16px;
+    gap: var(--space-12);
+    min-height: 60px;
+    padding: var(--space-8) var(--space-16);
   }
 
   .thumb {
@@ -431,64 +353,33 @@
     flex: none;
     object-fit: cover;
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-keycap);
-    background: var(--bg-sunken);
+    border-radius: var(--radius-xs);
+    background: var(--bg-surface-secondary);
   }
 
-  .image-text {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
-  }
-
+  /* A Latin line inside an RTL card: it hugs its text from the reading side. */
   .meta {
+    flex: 1;
+    min-width: 0;
     color: var(--text-secondary);
     font-family: var(--font-latin);
-    font-size: var(--size-caption);
-    line-height: var(--leading-small);
+    font-size: var(--size-latin-small);
+    line-height: var(--leading-label);
+    text-align: end;
   }
 
-  .grow {
-    flex: 1;
-  }
-
-  .paste {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    gap: 8px;
-    color: var(--text-secondary);
-    font-size: var(--size-small);
-  }
-
-  .keys {
-    display: inline-flex;
-    gap: 3px;
-  }
-
-  .warning {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding-inline: 16px;
-    color: var(--state-warning-text);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
-  }
-
-  .warning :global(svg) {
-    color: var(--state-warning);
+  :global([dir='ltr']) .meta {
+    text-align: start;
   }
 
   .value {
     color: var(--text-secondary);
     font-family: var(--font-latin);
-    font-size: 13px;
+    font-size: var(--size-latin);
   }
 
   .description {
-    padding: 10px 16px;
+    padding: var(--space-12) var(--space-16);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     user-select: text;
@@ -496,7 +387,7 @@
 
   pre {
     margin: 0;
-    padding: 10px 16px;
+    padding: var(--space-12) var(--space-16);
     font-family: var(--font-mono);
     font-size: var(--size-caption);
     line-height: var(--leading-caption);
@@ -509,24 +400,24 @@
   .promise {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    border-radius: var(--radius-card);
-    background: var(--accent-soft);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    gap: var(--space-8);
+    padding: var(--space-12) var(--space-16);
+    border-radius: var(--radius-md);
+    background: var(--bg-selected);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   .promise :global(svg) {
-    color: var(--accent-primary);
+    color: var(--text-brand);
   }
 
   .result {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px 12px;
+    gap: var(--space-12);
+    padding: var(--space-32) var(--space-48);
     text-align: center;
   }
 
@@ -535,40 +426,46 @@
   }
 
   .success {
-    color: var(--state-success);
+    color: var(--success);
   }
 
   .warning-tone {
-    color: var(--state-warning);
+    color: var(--warning);
+  }
+
+  .danger-tone {
+    color: var(--danger);
   }
 
   h1 {
     font-size: var(--size-title);
     line-height: var(--leading-title);
-    font-weight: 700;
   }
 
   .number-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-12);
   }
 
   .number {
-    padding: 4px 18px;
-    border-radius: var(--radius-card);
-    background: var(--accent-soft);
-    color: var(--accent-primary);
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 var(--space-16);
+    border-radius: var(--radius-md);
+    background: var(--bg-selected);
+    color: var(--text-brand);
     font-family: var(--font-latin);
-    font-size: var(--size-sample);
-    line-height: var(--leading-sample);
+    font-size: 21px;
+    line-height: 32px;
     font-weight: 600;
     user-select: text;
   }
 
   .caption {
     color: var(--text-tertiary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 </style>

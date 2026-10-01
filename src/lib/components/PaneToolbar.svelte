@@ -36,22 +36,23 @@
   .toolbar {
     display: flex;
     justify-content: center;
-    gap: 4px;
-    padding: 4px 12px 8px;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-12) var(--space-8);
     border-bottom: 1px solid var(--border-subtle);
     background: var(--bg-chrome);
   }
 
+  /* `PaneTab` in 02 — Components. */
   button {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: var(--space-2);
     width: 80px;
     height: 52px;
     border: none;
-    border-radius: var(--radius-tab);
+    border-radius: var(--radius-md);
     background: none;
     color: var(--text-secondary);
     transition: background-color 120ms ease-out;
@@ -61,10 +62,15 @@
     background: var(--overlay-hover);
   }
 
-  /* Quiet on purpose: the selected pane is marked, but the content stays the loudest thing. */
+  button:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  /* Quiet on purpose: the selected pane is marked, but the content stays the loudest thing.
+     The mark is the brand text colour, which holds its contrast on the mint tint. */
   .selected {
-    background: var(--accent-soft);
-    color: var(--accent-primary);
+    background: var(--bg-selected);
+    color: var(--text-brand);
   }
 
   span {

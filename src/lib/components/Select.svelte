@@ -2,7 +2,7 @@
   import Icon from './Icon.svelte'
 
   /**
-   * A pop-up button. Built on `<select>` so it keeps the system's own menu and
+   * `Popup` in 02 — Components: a pop-up button. Built on `<select>` so it keeps the system's own menu and
    * keyboard behaviour; only the closed control is drawn by us. Its width is the
    * shared control column, and a long value is cut with an ellipsis.
    */
@@ -41,13 +41,12 @@
 
   select {
     width: 100%;
-    height: var(--control-height);
+    height: var(--control-md);
     /* Room for the chevron on the trailing side, whichever side that is. */
-    padding-inline: 10px 26px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-control);
+    padding-inline: var(--space-12) calc(var(--space-8) + 16px + var(--space-8));
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     background: var(--bg-surface);
-    box-shadow: var(--shadow-control);
     font-size: var(--size-body);
     line-height: var(--leading-body);
     text-overflow: ellipsis;
@@ -60,13 +59,13 @@
   }
 
   select:focus-visible {
-    box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+    box-shadow: var(--focus-ring);
   }
 
   .chevron {
     position: absolute;
     inset-block: 0;
-    inset-inline-end: 6px;
+    inset-inline-end: var(--space-8);
     display: grid;
     place-items: center;
     color: var(--text-secondary);
@@ -75,9 +74,5 @@
 
   .disabled {
     opacity: 0.4;
-  }
-
-  .disabled select {
-    box-shadow: none;
   }
 </style>

@@ -97,6 +97,21 @@ export interface ReportPreview {
   image: ReportImage | null
 }
 
+/** What a conversion attempt came to, as the `conversion` event names it. Never any text. */
+export type Outcome =
+  | 'converted'
+  | 'extended'
+  | 'undone'
+  | 'unchanged'
+  | 'no-text'
+  | 'too-long'
+  | 'blocked'
+  | 'excluded'
+  | 'paused'
+  | 'no-permission'
+  | 'no-layouts'
+  | 'failed'
+
 export type SendFailure =
   | { kind: 'retry' }
   | { kind: 'rate-limited'; minutes: number }
@@ -117,10 +132,20 @@ export const app = $state({
   update: { phase: 'idle', version: null, lastChecked: null } as UpdateStatus,
 })
 
+/**
+ * Subscribes to an app event. Outside Tauri, during development, the mock plays the app's
+ * part, so the screens that react to events can be reviewed too.
+ */
+let subscribe: <T>(event: string, handler: (payload: T) => void) => Promise<() => void> = async (event, handler) =>
+  listen(event, (message) => handler(message.payload as never))
+
 /** Loads the initial state and subscribes to changes made elsewhere. */
 export async function start(): Promise<void> {
   if (import.meta.env.DEV && !('__TAURI_INTERNALS__' in window)) {
-    invoke = (await import('./mock')).mockInvoke
+    const mock = await import('./mock')
+    invoke = mock.mockInvoke
+    subscribe = mock.mockSubscribe
+    void subscribe<boolean>('permission', (granted) => (app.permission = granted))
   }
   app.settings = await invoke<Settings>('get_settings')
   app.permission = await invoke<boolean>('permission_granted')
@@ -187,7 +212,12 @@ export const appVersion = () => invoke<string>('app_version')
 export const checkForUpdates = () => invoke<void>('check_for_updates')
 export const installUpdate = () => invoke<void>('install_update')
 export const previewHud = () => invoke<void>('preview_hud')
+/** Every conversion attempt, as it happens. Returns the unsubscribe function. */
+export const onConversion = (handler: (outcome: Outcome) => void) => subscribe<Outcome>('conversion', handler)
 export const openOnboarding = () => invoke<void>('open_onboarding')
+/** True while Baddel runs from the disk image or a translocated download. */
+export const appNeedsMove = () => invoke<boolean>('app_needs_move')
+export const revealAppInFinder = () => invoke<void>('reveal_app_in_finder')
 export const finishOnboarding = () => invoke<void>('finish_onboarding')
 export const openExternal = (url: string) => invoke<void>('open_external', { url })
 export const copyDiagnostics = () => invoke<void>('copy_diagnostics')

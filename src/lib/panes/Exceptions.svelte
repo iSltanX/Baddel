@@ -59,20 +59,19 @@
   .pane {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-12);
   }
 
   .intro {
-    margin: 0;
-    padding-inline: 16px;
+    padding-inline: var(--space-16);
     color: var(--text-secondary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   .card {
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-md);
     background: var(--bg-surface);
     overflow: hidden;
   }
@@ -81,8 +80,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 32px 24px;
+    gap: var(--space-12);
+    padding: var(--space-32) var(--space-24);
     text-align: center;
   }
 
@@ -91,15 +90,15 @@
     place-items: center;
     width: 48px;
     height: 48px;
-    border-radius: 50%;
-    background: var(--bg-sunken);
+    border-radius: var(--radius-full);
+    background: var(--bg-surface-secondary);
     color: var(--text-secondary);
   }
 
   .text {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-2);
   }
 
   .text strong {
@@ -109,21 +108,22 @@
 
   .text span {
     color: var(--text-secondary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
+  /* The last row adds an app: the brand text colour marks it as the action it is. */
   .add {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-12);
     width: 100%;
-    min-height: var(--row-height);
-    padding: 6px 16px;
+    min-height: var(--row-min);
+    padding: var(--space-8) var(--space-16);
     border: none;
     background: none;
-    color: var(--accent-primary);
+    color: var(--text-brand);
     font-size: var(--size-body);
     line-height: var(--leading-body);
     text-align: start;
@@ -138,12 +138,16 @@
     background: var(--border-subtle);
   }
 
+  .add:first-child::before {
+    display: none;
+  }
+
   .add:hover:not(:disabled) {
     background: var(--overlay-hover);
   }
 
   .add:focus-visible {
-    box-shadow: inset 0 0 0 var(--focus-width) var(--focus-ring);
+    box-shadow: inset var(--focus-ring);
   }
 
   .add:disabled {

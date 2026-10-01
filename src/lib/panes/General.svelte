@@ -155,17 +155,17 @@
   .permission {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-8);
   }
 
   h2 {
     display: flex;
     align-items: center;
     min-height: 22px;
-    padding-inline: 16px;
+    padding-inline: var(--space-16);
     font-family: var(--font-body);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
     font-weight: 700;
     color: var(--text-secondary);
   }

@@ -61,10 +61,11 @@
 </main>
 
 <style>
+  /* Content: the 20pt window margin, 24 below the last group, groups 20 apart. */
   main {
     display: flex;
     flex-direction: column;
-    gap: var(--group-gap);
-    padding: var(--window-pad);
+    gap: var(--space-20);
+    padding: var(--space-20) var(--space-20) var(--space-24);
   }
 </style>

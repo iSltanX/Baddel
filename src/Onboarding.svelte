@@ -1,61 +1,122 @@
 <script lang="ts">
+  /**
+   * The welcome window — `A2 — Welcome / First Run` in 06 — Onboarding. Four steps: what
+   * Baddel is, how a conversion goes, the one permission, and a first real conversion in a
+   * field of its own. Success is a new user reaching that first conversion from here alone.
+   */
   import Button from './lib/components/Button.svelte'
-  import ConversionSample from './lib/components/ConversionSample.svelte'
+  import Callout from './lib/components/Callout.svelte'
+  import HowStep from './lib/components/HowStep.svelte'
   import Icon from './lib/components/Icon.svelte'
   import Keycap from './lib/components/Keycap.svelte'
   import PermissionCard from './lib/components/PermissionCard.svelte'
-  import ShortcutRecorder from './lib/components/ShortcutRecorder.svelte'
-  import { listen } from '@tauri-apps/api/event'
+  import PracticeField from './lib/components/PracticeField.svelte'
+  import WelcomeProgress from './lib/components/WelcomeProgress.svelte'
   import { toGlyphs } from './lib/accelerator'
   import {
     app,
+    appNeedsMove,
     convertText,
+    direction,
     finishOnboarding,
+    onConversion,
+    requestPermission,
     reveal,
-    setShortcut,
+    revealAppInFinder,
     t,
+    type Outcome,
     type Settings,
   } from './lib/state.svelte'
   import iconUrl from './assets/app-icon.png'
 
-  const STEPS = 3
+  const STEPS = 4
+  /** How long the "granted" confirmation stays before the window moves on by itself. */
+  const ADVANCE_AFTER_MS = 1200
+  /** Outcomes that mean the shortcut reached Baddel but the word did not change. */
+  const NOTHING: Outcome[] = ['no-permission', 'no-text', 'unchanged', 'failed', 'paused', 'no-layouts']
 
   const settings = $derived(app.settings as Settings)
+  const keys = $derived(toGlyphs(settings.shortcutConvert))
 
-  let step = $state(Number(new URLSearchParams(location.search).get('step')) || 1)
-  let practice = $state(t('onboarding.step3.practiceText'))
-  let converted = $state(false)
-  let conflict = $state(false)
+  const requested = Number(new URLSearchParams(location.search).get('step'))
+  let step = $state(requested >= 1 && requested <= STEPS ? requested : 1)
+
+  /** Running from the disk image or a translocated download: ask for a move first. */
+  let needsMove = $state(false)
+  $effect(() => {
+    void appNeedsMove().then((value) => (needsMove = value))
+  })
+
+  // ── Step 3: the permission ─────────────────────────────────────────────────
+  /** System Settings is open and Baddel is watching for the switch. */
+  let checking = $state(false)
+  /** Granted while this step was on screen: confirm it, then move on by itself. */
+  let advancing = $state(false)
+  let grantedBefore = app.permission
+
+  $effect(() => {
+    const granted = app.permission
+    if (granted && !grantedBefore && step === 3) {
+      advancing = true
+      setTimeout(() => {
+        advancing = false
+        if (step === 3) step = 4
+      }, ADVANCE_AFTER_MS)
+    }
+    if (!granted) advancing = false
+    grantedBefore = granted
+  })
+
+  // ── Step 4: the first conversion ───────────────────────────────────────────
+  let practice = $state(t('onboarding.practice.word'))
+  let practiceInput = $state<HTMLInputElement>()
+  let outcome = $state<'ready' | 'success' | 'nothing' | 'secure'>('ready')
 
   /**
-   * The step teaches by doing: the user puts the caret in the field and presses the
-   * real shortcut, which converts it in place like any other app. Return does the
-   * same thing for anyone whose shortcut is not bound yet.
+   * The step teaches by doing: the user puts the caret after the word and presses the real
+   * shortcut, which converts it in place like in any other app. The button (and Return) runs
+   * the same conversion for anyone whose shortcut does not reach the field.
    */
   async function tryIt() {
     const result = await convertText(practice)
     if (result && result !== practice) {
       practice = result
-      converted = true
+      outcome = 'success'
+    } else {
+      outcome = 'nothing'
     }
   }
 
   // A conversion anywhere while this step is open was this field: the window has focus.
+  // The event carries the outcome only; the converted word is read back from the field.
   $effect(() => {
-    // Only the app itself reports conversions; in a browser there are none to hear.
-    if (step !== 3 || !('__TAURI_INTERNALS__' in window)) return
-    const stop = listen<string>('conversion', (event) => {
-      if (event.payload === 'converted' || event.payload === 'extended') converted = true
+    if (step !== 4) return
+    const stop = onConversion((result) => {
+      if (outcome === 'success') return
+      if (result === 'converted' || result === 'extended') {
+        practice = practiceInput?.value ?? practice
+        outcome = 'success'
+      } else if (result === 'blocked') {
+        outcome = 'secure'
+      } else if (NOTHING.includes(result)) {
+        outcome = 'nothing'
+      }
     })
     return () => void stop.then((unlisten) => unlisten())
   })
 
-  const primaryLabel = $derived(step === STEPS ? t('onboarding.start') : t('onboarding.next'))
-  /**
-   * One primary action per screen. While the permission is missing, that action is
-   * the card's own button, so "Next" steps back to a secondary one.
-   */
-  const primaryVariant = $derived(step === 2 && !app.permission ? 'secondary' : 'primary')
+  // The field takes the focus on arrival, with the caret after the word.
+  $effect(() => {
+    if (step !== 4 || !practiceInput) return
+    practiceInput.focus()
+    practiceInput.setSelectionRange(practice.length, practice.length)
+  })
+
+  // ── Footer ─────────────────────────────────────────────────────────────────
+  const primaryLabel = $derived(
+    step === 1 ? t('onboarding.start') : step === STEPS ? t('onboarding.done') : t('onboarding.continue'),
+  )
+  const primaryDisabled = $derived((step === 3 && !app.permission) || (step === 4 && outcome !== 'success'))
 
   function primary() {
     if (step === STEPS) {
@@ -72,100 +133,129 @@
 
 <div class="window">
   <!-- The window's title bar is an overlay: this empty strip is what shows through it,
-       and what the window is dragged by. The traffic lights float over it, on
-       whichever side macOS reads from. -->
+       and what the window is dragged by. The traffic lights float over it. -->
   <header data-tauri-drag-region></header>
 
-  <main>
-    <div class="hero">
-      {#if step === 1}
-        <img src={iconUrl} alt="" width="104" height="104" />
-      {:else}
-        <span class="glyph"><Icon name={step === 2 ? 'accessibility' : 'keyboard'} size={32} /></span>
-      {/if}
-    </div>
-
-    <div class="heading">
-      <h1>{t(`onboarding.step${step}.title`)}</h1>
-      <p>{t(`onboarding.step${step}.body`)}</p>
-    </div>
-
+  <main class="step-{step}" class:compact={step === 1 && needsMove}>
     {#if step === 1}
-      <div class="card">
-        <div class="shortcut-row">
-          <span>{t('onboarding.step1.shortcutLabel')}</span>
-          <span class="keys">
-            {#each toGlyphs(settings.shortcutConvert) as glyph (glyph)}
-              <Keycap label={glyph} size="m" />
-            {/each}
+      <img class="app-icon" src={iconUrl} alt="" width={needsMove ? 72 : 88} height={needsMove ? 72 : 88} />
+      <h1>{t('onboarding.welcome.title')}</h1>
+      <p class="body">{t('onboarding.welcome.body')}</p>
+      <div class="example">
+        <span class="pair">
+          <bdi class="from">{t('onboarding.welcome.sampleFrom')}</bdi>
+          <span class="arrow" aria-hidden="true">{direction() === 'rtl' ? '←' : '→'}</span>
+          <bdi class="to">{t('onboarding.welcome.sampleTo')}</bdi>
+        </span>
+        <span class="shortcut">
+          <span class="label">{t('onboarding.welcome.shortcutLabel')}</span>
+          <span class="keys ltr">
+            {#each keys as key (key)}<Keycap label={key} size="m" />{/each}
           </span>
-        </div>
-        <div class="samples">
-          <ConversionSample from={t('onboarding.step1.sample1From')} to={t('onboarding.step1.sample1To')} size="hero" />
-          <ConversionSample from={t('onboarding.step1.sample2From')} to={t('onboarding.step1.sample2To')} size="hero" />
-        </div>
+        </span>
       </div>
+      {#if needsMove}
+        <div class="stretch">
+          <Callout tone="warning" title={t('onboarding.welcome.moveTitle')} body={t('onboarding.welcome.moveBody')}>
+            {#snippet action()}
+              <Button onclick={revealAppInFinder}>{t('onboarding.welcome.showInFinder')}</Button>
+            {/snippet}
+          </Callout>
+        </div>
+      {/if}
     {:else if step === 2}
-      <ul class="card reassurance">
-        <li><Icon name="noEye" />{t('onboarding.step2.reassurance.noKeylogging')}</li>
-        <li><Icon name="noWifi" />{t('onboarding.step2.reassurance.noInternet')}</li>
-        <li><Icon name="noSave" />{t('onboarding.step2.reassurance.noTextStorage')}</li>
-      </ul>
-      <div class="stretch"><PermissionCard /></div>
-    {:else}
-      <div class="practice" class:converted>
-        <input
-          bind:value={practice}
-          dir="auto"
-          aria-label={t('onboarding.step3.title')}
-          onkeydown={(event) => event.key === 'Enter' && tryIt()}
-        />
-        {#if converted}<span class="done"><Icon name="checkCircle" size={22} /></span>{/if}
+      <span class="hero"><Icon name="swap" size={28} /></span>
+      <h1>{t('onboarding.how.title')}</h1>
+      <p class="body">{t('onboarding.how.body')}</p>
+      <div class="how">
+        <HowStep stage="type" number={1} label={t('onboarding.how.type')} from={t('onboarding.welcome.sampleFrom')} to={t('onboarding.welcome.sampleTo')} {keys} />
+        <span class="next"><Icon name="chevronRight" size={14} flip /></span>
+        <HowStep stage="press" number={2} label={t('onboarding.how.press')} from={t('onboarding.welcome.sampleFrom')} to={t('onboarding.welcome.sampleTo')} {keys} />
+        <span class="next"><Icon name="chevronRight" size={14} flip /></span>
+        <HowStep stage="fixed" number={3} label={t('onboarding.how.fixed')} from={t('onboarding.welcome.sampleFrom')} to={t('onboarding.welcome.sampleTo')} {keys} />
       </div>
-      {#if converted}
-        <p class="helper success" role="status">
-          <Icon name="checkCircle" size={16} />
-          {t('onboarding.step3.successMessage')}
-        </p>
+      <p class="note">{t('onboarding.how.note')}</p>
+    {:else if step === 3}
+      <span class="hero"><Icon name="accessibility" size={28} /></span>
+      <h1>{t('onboarding.permission.title')}</h1>
+      <p class="body">{t('onboarding.permission.body')}</p>
+      {#if checking && !app.permission}
+        <!-- Where to look in System Settings, drawn simply: the row and its switch. -->
+        <div class="system stretch">
+          <p>{t('onboarding.permission.path')}</p>
+          <div class="system-row">
+            <img src={iconUrl} alt="" width="22" height="22" />
+            <strong>{t('onboarding.permission.appName')}</strong>
+            <span class="system-switch" aria-hidden="true"><span></span></span>
+          </div>
+        </div>
       {:else}
-        <p class="helper">
-          {t('onboarding.step3.practiceHelper')}
-          <span class="keys">
-            {#each toGlyphs(settings.shortcutConvert) as glyph (glyph)}
-              <Keycap label={glyph} />
-            {/each}
-          </span>
+        <ul class="reassurance stretch">
+          <li><Icon name="shield" />{t('onboarding.permission.local')}</li>
+          <li><Icon name="noWifi" />{t('onboarding.permission.noServer')}</li>
+          <li><Icon name="noSave" />{t('onboarding.permission.noSave')}</li>
+        </ul>
+      {/if}
+      <div class="stretch"><PermissionCard {checking} onrequest={() => (checking = true)} /></div>
+      {#if advancing}
+        <p class="advancing" role="status">
+          {t('onboarding.permission.advancing')}
+          <span class="spin"><Icon name="spinner" size={16} /></span>
         </p>
       {/if}
-      <div class="card your-shortcut">
-        <div class="text">
-          <span>{t('onboarding.step3.recorderLabel')}</span>
-          <span class="caption" class:warning={conflict}>
-            {conflict ? t('shortcut.recorder.conflict') : t('onboarding.step3.recorderCaption')}
-          </span>
+    {:else}
+      <span class="hero"><Icon name="keyboard" size={28} /></span>
+      <h1>{t('onboarding.practice.title')}</h1>
+      <p class="body">{t('onboarding.practice.body')}</p>
+      <PracticeField
+        bind:value={practice}
+        bind:input={practiceInput}
+        done={outcome === 'success'}
+        label={t('onboarding.practice.title')}
+        onenter={tryIt}
+      />
+      {#if outcome === 'success'}
+        <div class="stretch">
+          <Callout tone="success" title={t('onboarding.practice.successTitle')} body={t('onboarding.practice.successBody')} />
         </div>
-        <ShortcutRecorder
-          value={settings.shortcutConvert}
-          {conflict}
-          label={t('settings.shortcuts.rows.convert')}
-          onrecord={async (accelerator) => (conflict = await setShortcut('convert', accelerator))}
-        />
-      </div>
+      {:else}
+        <div class="press stretch">
+          <span class="label">{t('onboarding.practice.press')}</span>
+          <span class="keys ltr">
+            {#each keys as key (key)}<Keycap label={key} size="m" />{/each}
+          </span>
+          <span class="spacer"></span>
+          <Button onclick={tryIt}>{t('onboarding.practice.tryButton')}</Button>
+        </div>
+        {#if outcome === 'nothing'}
+          <div class="stretch">
+            <Callout tone="warning" title={t('onboarding.practice.nothingTitle')} body={t('onboarding.practice.nothingBody')}>
+              {#snippet action()}
+                <Button onclick={requestPermission}>{t('permission.openSystemSettings')}</Button>
+              {/snippet}
+            </Callout>
+          </div>
+        {:else if outcome === 'secure'}
+          <div class="stretch">
+            <Callout tone="info" title={t('onboarding.practice.secureTitle')} body={t('onboarding.practice.secureBody')} />
+          </div>
+        {/if}
+      {/if}
     {/if}
   </main>
 
   <footer>
-    <Button variant="plain" onclick={() => finishOnboarding()}>{t('onboarding.skip')}</Button>
-    <div class="dots" aria-hidden="true">
-      {#each { length: STEPS } as _, index (index)}
-        <span class="dot" class:active={index + 1 === step}></span>
-      {/each}
-    </div>
+    <span class="skip">
+      {#if !(step === STEPS && outcome === 'success')}
+        <Button variant="plain" onclick={() => finishOnboarding()}>{t('onboarding.skip')}</Button>
+      {/if}
+    </span>
+    <span class="progress"><WelcomeProgress {step} steps={STEPS} /></span>
     <div class="actions">
       {#if step > 1}
         <Button size="large" onclick={() => (step -= 1)}>{t('onboarding.back')}</Button>
       {/if}
-      <Button variant={primaryVariant} size="large" onclick={primary}>{primaryLabel}</Button>
+      <Button variant="primary" size="large" disabled={primaryDisabled} onclick={primary}>{primaryLabel}</Button>
     </div>
   </footer>
 </div>
@@ -188,99 +278,160 @@
     flex: 1;
     flex-direction: column;
     align-items: center;
-    padding: 8px 48px 24px;
+    gap: var(--space-16);
+    min-height: 0;
+    padding: var(--space-32) var(--space-48) var(--space-24);
     text-align: center;
+    /* The three moments of step 2 run into the side margins on purpose; only the window
+       edge clips. */
+    overflow-x: hidden;
     overflow-y: auto;
   }
 
-  /* One fixed slot for the step's picture keeps the heading from jumping between steps. */
-  .hero {
-    display: grid;
-    place-items: center;
-    height: 96px;
+  /* The permission step and the "move it first" note carry more, so they sit tighter. */
+  main.step-3,
+  main.compact {
+    gap: var(--space-12);
+    padding-top: var(--space-24);
+  }
+
+  main.compact {
+    padding-top: var(--space-20);
+  }
+
+  .app-icon {
+    display: block;
     flex: none;
   }
 
-  .glyph {
+  .hero {
     display: grid;
     place-items: center;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: var(--accent-soft);
-    color: var(--accent-primary);
+    width: 64px;
+    height: 64px;
+    flex: none;
+    border-radius: var(--radius-lg);
+    background: var(--bg-selected);
+    color: var(--text-brand);
   }
 
-  .heading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding-block: 16px 24px;
-  }
-
+  /* Display/Brand. */
   h1 {
-    font-size: var(--size-large);
-    line-height: var(--leading-large);
-    font-weight: 700;
+    font-size: var(--size-display);
+    line-height: var(--leading-display);
+    white-space: pre-line;
   }
 
-  .heading p {
-    margin: 0;
-    max-width: 464px;
+  .body {
+    max-width: 462px;
     color: var(--text-secondary);
   }
 
-  /* Cards fill the width; headings and the picture stay centred on their own. */
-  .card,
-  .stretch,
-  .practice {
-    width: 100%;
+  .stretch {
+    align-self: stretch;
   }
 
-  .card {
+  /* Step 1: the conversion itself, as big as the window allows. */
+  .example {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: stretch;
+    gap: var(--space-12);
+    padding: var(--space-16) 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+  }
+
+  .pair {
+    display: flex;
+    align-items: center;
+    gap: var(--space-16);
+  }
+
+  .from {
+    color: var(--text-tertiary);
+    font-size: 26px;
+    line-height: 30px;
+  }
+
+  /* The coral dot of this screen: the one mark that says "this is the moment". */
+  .arrow {
+    color: var(--accent);
+    font-family: var(--font-latin);
+    font-size: 22px;
+    line-height: 26px;
+  }
+
+  .to {
+    color: var(--text-brand);
+    font-family: var(--font-latin);
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 36px;
+  }
+
+  .shortcut,
+  .press {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  .label {
+    color: var(--text-secondary);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
+  }
+
+  .keys {
+    display: inline-flex;
+    gap: var(--space-4);
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  /* Step 2: three moments, wider than the text column above them. */
+  .how {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex: none;
+  }
+
+  .next {
+    display: grid;
+    color: var(--text-tertiary);
+  }
+
+  .note {
+    color: var(--text-tertiary);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
+  }
+
+  /* Step 3. */
+  .reassurance {
     margin: 0;
     padding: 0;
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-md);
     background: var(--bg-surface);
     list-style: none;
     overflow: hidden;
     text-align: start;
   }
 
-  .shortcut-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 48px;
-    padding: 0 16px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .samples {
-    display: flex;
-  }
-
-  .samples > :global(*) {
-    flex: 1;
-    justify-content: center;
-    padding: 20px 8px;
-  }
-
-  .samples > :global(* + *) {
-    border-inline-start: 1px solid var(--border-subtle);
-  }
-
   .reassurance li {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-12);
     min-height: 40px;
-    padding: 0 16px;
-    color: var(--text-primary);
+    padding: 0 var(--space-16);
   }
 
   .reassurance li :global(svg) {
@@ -296,104 +447,73 @@
     background: var(--border-subtle);
   }
 
-  .stretch {
-    margin-top: 12px;
-  }
-
-  /* The practice field is the step: big, focused, and it turns green when it worked. */
-  .practice {
+  .system {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 64px;
-    padding: 0 20px;
-    border: 1.5px solid var(--accent-primary);
-    border-radius: var(--radius-card);
-    background: var(--bg-surface);
-    box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+    flex-direction: column;
+    gap: var(--space-8);
+    padding: var(--space-12) var(--space-16);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface-secondary);
+    text-align: start;
   }
 
-  .practice input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    outline: none;
-    background: none;
-    box-shadow: none;
-    font-size: var(--size-sample);
-    line-height: var(--leading-sample);
-    font-weight: 700;
-    caret-color: var(--accent-primary);
-    user-select: text;
-  }
-
-  .converted {
-    border-color: var(--state-success);
-    background: var(--state-success-soft);
-    box-shadow: none;
-  }
-
-  .converted input {
-    caret-color: var(--state-success);
-  }
-
-  .done {
-    display: grid;
-    color: var(--state-success);
-  }
-
-  .helper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 0;
-    padding-block: 12px 20px;
+  .system p {
     color: var(--text-secondary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
-  .success {
-    color: var(--state-success);
-    font-size: var(--size-body);
-    line-height: var(--leading-body);
-    font-weight: 700;
+  .system-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-8) var(--space-12);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
   }
 
-  .keys {
-    display: inline-flex;
-    gap: 4px;
+  .system-row strong {
+    flex: 1;
+  }
+
+  .system-switch {
+    display: flex;
+    justify-content: flex-end;
+    width: 32px;
+    height: 18px;
+    padding: var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--action-primary);
     direction: ltr;
   }
 
-  .helper .keys {
-    gap: 3px;
+  .system-switch span {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--control-knob);
   }
 
-  .your-shortcut {
+  .advancing {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 56px;
-    padding: 10px 16px;
+    gap: var(--space-8);
+    color: var(--text-brand);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
+    font-weight: 700;
   }
 
-  .your-shortcut .text {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
+  .spin {
+    display: grid;
+    animation: spin 900ms linear infinite;
   }
 
-  .caption {
-    color: var(--text-secondary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
-  }
-
-  .warning {
-    color: var(--state-warning-text);
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   footer {
@@ -401,38 +521,28 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--space-8);
     height: 68px;
     flex: none;
-    padding: 0 20px;
+    padding: 0 var(--space-24);
     border-top: 1px solid var(--border-subtle);
+  }
+
+  .skip {
+    min-width: 56px;
   }
 
   .actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-8);
   }
 
   /* Centred on the window, not between the buttons, so it holds still as they change. */
-  .dots {
+  .progress {
     position: absolute;
     inset-inline: 0;
     display: flex;
     justify-content: center;
-    gap: 6px;
     pointer-events: none;
-  }
-
-  .dot {
-    width: 8px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--border-strong);
-    transition: width 150ms ease-out;
-  }
-
-  .active {
-    width: 24px;
-    background: var(--accent-primary);
   }
 </style>

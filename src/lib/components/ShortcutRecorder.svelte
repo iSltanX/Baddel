@@ -5,7 +5,7 @@
   import { t } from '../state.svelte'
 
   /**
-   * The shortcut field. It is as wide as a pop-up, so the control column stays a
+   * `Recorder` in 02 — Components: the shortcut field. It is as wide as a pop-up, so the control column stays a
    * column. The keys start where the field starts, and the clear button lives
    * inside the field on the far side, shown on hover or focus. A conflict is
    * explained by the row that owns the recorder, not by the recorder itself.
@@ -89,11 +89,11 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: var(--control-height);
-    padding: 0 4px;
+    height: var(--control-md);
+    padding: 0 var(--space-4);
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-control);
-    background: var(--bg-sunken);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface-secondary);
     transition: border-color 120ms ease-out;
   }
 
@@ -102,23 +102,29 @@
     justify-content: flex-start;
   }
 
-  .field:hover:not(:disabled) {
-    border-color: var(--border-strong);
+  .recorder:hover .field:not(:disabled) {
+    border-color: var(--border-default);
   }
 
-  .recording .field {
-    border: 1.5px solid var(--accent-primary);
+  .recording .field,
+  .recording:hover .field {
+    border: 1.5px solid var(--action-primary);
     background: var(--bg-surface);
-    box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+    box-shadow: var(--focus-ring);
+  }
+
+  .field:focus-visible {
+    box-shadow: var(--focus-ring);
   }
 
   .recording .hint {
-    color: var(--accent-primary);
+    color: var(--text-brand);
   }
 
-  .conflict .field {
-    border-color: var(--state-warning);
-    background: var(--state-warning-soft);
+  .conflict .field,
+  .conflict:hover .field {
+    border-color: var(--warning);
+    background: var(--warning-soft);
   }
 
   .disabled {
@@ -133,15 +139,15 @@
   }
 
   .hint {
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
     color: var(--text-secondary);
   }
 
   .trailing {
     position: absolute;
     inset-block: 0;
-    inset-inline-end: 4px;
+    inset-inline-end: var(--space-4);
     display: grid;
     place-items: center;
     width: 20px;
@@ -150,13 +156,13 @@
   }
 
   .warn {
-    color: var(--state-warning);
+    color: var(--warning);
   }
 
   /* Always in the tab order; visible on hover or focus, as macOS does it. */
   .clear {
     border: none;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background: var(--overlay-pressed);
     color: var(--text-secondary);
     opacity: 0;
@@ -166,5 +172,9 @@
   .recorder:hover .clear,
   .clear:focus-visible {
     opacity: 1;
+  }
+
+  .clear:focus-visible {
+    box-shadow: var(--focus-ring);
   }
 </style>

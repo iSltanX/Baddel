@@ -120,31 +120,34 @@
 <style>
   .pair {
     color: var(--text-tertiary);
-    font-size: var(--size-caption);
-    line-height: var(--leading-small);
+    font-family: var(--font-latin);
+    font-size: var(--size-latin-small);
+    line-height: var(--leading-label);
     white-space: pre;
   }
 
   .map {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-16);
   }
 
   .keys {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-4);
     direction: ltr;
   }
 
   .row {
     display: flex;
     justify-content: center;
-    gap: 4px;
+    gap: var(--space-4);
   }
 
+  /* `Key` in 02 — Components. */
   .key {
     position: relative;
     width: 36px;
@@ -152,13 +155,13 @@
     flex: none;
     border: 1px solid var(--keycap-edge);
     border-bottom-width: 2px;
-    border-radius: var(--radius-control);
+    border-radius: var(--radius-sm);
     background: var(--keycap-top);
   }
 
   .multi {
-    border-color: var(--accent-primary);
-    background: var(--accent-soft);
+    border-color: var(--action-primary);
+    background: var(--bg-selected);
   }
 
   .latin {
@@ -166,9 +169,9 @@
     top: 3px;
     left: 4px;
     font-family: var(--font-latin);
-    font-size: 10px;
+    font-size: var(--size-keycap-small);
     font-weight: 500;
-    line-height: 12px;
+    line-height: var(--leading-keycap-small);
     color: var(--text-tertiary);
   }
 
@@ -183,31 +186,30 @@
 
   .multi .latin,
   .multi .arabic {
-    color: var(--accent-primary);
+    color: var(--text-brand);
   }
 
   .note {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 0;
-    padding: 8px 12px;
-    border-radius: var(--radius-tab);
-    background: var(--accent-soft);
-    color: var(--accent-primary);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    gap: var(--space-8);
+    align-self: stretch;
+    padding: var(--space-8) var(--space-12);
+    border-radius: var(--radius-md);
+    background: var(--bg-selected);
+    color: var(--text-brand);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   .alert {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 60px;
-    padding: 12px 16px;
-    border: 1px solid color-mix(in srgb, var(--state-warning) 45%, transparent);
-    border-radius: var(--radius-card);
-    background: var(--state-warning-soft);
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-16);
+    border: 1px solid var(--warning);
+    border-radius: var(--radius-md);
+    background: var(--warning-soft);
   }
 
   .warn {
@@ -216,9 +218,9 @@
     width: 32px;
     height: 32px;
     flex: none;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background: var(--bg-surface);
-    color: var(--state-warning);
+    color: var(--warning);
   }
 
   .text {
@@ -234,8 +236,8 @@
   }
 
   .text span {
-    color: var(--state-warning-text);
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    color: var(--warning-text);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 </style>

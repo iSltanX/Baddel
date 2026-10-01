@@ -8,10 +8,17 @@
  */
 import type { AppInfo, KeyboardMap, LayoutEntry, Settings } from './state.svelte'
 
+/**
+ * Query parameters that pick a state to review: `lang=en`, `permission=missing`,
+ * `move=1` (the welcome's "move to Applications" note), `report=fail|rate-limited|rejected`,
+ * `update=available|checking|installing|failed`.
+ */
+const query = new URLSearchParams(location.search)
+
 const settings: Settings = {
   launchAtLogin: false,
   showTrayIcon: true,
-  language: 'ar',
+  language: query.get('lang') === 'en' ? 'en' : 'ar',
   switchInputSource: true,
   showHud: true,
   sound: false,
@@ -92,8 +99,24 @@ function mockPreview(draft: { problem: string; description: string }) {
   }
 }
 
-let permission = true
+let permission = query.get('permission') !== 'missing'
 let apps = [...APPS]
+
+/** The app's events, played by the mock: the permission arriving, a conversion outcome. */
+const events = new EventTarget()
+
+export async function mockSubscribe<T>(event: string, handler: (payload: T) => void): Promise<() => void> {
+  const listener = (message: Event) => handler((message as CustomEvent<T>).detail)
+  events.addEventListener(event, listener)
+  return () => events.removeEventListener(event, listener)
+}
+
+function emit(event: string, detail: unknown) {
+  events.dispatchEvent(new CustomEvent(event, { detail }))
+}
+
+/** For trying the welcome's practice states by hand, from the browser console. */
+;(window as unknown as Record<string, unknown>).mockConversion = (outcome: string) => emit('conversion', outcome)
 
 /** A rough stand-in for the conversion engine: enough for the practice field. */
 const AR_TO_EN = new Map(ROWS.flat().map(([latin, arabic]) => [arabic, latin]))
@@ -122,8 +145,14 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
     case 'permission_granted':
       return answer(permission)
     case 'request_permission':
-      permission = !permission
+      // As if the user switched Baddel on in System Settings a moment later.
+      setTimeout(() => {
+        permission = true
+        emit('permission', true)
+      }, 2500)
       return answer(undefined)
+    case 'app_needs_move':
+      return answer(query.get('move') === '1')
     case 'list_layouts':
       return answer(LAYOUTS)
     case 'keyboard_map':
@@ -150,7 +179,7 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
     case 'report_preview':
       return answer(mockPreview(args?.draft as { problem: string; description: string }))
     case 'report_send': {
-      const mode = new URLSearchParams(location.search).get('report')
+      const mode = query.get('report')
       if (mode === 'fail') return Promise.reject({ kind: 'retry' })
       if (mode === 'rate-limited') return Promise.reject({ kind: 'rate-limited', minutes: 42 })
       if (mode === 'rejected') return Promise.reject({ kind: 'rejected', reason: 'invalid_field: description' })
@@ -158,7 +187,7 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
     }
     // `?update=available` (or checking, installing, failed) reviews the other states.
     case 'update_status': {
-      const phase = new URLSearchParams(location.search).get('update') ?? 'upToDate'
+      const phase = query.get('update') ?? 'upToDate'
       const version = phase === 'available' || phase === 'installing' ? '1.1.0' : null
       return answer({ phase, version, lastChecked: Date.now() - 2 * 60 * 60 * 1000 })
     }

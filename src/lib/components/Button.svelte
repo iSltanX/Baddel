@@ -2,8 +2,9 @@
   import type { Snippet } from 'svelte'
 
   /**
-   * One primary button per screen. `regular` (28) lives inside rows and cards,
-   * `large` (36) in the onboarding footer, and `plain` is for quiet actions.
+   * `Button` in 02 — Components. One primary per screen. `regular` (MD, 28) lives inside
+   * rows and cards, `large` (LG, 36) in window footers, and `plain` is the Ghost variant
+   * for quiet actions. Flat: no shadow, the focus ring is the only outline that moves.
    */
   interface Props {
     variant?: 'primary' | 'secondary' | 'plain'
@@ -28,7 +29,7 @@
 
 <button class="{variant} {size}" class:loading {type} disabled={disabled || loading} aria-busy={loading} {onclick}>
   {#if loading}<span class="spinner" aria-hidden="true"></span>{/if}
-  {@render children()}
+  <span class="label">{@render children()}</span>
 </button>
 
 <style>
@@ -36,14 +37,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    height: var(--control-height);
+    gap: var(--space-8);
+    height: var(--control-md);
     min-width: 56px;
-    padding: 0 12px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-control);
+    padding: 0 var(--space-12);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     background: var(--bg-surface);
-    box-shadow: var(--shadow-control);
     color: var(--text-primary);
     font-size: var(--size-body);
     line-height: var(--leading-body);
@@ -54,13 +54,13 @@
   }
 
   .large {
-    height: var(--control-height-large);
+    height: var(--control-lg);
     min-width: 88px;
-    padding: 0 20px;
-    border-radius: var(--radius-tab);
+    padding: 0 var(--space-20);
+    border-radius: var(--radius-md);
   }
 
-  /* Hover and pressed are an overlay on the surface, so they work on any background. */
+  /* Hover and pressed are a wash over the surface, so they work on any background. */
   .secondary:hover:not(:disabled) {
     border-color: var(--text-tertiary);
     background: linear-gradient(var(--overlay-hover), var(--overlay-hover)), var(--bg-surface);
@@ -71,27 +71,26 @@
     background: linear-gradient(var(--overlay-pressed), var(--overlay-pressed)), var(--bg-surface);
   }
 
+  /* Ink on mint, never white: 4.7:1 where white would be 3.2:1. */
   .primary {
     border-color: transparent;
-    background: var(--accent-primary);
-    box-shadow: none;
-    color: var(--accent-on);
+    background: var(--action-primary);
+    color: var(--text-on-primary);
     font-weight: 700;
   }
 
   .primary:hover:not(:disabled) {
-    background: var(--accent-hover);
+    background: var(--action-primary-hover);
   }
 
   .primary:active:not(:disabled) {
-    background: var(--accent-pressed);
+    background: var(--action-primary-pressed);
   }
 
   .plain {
     border-color: transparent;
     background: none;
-    box-shadow: none;
-    color: var(--accent-primary);
+    color: var(--text-brand);
   }
 
   .plain:hover:not(:disabled) {
@@ -103,12 +102,16 @@
   }
 
   button:focus-visible {
-    box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+    box-shadow: var(--focus-ring);
   }
 
   button:disabled:not(.loading) {
     opacity: 0.4;
-    box-shadow: none;
+  }
+
+  /* While it works, the label dims and the spinner leads it. */
+  .loading .label {
+    opacity: 0.7;
   }
 
   .spinner {
@@ -117,7 +120,7 @@
     border: 1.5px solid currentColor;
     border-inline-end-color: transparent;
     border-radius: 50%;
-    opacity: 0.7;
+    opacity: 0.875;
     animation: spin 700ms linear infinite;
   }
 

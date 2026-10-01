@@ -29,7 +29,7 @@
     "general": {
       "launchAtLogin": "Launch at Login",
       "showMenuBarIcon": "Show Baddel icon in the menu bar",
-      "showMenuBarIconDescription": "The shortcut keeps working even if you hide the icon",
+      "showMenuBarIconDescription": "The shortcut keeps working — open Baddel from Applications to get back here",
       "uiLanguage": "Interface Language",
       "uiLanguageOptions": {
         "ar": "العربية",
@@ -94,7 +94,7 @@
     "about": {
       "appName": "Baddel · بدّل",
       "version": "Version {version}",
-      "tagline": "Type, and we'll switch it.",
+      "tagline": "Type, and we’ll switch it.",
       "sourceOnGithub": "Source on GitHub",
       "reportProblem": "Report a Problem…",
       "copyDiagnostics": "Copy Diagnostics",
@@ -111,41 +111,57 @@
       "showWelcome": "Show the welcome window again",
       "madeByLabel": "Designed & developed by",
       "madeByName": "Sultan",
-      "promise": "Fully local · No account · No tracking · One permission"
+      "promise": "Fully local · No account · No tracking · One permission",
+      "whatsIncluded": "What’s included?"
     }
   },
   "onboarding": {
     "skip": "Skip",
-    "next": "Next",
     "start": "Get Started",
-    "step1": {
-      "title": "Typed it in the wrong language? Switch it.",
-      "body": "One shortcut fixes text typed with the wrong keyboard layout — in any app.",
-      "sample1From": "اثممخ",
-      "sample1To": "hello",
-      "sample2From": "sghl",
-      "sample2To": "سلام",
-      "shortcutLabel": "One shortcut"
+    "continue": "Continue",
+    "back": "Back",
+    "done": "Done",
+    "welcome": {
+      "title": "Typed with the wrong layout?\nBaddel fixes it in one press.",
+      "body": "Between Arabic and English, in any app you type in.",
+      "sampleFrom": "اثممخ",
+      "sampleTo": "hello",
+      "shortcutLabel": "One shortcut",
+      "moveTitle": "Move Baddel to Applications first",
+      "moveBody": "Baddel is running from the disk image or Downloads. Move it, then open it from Applications so permission and updates keep working.",
+      "showInFinder": "Show in Finder"
     },
-    "step2": {
-      "title": "Just one permission",
-      "body": "Baddel needs Accessibility permission to read and replace the selected text.",
-      "reassurance": {
-        "noKeylogging": "Doesn't monitor what you type",
-        "noInternet": "Never sends your text anywhere",
-        "noTextStorage": "Doesn't save any text"
-      }
+    "how": {
+      "title": "How it works",
+      "body": "Three moments — no menus, no copy and paste.",
+      "type": "Type as usual",
+      "press": "Press the shortcut",
+      "fixed": "It’s fixed — keep typing",
+      "note": "Press again within two seconds to reach one more word back. One Undo puts everything back."
     },
-    "step3": {
-      "title": "Try it now",
-      "recorderCaption": "You can change this anytime",
-      "practiceText": "اثممخ",
-      "practiceHelper": "Place the cursor after the word and press the shortcut",
-      "successMessage": "Nicely done — that's how Baddel works",
-      "body": "The word below was typed in the wrong layout. Fix it with your shortcut.",
-      "recorderLabel": "Your shortcut"
+    "permission": {
+      "title": "One permission, for one reason",
+      "body": "Baddel needs Accessibility to read what you select and replace it in the app you’re typing in.",
+      "local": "Works only on your Mac",
+      "noServer": "Never sends your text to a server",
+      "noSave": "Doesn’t keep what you type",
+      "path": "In System Settings → Privacy & Security → Accessibility, turn on Baddel.",
+      "appName": "Baddel",
+      "advancing": "Moving on to try it…"
     },
-    "back": "Back"
+    "practice": {
+      "title": "Try Baddel",
+      "body": "The word below was typed in the wrong layout. Put the cursor after it and press your shortcut.",
+      "word": "اثممخ",
+      "tryButton": "Try Baddel",
+      "press": "Press",
+      "successTitle": "Done — Baddel is ready",
+      "successBody": "Use it in any app — it’s always in your menu bar.",
+      "nothingTitle": "Nothing happened?",
+      "nothingBody": "Make sure “Baddel” is on in Accessibility and the cursor sits right after the word, then press your shortcut again.",
+      "secureTitle": "Another app turned on Secure Input",
+      "secureBody": "A password field is open somewhere. Baddel stays out until it closes — that’s by design."
+    }
   },
   "hud": {
     "success": "{from} → {to}",
@@ -242,6 +258,7 @@
     "keepNumber": "Keep this number if you want to follow up — it’s your only reference.",
     "done": "Done",
     "failedTitle": "Couldn’t Send the Report",
+    "rejectedTitle": "Report Refused",
     "failedRetry": "Check your internet connection, then try again. The report is still here and hasn’t been saved anywhere else.",
     "failedRateLimited": "Too many reports came from your network. Try again in {minutes} minutes.",
     "failedRejected": "The server refused this report ({reason}). Copy it and send it your own way.",
@@ -249,5 +266,18 @@
     "retry": "Try Again",
     "copyReport": "Copy Report",
     "sending": "Sending…"
+  },
+  "diagnostics": {
+    "includes": "Includes",
+    "items": {
+      "versions": "Baddel and macOS versions, processor type",
+      "permission": "Accessibility and Secure Input states",
+      "layouts": "The two layout identifiers and names",
+      "history": "Last 10 outcomes: result, path and time — no text",
+      "frontmost": "The app identifier on the last attempt",
+      "settings": "General settings; exceptions as a count only"
+    },
+    "never": "Never any text you typed or converted, clipboard contents, or an identifier for you or your Mac.",
+    "sameInReports": "The same diagnostics go with every report, and you see them in full before sending."
   }
 }

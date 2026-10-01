@@ -1,8 +1,9 @@
 <script lang="ts">
+  import Button from '../components/Button.svelte'
+  import DiagnosticsDetails from '../components/DiagnosticsDetails.svelte'
   import FormRow from '../components/FormRow.svelte'
   import GroupCard from '../components/GroupCard.svelte'
   import Icon from '../components/Icon.svelte'
-  import Button from '../components/Button.svelte'
   import { appVersion, closeWindow, copyDiagnostics, openExternal, openOnboarding, openReport, t } from '../state.svelte'
   import iconUrl from '../../assets/app-icon.png'
 
@@ -15,6 +16,8 @@
   })
 
   let copied = $state(false)
+  /** "What's included?" — what the copy holds and what it never holds. */
+  let included = $state(false)
 
   async function copy() {
     await copyDiagnostics()
@@ -22,12 +25,8 @@
     setTimeout(() => (copied = false), 1600)
   }
 
-  /** Tints for the maker's other apps until their own icons ship with them. */
-  const makers = [
-    { key: 'raff', tint: '#7a5c3e' },
-    { key: 'luma', tint: '#c9862b' },
-    { key: 'nafidh', tint: '#3e6b5a' },
-  ]
+  /** The maker's other apps; their tints live in theme.css until their own icons ship. */
+  const makers = ['raff', 'luma', 'nafidh'] as const
 
   async function welcome() {
     await openOnboarding()
@@ -54,8 +53,23 @@
     </FormRow>
   </button>
   <FormRow title={t('settings.about.copyDiagnostics')} description={t('settings.about.copyDiagnosticsDescription')}>
+    {#snippet detail()}
+      <button
+        class="disclosure"
+        type="button"
+        aria-expanded={included}
+        aria-controls="diagnostics-details"
+        onclick={() => (included = !included)}
+      >
+        {t('settings.about.whatsIncluded')}
+        <span aria-hidden="true">{included ? '▴' : '▾'}</span>
+      </button>
+    {/snippet}
     <Button onclick={copy}>{copied ? t('settings.about.copied') : t('settings.about.copy')}</Button>
   </FormRow>
+  {#if included}
+    <div class="details" id="diagnostics-details"><DiagnosticsDetails /></div>
+  {/if}
   <button class="link" type="button" onclick={() => openExternal(`${REPOSITORY}/blob/main/LICENSE`)}>
     <FormRow title={t('settings.about.license')}>
       <span class="value">MIT</span>
@@ -72,10 +86,10 @@
 
 <GroupCard title={t('settings.about.fromSameMaker')}>
   <ul class="makers">
-    {#each makers as maker (maker.key)}
-      {@const name = t(`settings.about.makerApps.${maker.key}`)}
+    {#each makers as maker (maker)}
+      {@const name = t(`settings.about.makerApps.${maker}`)}
       <li>
-        <span class="maker-icon" style:background={maker.tint} aria-hidden="true">{name.charAt(0)}</span>
+        <span class="maker-icon {maker}" aria-hidden="true">{name.charAt(0)}</span>
         {name}
       </li>
     {/each}
@@ -99,8 +113,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding-block: 4px;
+    gap: var(--space-4);
+    padding-bottom: var(--space-4);
     text-align: center;
   }
 
@@ -111,18 +125,16 @@
   h1 {
     font-size: var(--size-title);
     line-height: var(--leading-title);
-    font-weight: 700;
   }
 
   .version,
   .tagline {
-    margin: 0;
     color: var(--text-secondary);
   }
 
   .version {
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
   }
 
   /* A link is a whole row: the entire width is the target, not just the words. */
@@ -145,17 +157,40 @@
   }
 
   .link:focus-visible {
-    box-shadow: inset 0 0 0 var(--focus-width) var(--focus-ring);
+    box-shadow: inset var(--focus-ring);
   }
 
   .value {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-family: var(--font-latin);
+    font-size: var(--size-latin);
   }
 
   .affordance {
     display: grid;
     color: var(--text-tertiary);
+  }
+
+  .disclosure {
+    align-self: flex-start;
+    display: inline-flex;
+    gap: var(--space-4);
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-xs);
+    background: none;
+    color: var(--text-brand);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
+    font-weight: 700;
+  }
+
+  .disclosure:hover {
+    text-decoration: underline;
+  }
+
+  .details {
+    padding: 0 var(--space-16) var(--space-12);
   }
 
   .makers {
@@ -170,8 +205,8 @@
     flex: 1;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 12px 16px;
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-16);
     border-inline-start: 1px solid var(--border-subtle);
   }
 
@@ -185,31 +220,39 @@
     width: 32px;
     height: 32px;
     flex: none;
-    border-radius: var(--radius-tab);
-    color: #fff;
+    border-radius: var(--radius-md);
+    color: var(--tint-on);
     font-family: var(--font-heading);
-    font-size: 15px;
+    font-size: var(--size-section);
     font-weight: 700;
     line-height: 1;
+  }
+
+  .raff {
+    background: var(--tint-raff);
+  }
+
+  .luma {
+    background: var(--tint-luma);
+  }
+
+  .nafidh {
+    background: var(--tint-nafidh);
   }
 
   footer {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-8);
     text-align: center;
-  }
-
-  footer p {
-    margin: 0;
   }
 
   .made-by {
     display: flex;
-    gap: 6px;
-    font-size: var(--size-small);
-    line-height: var(--leading-small);
+    gap: var(--space-8);
+    font-size: var(--size-label);
+    line-height: var(--leading-label);
     color: var(--text-secondary);
   }
 
@@ -220,14 +263,15 @@
   .repo {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 0 4px;
+    gap: var(--space-4);
+    padding: 0 var(--space-4);
     border: none;
-    border-radius: var(--radius-keycap);
+    border-radius: var(--radius-xs);
     background: none;
-    color: var(--accent-primary);
-    font-size: var(--size-caption);
-    line-height: var(--leading-small);
+    color: var(--text-brand);
+    font-family: var(--font-latin);
+    font-size: var(--size-latin-small);
+    line-height: var(--leading-label);
   }
 
   .repo:hover {

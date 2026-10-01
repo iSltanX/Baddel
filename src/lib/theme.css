@@ -1,17 +1,12 @@
-/* Design tokens for Baddel. Values come from docs/baddel-figma-prompt-pro.md (PROMPT 0).
+/* Design tokens for Baddel — the A2 system. Every value comes from the approved Figma
+   file (le5J63MNuS9wV7kN8tYpsX): the `Color` and `Metrics` variable collections, and the
+   boards `A2 — Final Tokens`, `A2 — Typography roles` and `A2 — Spacing & Radius` on
+   `01 — Foundations`. Components use these roles only; no colour is written anywhere else.
    Fonts are bundled — never requested over the network. */
 
 /* ── Fonts ─────────────────────────────────────────────────────────────────── */
-/* Cairo: headings only, 600/700. Almarai: everything else, 400/700 (it has no 500/600). */
-@font-face {
-  font-family: 'Cairo';
-  font-style: normal;
-  font-weight: 600;
-  font-display: block;
-  src: url('../assets/fonts/Cairo-SemiBold.woff2') format('woff2');
-  /* Arabic only: Latin runs fall through to the system font, as the design draws them. */
-  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
-}
+/* Cairo Bold alone for the brand and titles; Almarai 400/700 for everything else
+   (it has no 500/600). Latin runs fall through to the system face (SF Pro). */
 @font-face {
   font-family: 'Cairo';
   font-style: normal;
@@ -40,110 +35,162 @@
   unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
 }
 
-/* ── Color ─────────────────────────────────────────────────────────────────── */
+/* ── Color (`Color` collection · Light) ────────────────────────────────────── */
 :root {
-  --bg-window: #f6f4ef;
-  --bg-chrome: #fbfaf7;
+  --bg-app: #f3f8f7;
+  /* Alias of bg/app: the toolbar shares the window colour; a divider separates them. */
+  --bg-chrome: var(--bg-app);
   --bg-surface: #ffffff;
-  --bg-sunken: #edeae3;
-  --border-subtle: #e2ded5;
-  --border-strong: #cfc9bd;
-  --text-primary: #1c1917;
-  --text-secondary: #6b665e;
-  --text-tertiary: #989288;
-  --accent-primary: #3f5673;
-  --accent-hover: #364a64;
-  --accent-pressed: #2d3e55;
-  --accent-soft: #e4eaf1;
-  /* The text colour that sits on a filled accent surface; it flips in dark mode
-     because the accent itself does. */
-  --accent-on: #ffffff;
-  --state-success: #5f7f52;
-  --state-success-soft: #e8efe3;
-  --state-warning: #b67f2e;
-  --state-warning-text: #84591a;
-  --state-warning-soft: #f7eedc;
-  --state-danger: #a8493b;
-  --state-danger-soft: #f6e6e2;
-  --overlay-hover: rgb(28 25 23 / 5%);
-  --overlay-pressed: rgb(28 25 23 / 10%);
-  --track-off: #d5d0c6;
+  --bg-surface-secondary: #e5eeec;
+  --bg-selected: #daf1ec;
+
+  --border-subtle: #dce7e5;
+  --border-default: #c3d4d1;
+  --border-focus: #119c8d;
+
+  --text-primary: #0f2a28;
+  --text-secondary: #4a6764;
+  --text-tertiary: #6e8885;
+  --text-disabled: var(--text-tertiary);
+  --text-brand: #0d786c;
+  --text-on-primary: #0f2a28;
+
+  /* Mint deepened for controls. A fill and a graphic, never a text colour: text in the
+     brand colour is `--text-brand`, which holds 4.5:1 where this one does not. */
+  --action-primary: #12a191;
+  --action-primary-hover: #14b8a6;
+  --action-primary-pressed: #119e8e;
+
+  /* Coral — the dot that decides. One attention mark per screen at most. */
+  --accent: #f25f40;
+
+  --success: #0d786c;
+  --success-soft: var(--bg-selected);
+  --warning: #c47a00;
+  --warning-text: #875000;
+  --warning-soft: #fbefd6;
+  --danger: #bc3a1b;
+  --danger-soft: #fceae5;
+
+  --overlay-hover: rgb(15 42 40 / 5%);
+  --overlay-pressed: rgb(15 42 40 / 10%);
+
+  --control-track-off: #b4c6c3;
   --control-knob: #ffffff;
   --keycap-top: #ffffff;
-  --keycap-edge: #bdb6ab;
-  --focus-ring: rgb(63 86 115 / 38%);
+  --keycap-edge: #b4c6c3;
 
-  --shadow-control: 0 1px 1.5px rgb(0 0 0 / 7%);
-  --shadow-knob: 0 1px 2px rgb(0 0 0 / 22%), 0 0 0.5px rgb(0 0 0 / 12%);
+  /* The notice is ink in both appearances; the welcome draws a small one. */
+  --hud-bg: #0f2a28;
+  --hud-border: rgb(255 255 255 / 8%);
+  --hud-text: #e6f4f1;
+  --hud-muted: rgb(230 244 241 / 62%);
+  --hud-chip: rgb(230 244 241 / 12%);
+  --hud-brand: #2bd0bd;
+  --hud-success: #2bd0bd;
+  --hud-warning: #f2b544;
+
+  /* The maker's other apps, until their own icons ship with them. Their colours, not ours. */
+  --tint-raff: #7a5c3e;
+  --tint-luma: #c9862b;
+  --tint-nafidh: #3e6b5a;
+  --tint-on: #ffffff;
 }
 
+/* ── Color (`Color` collection · Dark) ─────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-window: #1b1c1f;
-    --bg-chrome: #212226;
-    --bg-surface: #25272b;
-    --bg-sunken: #16171a;
-    --border-subtle: #34373c;
-    --border-strong: #474a51;
-    --text-primary: #f2f0eb;
-    --text-secondary: #a19d95;
-    --text-tertiary: #76736d;
-    --accent-primary: #8fa9c9;
-    --accent-hover: #a3bad6;
-    --accent-pressed: #7c97b8;
-    --accent-soft: #2a3644;
-    --accent-on: #1b1c1f;
-    --state-success: #93b585;
-    --state-success-soft: #28321f;
-    --state-warning: #d9a95a;
-    --state-warning-text: #e2b971;
-    --state-warning-soft: #382d1b;
-    --state-danger: #d98476;
-    --state-danger-soft: #3a2521;
-    --overlay-hover: rgb(242 240 235 / 6%);
-    --overlay-pressed: rgb(242 240 235 / 12%);
-    --track-off: #4a4d53;
-    --control-knob: #f2f0eb;
-    --keycap-top: #2e3035;
-    --keycap-edge: #101114;
-    --focus-ring: rgb(143 169 201 / 45%);
+    --bg-app: #0f1f1e;
+    --bg-surface: #162a28;
+    --bg-surface-secondary: #0b1716;
+    --bg-selected: #163f3a;
+
+    --border-subtle: #223836;
+    --border-default: #33504c;
+    --border-focus: #2bd0bd;
+
+    --text-primary: #e6f4f1;
+    --text-secondary: #9cb7b3;
+    --text-tertiary: #7c9894;
+    --text-brand: #2bd0bd;
+    --text-on-primary: #0f1f1e;
+
+    --action-primary: #2bd0bd;
+    --action-primary-hover: #4fdccb;
+    --action-primary-pressed: #22b5a4;
+
+    --accent: #ff7f62;
+
+    --success: #2bd0bd;
+    --warning: #f2b544;
+    --warning-text: #f5c66b;
+    --warning-soft: #3a2e14;
+    --danger: #ff8e73;
+    --danger-soft: #3d221c;
+
+    --overlay-hover: rgb(230 244 241 / 6%);
+    --overlay-pressed: rgb(230 244 241 / 12%);
+
+    --control-track-off: #3d5653;
+    --control-knob: #e6f4f1;
+    --keycap-top: #1e3331;
+    --keycap-edge: #081312;
+
+    --hud-border: rgb(255 255 255 / 14%);
   }
 }
 
-/* ── Type scale ────────────────────────────────────────────────────────────── */
-/* Arabic reads optically smaller than Latin at the same size, so the scale sits
-   1–2pt above the macOS defaults (HIG · Right to left). */
+/* ── Type (A2 — Typography roles) ──────────────────────────────────────────── */
 :root {
   --font-heading: 'Cairo', system-ui, sans-serif;
   --font-body: 'Almarai', system-ui, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'IBM Plex Mono', monospace;
-  /* Keycaps and other Latin-only labels: the system face, as macOS prints its own keys. */
+  /* Keycaps, versions, bundle ids and other Latin-only runs: the system face. */
   --font-latin: system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', monospace;
 
-  --size-large: 26px;   --leading-large: 36px;
+  /* Display/Brand · Title/Window · Title/Section: Cairo 700. */
+  --size-display: 26px; --leading-display: 36px;
   --size-title: 20px;   --leading-title: 28px;
   --size-section: 15px; --leading-section: 24px;
+  /* Body · Label · Caption: Almarai 400/700. */
   --size-body: 14px;    --leading-body: 22px;
-  --size-small: 12px;   --leading-small: 18px;
+  --size-label: 12px;   --leading-label: 18px;
   --size-caption: 11px; --leading-caption: 16px;
-  --size-sample: 22px;  --leading-sample: 32px;
+  /* Latin/Body and Latin/Small: SF Pro, a point under the Arabic it sits beside. */
+  --size-latin: 13px;
+  --size-latin-small: 11px;
+  /* Keycap/MD and Keycap/SM. */
+  --size-keycap: 12px;  --leading-keycap: 16px;
+  --size-keycap-small: 10px; --leading-keycap-small: 12px;
 }
 
-/* ── Metrics ───────────────────────────────────────────────────────────────── */
+/* ── Metrics (`Metrics` collection · A2 — Spacing & Radius) ────────────────── */
 :root {
-  --row-height: 44px;
-  --window-pad: 20px;
-  --group-gap: 20px;
-  --control-height: 28px;
-  --control-height-large: 36px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+
+  /* Keycaps, badges · controls · cards, tabs, callouts · windows, hero tiles · pills. */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  --control-md: 28px;
+  --control-lg: 36px;
+  --row-min: 44px;
   /* Pop-ups and recorders share one width, so the control column reads as a column. */
   --control-column: 184px;
-  --radius-keycap: 4px;
-  --radius-control: 6px;
-  --radius-tab: 8px;
-  --radius-card: 10px;
-  --radius-hero: 14px;
-  --focus-width: 3px;
+
+  /* Effect/Focus ring: a solid 2px ring in border/focus, keyboard focus only. */
+  --focus-ring: 0 0 0 2px var(--border-focus);
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
@@ -161,7 +208,7 @@ body {
 }
 
 body {
-  background: var(--bg-window);
+  background: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: var(--size-body);
@@ -176,6 +223,11 @@ body {
 
 h1, h2, h3 {
   font-family: var(--font-heading);
+  font-weight: 700;
+  margin: 0;
+}
+
+p {
   margin: 0;
 }
 
@@ -188,7 +240,7 @@ button, input, select, textarea {
    `:focus-visible` keeps it off mouse clicks. */
 :focus { outline: none; }
 :focus-visible {
-  box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+  box-shadow: var(--focus-ring);
 }
 
 /* Latin runs inside Arabic rows (shortcuts, samples, layout names) must not be

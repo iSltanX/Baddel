@@ -86,7 +86,7 @@ On **Arabic‑PC**, the <kbd>B</kbd> key types two characters together: «لا»
 1. Download `Baddel_<version>_universal.dmg` from the [releases page](https://github.com/iSltanX/Baddel/releases/latest).
 2. Open it and drag **Baddel** into the **Applications** folder.
 3. Launch Baddel. The first time, a Gatekeeper warning appears — how to get past it is in the note below.
-4. The welcome screen appears: grant **Accessibility** permission in step two, then try the shortcut in step three.
+4. The welcome window takes four steps: grant **Accessibility** permission in the third, then try the shortcut in the fourth. If Baddel is still running from the disk image, it asks you to move it to Applications first.
 
 > [!IMPORTANT]
 > **Gatekeeper warning:** Baddel is signed with a fixed self-signed certificate, not an Apple Developer ID certificate, and it hasn't gone through Apple Notarization, because this is a personal project. So macOS refuses to open it the first time and says the developer is unidentified.
