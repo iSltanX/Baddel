@@ -36,7 +36,7 @@ https://www.figma.com/design/le5J63MNuS9wV7kN8tYpsX/Badeel
 swift design/icon/build.swift
 ```
 
-يكتب `src-tauri/icons/icon.icns` (عبر `iconutil`)، و`32x32.png` و`128x128.png` و`128x128@2x.png` و`icon.png` و`icon.ico`، و`icon-macos-1024.png` هنا. الصورة داخل الواجهة (`src/assets/app-icon.png`) هي المكوّن نفسه بلا هوامش بعرض 512، ومعها `src/assets/app-icon-dark.png` من `App Icon / 1024 · Ink (alt)` (`95:1488`) بعرض 512 لنافذة «حول» في الوضع الداكن.
+يكتب `src-tauri/icons/icon.icns` (عبر `iconutil`)، و`32x32.png` و`128x128.png` و`128x128@2x.png` و`icon.png` و`icon.ico`، و`icon-macos-1024.png` هنا. الصورة داخل الواجهة (`src/assets/app-icon.png`) هي المكوّن نفسه بلا هوامش بعرض 512، وتُستعمل في «حول» بالوضعين: نسخة Mint في الداكن أيضًا، بلا إطار.
 
 ## شريط القوائم
 
