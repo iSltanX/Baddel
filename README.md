@@ -413,7 +413,7 @@ curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh
 
 الموقع: [bysltan.com](https://www.bysltan.com)
 
-للتواصل: [iSultanby@gmail.com](mailto:iSultanby@gmail.com)
+للتواصل: [S@BySltan.com](mailto:S@BySltan.com)
 
 من الصانع نفسه<br>
 تطبيقات macOS: [رفّ](https://github.com/iSltanX/Raff) · [Luma](https://github.com/iSltanX/Luma) · [نفّذ](https://github.com/iSltanX/naffith)<br>
