@@ -304,4 +304,65 @@
 
 لم يُقترح «النقر المزدوج على ⇧» ولا «لوحة المعاينة قبل التحويل» لأنهما مستبعدان في `docs/development.md`.
 
+## 11. حالة الإصلاح
+
+على الفرع `fix/audit-findings`، المتفرّع من `isltanx-copilot-audit`. كل نتيجة قُرئت شيفرتها قبل الحكم، ولكل إصلاح commit مستقل.
+بعد الإصلاحات نجحت هذه الفحوص كلها:
+- `./scripts/check.sh`.
+- `cd server/report-worker && npm test`: ‏32/32.
+- اختبارات التدقيق كلها.
+- `python3 scripts/check-docs.py`.
+- `python3 audit/scripts/i18n-parity.py`.
+
+**عُدِّلت ثلاثة اختبارات تدقيق بموافقة المالك (2026-10-12):**
+- **BAD-104:** صار يقبل 429 مع 400. الإصلاح نفسه، أي تقديم حدّ المعدل، يجعل ما بعد الطلب الخامس 429، وبقي شرطه الجوهري: 5 استدعاءات GitHub على الأكثر.
+- **توصيف BAD-107:** كان يثبّت العيب نفسه، فصار يتحقق من الإصلاح.
+- **توصيف BAD-002:** صار يصف السلوك الذي اختاره المالك.
+
+ومعها اختبار المشروع `arabic_indic_digits_count_as_arabic` في `tests/core.rs`، لأنه كان يثبّت السلوك القديم نفسه. لم يُحذف أي اختبار ولم يُتجاهَل.
+
+| المعرّف | الحكم بعد التدقيق | الإصلاح | الاختبار | التحقق اليدوي (`audit/macos/README.md`) |
+|---|---|---|---|---|
+| BAD-102 | مؤكَّد، عالية | `1772f4d` | `audit-idempotency-ratelimit.test.js` «BAD-102» ×2 | — (يحتاج نشر العامل) |
+| BAD-101 | مؤكَّد، متوسطة. أُصلح داخل isolate واحد؛ الضمان الصارم مقترح (Durable Object) | `1ff30c2` | «BAD-101» | — |
+| BAD-106 | مؤكَّد، متوسطة. ملاحظة: العامل لا يُرجع 409 ولا 422 أصلًا، والعيب الفعلي في 404 و405 وفي تغيّر المفتاح | `c92d0d8` | `report.rs`: `previewing_again_keeps_the_key_of_the_same_report`، `client_errors_are_not_retried` | M12، وM13 (بخادم تجريبي فقط): الرجوع ثم «التالي» ثم «إرسال» يُرجع رقم البلاغ نفسه |
+| BAD-104 | مؤكَّد، متوسطة | `3b1561d`، `fe78aa1` (الاختبار) | «BAD-104» | — |
+| BAD-103 | مؤكَّد، متوسطة. داخل isolate واحد كما BAD-101 | `89d91a6` | «BAD-103» | — |
+| BAD-105 | مؤكَّد، منخفضة | `b85e6d1` | `audit-input-render.test.js` «BAD-105» | — |
+| BAD-107 | مؤكَّد، منخفضة | `1e6c707` | «BAD-107» (كان توصيفًا) | — |
+| BAD-404 | مؤكَّد | `2962041`، و`1e6c707` | — | — |
+| BAD-207 | **مؤكَّد باختبار**، عالية. `CFString::to_string` يذعر في `core-foundation-0.10.1/src/string.rs:91` (النسخة المقفلة 0.10.1 لا 0.10.0، والسطر نفسه)، و`panic = "abort"` في الإصدار. يبقى فقط أن يُرى تطبيق يُرجع نصف زوج | `6d777a4` | `sys::text_access::tests::a_split_surrogate_pair_reads_without_panicking` | S1 (يجب ألا ينهار) |
+| BAD-208 | مؤكَّد، منخفضة | `df04f94` | `controller::tests::the_previous_word_is_read_whole_or_not_at_all` | كلمة من 450 حرفًا دون مسافة ثم ⌥⇧Space: «لا نص»، لا تحويل جزئي |
+| BAD-001 | مؤكَّد، منخفضة | `1787316` | `audit_lam_alef::bad_001_…`، `core::a_word_with_more_spots_than_bits_reads_as_single_keys` | M7: لا ذعر في debug، والناتج `bbbb…` |
+| BAD-002 | مؤكَّد (يخالف تعليق `detect_direction`)، منخفضة. أُصلح بقرار المالك: الحروف وحدها تصوّت | `56df520` | `audit_lam_alef::arabic_digits_and_punctuation_do_not_vote`، `core::arabic_indic_digits_do_not_vote` | M9: **التوقّع الجديد** «اثممخ ١٢٣٤٥٦»، و«sg ١٢٣» ← «سل ١٢٣» |
+| BAD-003 | **مرفوض** بقرار المالك: سلوك مقصود (`convert.rs` تعليق `is_protected`)، وبفضله يُصحَّح «https://ثطشوحمث.ذخو» إلى https://example.com | — | `idn_link_is_not_protected_and_gets_rewritten` (ناجح كما هو) | M8: السلوك الحالي مقبول |
+| BAD-004 | **مرفوض**: مفتاحان يكتبان «ـ» في كل تخطيط (Mac: ‏50 Base `` ` `` و27 Shift `_`؛ PC: ‏27 Shift `_` و38 Shift `J`)، فلا ذهاب وإياب للاثنين. الأولوية في `layout.rs` (`insert_if_absent`) | — | `single_key_round_trip_counterexamples_are_exactly_the_tatweel` (ناجح) | — |
+| الطفرات | 8 من 11 قُتلت. الثلاث الباقية مكافئة: `convert.rs` `convert_words` ‏`&&`→`\|\|`، و`tokenize` ‏`>`→`>=`، و`disambiguate.rs` `is_english_word` ‏`\|\|`→`&&`. لا مدخل يغيّر ناتجها، فالأولى لا تبلغ القاموس بحروف عربية، والثانية تغيّر الكلفة لا الناتج، والثالثة قائمتها a–z | `45cd323` | `tests/core.rs` (أربعة اختبارات)؛ `audit/evidence/03-mutants-after.txt` | — |
+| BAD-201 | مؤكَّد في الشيفرة، متوسطة | `53a7db6` | `controller::tests::keys_go_only_to_the_app_the_command_began_in` | S2: لا نص في TextEdit، والنتيجة «تعذّر» (`focus-moved` في التشخيص) |
+| BAD-206 | مؤكَّد في الشيفرة، متوسطة | `5a7cad1` | `keys_stop_once_a_password_has_the_keyboard` | S6: لا مفاتيح في حقل كلمة المرور، والنتيجة «محجوب» |
+| BAD-202 | مؤكَّد في الشيفرة. أُصلح جزئيًّا: الاستثناءات تُطبَّق على مالك العنصر المركَّز. رُفض الإلغاء عند اختلاف pid لأنه يكسر لوحات لا تتقدّم كـ Spotlight وRaycast | `77f9e2a` | `sys::frontmost::tests::the_app_in_front_is_found_by_its_pid` | S3، ومعها تحويل في Spotlight للتأكد من أنه ما زال يعمل |
+| BAD-203 | مؤكَّد في الشيفرة، منخفضة–متوسطة. **مقترح فقط** | — | — | S7 |
+| BAD-204 | مؤكَّد في الشيفرة. **مقترح فقط** | — | — | S4 |
+| BAD-205 | مؤكَّد في الشيفرة. **مقترح فقط** | — | — | S5 |
+| BAD-301 | مؤكَّد، متوسطة | `61a6ff5` | `commands::tests::only_the_settings_window_can_suspend_the_shortcuts` | S8: الاستدعاء من نافذة البلاغ لا يوقف شيئًا |
+| BAD-302 | مؤكَّد، منخفضة | `5869503` | `controller::tests::text_past_the_limit_is_refused` | S9: `null` فورًا دون تجمّد |
+| BAD-303 | مؤكَّد، منخفضة–متوسطة | `5f1f26d` | `commands::tests::a_patch_changes_only_the_window_switches` | S10 |
+| BAD-304 | مؤكَّد | `0cec983` | `updater::tests::only_one_check_runs_at_a_time` | S11: بعد فشل الفحص لا يتغيّر `lastUpdateCheck`، ويُعاد الفحص في الاستيقاظ التالي (ساعة) |
+| BAD-305 | مؤكَّد في الشيفرة. **ملاحظة:** S12 كما كُتبت (إضافة يدوية إلى Login Items) لا تختبره، لأن الإضافة لا تدير إلا LaunchAgent خاصًا بها | `a449207` | — (نظام) | S12 معدَّلة: فعّل الخيار، وأنهِ بدّل، واجعل `launchAtLogin` ‏`false` في `settings.json`، وشغّله، فيختفي ملف بدّل من `~/Library/LaunchAgents/` |
+| BAD-306 | مؤكَّد، منخفضة | `86744a6` | — (AppKit على الخيط الرئيسي) | S13: `stringValue` فارغ بعد اختفاء الإشعار |
+| BAD-307 | مؤكَّد، منخفضة | `e806cb8` | `shortcuts::tests::the_menu_names_keys_as_the_settings_window_does` (يقرأ `NAMED` من `accelerator.ts`) | S14 |
+| BAD-308 | مؤكَّد. **مقترح فقط**: ليس تغييرًا صغيرًا (35 أمرًا، ثلاث نوافذ، ولا اختبار واجهة) | `ef25151` (المقترح) | — | — |
+| BAD-401 | مؤكَّد. نُقلت الكتل الست إلى `sys/drawing.rs`، و`#![deny(unsafe_code)]` يفرض القاعدة خارج `sys` | `c0636e9` | المترجم | إشعار تحويل واحد (M1) للتأكد من الخط والرسم |
+| BAD-402 | مؤكَّد | `caafc7d` | — | — |
+| BAD-403 | **خطورته معدّلة**: لا تناقض في السلوك، فـ `last_app` مذكور في `PRIVACY.md` وتعرضه المعاينة. التناقض في التعليل داخل الشيفرة وحده | `ad11d21` | — | — |
+
+**المقترحات** في [`audit/fix-proposals.md`](audit/fix-proposals.md): BAD-203، وBAD-204، وBAD-205، وBAD-308، والضمان الصارم لـ BAD-101/103.
+
+**للتحقق من أن الإصلاحات لم تكسر شيئًا:** M1، وM2، وM4، وM5، وM6، وM10، وM11، لأن مسار لوحة المفاتيح صار يفحص قبل كل دفعة مفاتيح. وفي Mail أو Figma خصوصًا، يجب ألا تظهر «تعذّر» دون سبب.
+
+**إصلاحات العامل** (BAD-101..107) لا تعمل إلا بعد نشره، والنشر بيد المالك.
+
+**ملاحظة بيئة:** `cargo clippy -p baddel --release` يفشل على `controller.rs` (`accepted` غير مستعمل خارج debug)، وكان يفشل قبل هذا الفرع. ليس ضمن `check.sh`، ولم يُلمَس.
+
+
 </div>

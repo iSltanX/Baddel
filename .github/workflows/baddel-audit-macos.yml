@@ -1,6 +1,6 @@
 # Audit proposal — needs owner review and approval before use. Proves compilation and unit tests only:
 # a GitHub-hosted macOS runner cannot grant Accessibility, so no conversion is exercised here.
-# `cargo test --workspace` is expected to fail on the audit test that demonstrates BAD-001 until it is fixed.
+# With fix/audit-findings, every audit test passes, so `cargo test --workspace` is expected to pass.
 name: baddel-audit-macos
 on: workflow_dispatch
 permissions:
