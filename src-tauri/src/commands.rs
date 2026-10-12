@@ -59,8 +59,16 @@ pub struct ShortcutResult {
 
 /// The recorder is listening (`true`) or done (`false`): see [`shortcuts::suspend`].
 #[tauri::command]
-pub fn suspend_shortcuts(app: AppHandle, suspended: bool) {
-    shortcuts::suspend(&app, suspended);
+pub fn suspend_shortcuts(window: WebviewWindow, suspended: bool) {
+    if may_suspend_shortcuts(window.label()) {
+        shortcuts::suspend(window.app_handle(), suspended);
+    }
+}
+
+/// Only the settings window has the recorder, and only its closing binds the shortcuts again:
+/// any other window that switched them off would leave them off until Baddel restarts.
+fn may_suspend_shortcuts(label: &str) -> bool {
+    label == windows::SETTINGS
 }
 
 /// Tries to bind `accelerator`, keeping the old one if it is refused. An empty
@@ -527,4 +535,17 @@ pub fn open_external(url: String) -> Result<(), String> {
         return Err("only https links can be opened".into());
     }
     std::process::Command::new("/usr/bin/open").arg(url).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_the_settings_window_can_suspend_the_shortcuts() {
+        // BAD-301: a call from the report or welcome window would leave them off for good.
+        assert!(may_suspend_shortcuts(windows::SETTINGS));
+        assert!(!may_suspend_shortcuts(windows::REPORT));
+        assert!(!may_suspend_shortcuts(windows::ONBOARDING));
+    }
 }
