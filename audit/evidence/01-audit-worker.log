@@ -1,0 +1,250 @@
+$ (cd server/report-worker) node --test --test-reporter=tap test/audit-idempotency-ratelimit.test.js test/audit-input-render.test.js
+start: 2026-10-12T19:34:19Z
+TAP version 13
+# Subtest: sequential retry with the same key replays the id and files once
+ok 1 - sequential retry with the same key replays the id and files once
+  ---
+  duration_ms: 49.625166
+  type: 'test'
+  ...
+# Subtest: BAD-101: two concurrent requests with the same Idempotency-Key file only one issue
+not ok 2 - BAD-101: two concurrent requests with the same Idempotency-Key file only one issue
+  ---
+  duration_ms: 15.014666
+  type: 'test'
+  location: '/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:70:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    filed 2 issues, ids 42,43
+    
+    2 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 2
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:74:10)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: characterisation: the key is not bound to the payload — a different report replays the old id
+ok 3 - characterisation: the key is not bound to the payload — a different report replays the old id
+  ---
+  duration_ms: 15.288125
+  type: 'test'
+  ...
+# Subtest: a failed issue POST stores no key, so a retry can file it
+ok 4 - a failed issue POST stores no key, so a retry can file it
+  ---
+  duration_ms: 22.94275
+  type: 'test'
+  ...
+# Subtest: BAD-102: a network error on the PATCH after the issue exists still returns its number (no 502, no duplicate on retry)
+not ok 5 - BAD-102: a network error on the PATCH after the issue exists still returns its number (no 502, no duplicate on retry)
+  ---
+  duration_ms: 33.566
+  type: 'test'
+  location: '/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:96:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    first=502, retry=201, issues filed=2
+    
+    2 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 2
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:102:10)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: BAD-102 (variant): a network error adding the attachment-failed label also loses the number
+not ok 6 - BAD-102 (variant): a network error adding the attachment-failed label also loses the number
+  ---
+  duration_ms: 17.353625
+  type: 'test'
+  location: '/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:106:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    README: "A failed attachment still returns the number"
+    
+    502 !== 201
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 201
+  actual: 502
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:111:10)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: characterisation: a 5xx on the PATCH is ignored — 201 is returned and the issue body keeps no image links
+ok 7 - characterisation: a 5xx on the PATCH is ignored — 201 is returned and the issue body keeps no image links
+  ---
+  duration_ms: 15.231
+  type: 'test'
+  ...
+# Subtest: a replayed key is answered before the rate limit (retries are never 429)
+ok 8 - a replayed key is answered before the rate limit (retries are never 429)
+  ---
+  duration_ms: 44.224375
+  type: 'test'
+  ...
+# Subtest: sequential: the sixth report from one IP within the hour is 429 with Retry-After
+ok 9 - sequential: the sixth report from one IP within the hour is 429 with Retry-After
+  ---
+  duration_ms: 38.368542
+  type: 'test'
+  ...
+# Subtest: BAD-103: a concurrent burst from one IP is held to 5 issues per hour
+not ok 10 - BAD-103: a concurrent burst from one IP is held to 5 issues per hour
+  ---
+  duration_ms: 11.677708
+  type: 'test'
+  location: '/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:137:1'
+  failureType: 'testCodeFailure'
+  error: '20 of 20 concurrent reports were filed (limit 5/hour)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:140:10)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: characterisation: requests without cf-connecting-ip share one "unknown" bucket
+ok 11 - characterisation: requests without cf-connecting-ip share one "unknown" bucket
+  ---
+  duration_ms: 35.389542
+  type: 'test'
+  ...
+# Subtest: BAD-104: unknown products are not rate-limited and each costs an authenticated GitHub API call
+not ok 12 - BAD-104: unknown products are not rate-limited and each costs an authenticated GitHub API call
+  ---
+  duration_ms: 145.449375
+  type: 'test'
+  location: '/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:149:1'
+  failureType: 'testCodeFailure'
+  error: '30 GitHub label lookups for 30 requests from one IP; none was rate-limited'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:155:10)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: content-type variants: charset suffix and case are accepted, others 415
+ok 13 - content-type variants: charset suffix and case are accepted, others 415
+  ---
+  duration_ms: 34.420792
+  type: 'test'
+  ...
+# Subtest: a body over 16 MB is 413 from the streaming cap
+ok 14 - a body over 16 MB is 413 from the streaming cap
+  ---
+  duration_ms: 23.33975
+  type: 'test'
+  ...
+# Subtest: malformed JSON, arrays, null and __proto__ keys are 400
+ok 15 - malformed JSON, arrays, null and __proto__ keys are 400
+  ---
+  duration_ms: 2.545375
+  type: 'test'
+  ...
+# Subtest: description: limits count trimmed code points (2000), not UTF-16 units
+ok 16 - description: limits count trimmed code points (2000), not UTF-16 units
+  ---
+  duration_ms: 0.891166
+  type: 'test'
+  ...
+# Subtest: characterisation: short fields count UTF-16 units while description counts code points
+ok 17 - characterisation: short fields count UTF-16 units while description counts code points
+  ---
+  duration_ms: 0.496292
+  type: 'test'
+  ...
+# Subtest: diagnostics: 16384 compact UTF-8 bytes is the limit
+ok 18 - diagnostics: 16384 compact UTF-8 bytes is the limit
+  ---
+  duration_ms: 0.498208
+  type: 'test'
+  ...
+# Subtest: attachments: count, keys, padding and signature
+ok 19 - attachments: count, keys, padding and signature
+  ---
+  duration_ms: 1.237292
+  type: 'test'
+  ...
+# Subtest: attachment size: exactly 3 MiB decoded passes, one byte more is 413
+ok 20 - attachment size: exactly 3 MiB decoded passes, one byte more is 413
+  ---
+  duration_ms: 166.270917
+  type: 'test'
+  ...
+# Subtest: description cannot escape its fence or render Markdown/HTML
+ok 21 - description cannot escape its fence or render Markdown/HTML
+  ---
+  duration_ms: 0.364292
+  type: 'test'
+  ...
+# Subtest: inline fields cannot break out of their code spans
+ok 22 - inline fields cannot break out of their code spans
+  ---
+  duration_ms: 0.104917
+  type: 'test'
+  ...
+# Subtest: BAD-105: bidi control characters are removed from the issue title
+not ok 23 - BAD-105: bidi control characters are removed from the issue title
+  ---
+  duration_ms: 0.51325
+  type: 'test'
+  location: '/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-input-render.test.js:110:1'
+  failureType: 'testCodeFailure'
+  error: 'title keeps bidi controls: "[baddel] bug: abc‮fdp.exe⁦x⁩"'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-input-render.test.js:112:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1325:25)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: characterisation: the title is cut at 59 code points, which can split a grapheme
+ok 24 - characterisation: the title is cut at 59 code points, which can split a grapheme
+  ---
+  duration_ms: 0.09575
+  type: 'test'
+  ...
+# Subtest: title uses only the first line and strips C0 controls
+ok 25 - title uses only the first line and strips C0 controls
+  ---
+  duration_ms: 0.068458
+  type: 'test'
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 19
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 531.554042
+
+exit: 1
+duration_s: 1

@@ -1,0 +1,18 @@
+# Audit proposal — needs owner review and approval before use. Proves compilation and unit tests only:
+# a GitHub-hosted macOS runner cannot grant Accessibility, so no conversion is exercised here.
+# `cargo test --workspace` is expected to fail on the audit test that demonstrates BAD-001 until it is fixed.
+name: baddel-audit-macos
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci && npm run check && npm run build
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace

@@ -1,0 +1,459 @@
+$ (cd .) cargo test --workspace
+start: 2026-10-12T19:27:04Z
+    Blocking waiting for file lock on package cache
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling libc v0.2.189
+   Compiling serde_core v1.0.229
+   Compiling cfg-if v1.0.5
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.13
+   Compiling itoa v1.0.18
+   Compiling cc v1.4.7
+   Compiling memchr v2.8.3
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling siphasher v1.0.3
+   Compiling utf8_iter v1.0.4
+   Compiling phf_shared v0.13.1
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling fastrand v2.5.0
+   Compiling zmij v1.0.23
+   Compiling phf_generator v0.13.1
+   Compiling stable_deref_trait v1.2.1
+   Compiling bytes v1.12.1
+   Compiling syn v3.0.6
+   Compiling syn v2.0.119
+   Compiling smallvec v1.16.1
+   Compiling serde v1.0.229
+   Compiling log v0.4.34
+   Compiling thiserror v2.0.20
+   Compiling num-conv v0.2.2
+   Compiling time-core v0.1.9
+   Compiling winnow v1.0.4
+   Compiling http v1.5.0
+   Compiling phf_codegen v0.13.1
+   Compiling typeid v1.0.3
+   Compiling strsim v0.11.1
+   Compiling serde_json v1.0.151
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling ident_case v1.0.1
+   Compiling powerfmt v0.2.0
+   Compiling autocfg v1.5.1
+   Compiling deranged v0.5.8
+   Compiling toml_writer v1.1.2+spec-1.1.0
+   Compiling thiserror v1.0.69
+   Compiling erased-serde v0.4.10
+   Compiling parking_lot_core v0.9.12
+   Compiling byteorder v1.5.0
+   Compiling aho-corasick v1.1.5
+   Compiling unic-common v0.9.0
+   Compiling regex-syntax v0.8.11
+   Compiling new_debug_unreachable v1.0.6
+   Compiling scopeguard v1.2.0
+   Compiling unic-char-range v0.9.0
+   Compiling getrandom v0.4.3
+   Compiling fnv v1.0.7
+   Compiling unic-char-property v0.9.0
+   Compiling lock_api v0.4.14
+   Compiling unic-ucd-version v0.9.0
+   Compiling string_cache_codegen v0.6.1
+   Compiling base64 v0.23.1
+   Compiling precomputed-hash v0.1.1
+   Compiling equivalent v1.0.2
+   Compiling hashbrown v0.17.1
+   Compiling bitflags v2.13.2
+   Compiling alloc-no-stdlib v2.0.4
+   Compiling web_atoms v0.2.6
+   Compiling alloc-stdlib v0.2.4
+   Compiling serde_spanned v1.1.1
+   Compiling parking_lot v0.12.5
+   Compiling unic-ucd-ident v0.9.0
+   Compiling objc2-exception-helper v0.1.1
+   Compiling indexmap v2.14.2
+   Compiling quick-xml v0.42.0
+   Compiling anyhow v1.0.104
+   Compiling string_cache v0.9.0
+   Compiling brotli-decompressor v5.0.3
+   Compiling semver v1.0.28
+   Compiling percent-encoding v2.3.2
+   Compiling ctor-proc-macro v0.0.7
+   Compiling dunce v1.0.5
+   Compiling dtoa v1.0.11
+   Compiling same-file v1.0.6
+   Compiling dtoa-short v0.3.5
+   Compiling walkdir v2.5.0
+   Compiling ctor v0.8.0
+   Compiling form_urlencoded v1.2.2
+   Compiling regex-automata v0.4.18
+   Compiling uuid v1.26.1
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling tendril v0.5.1
+   Compiling indexmap v1.9.3
+   Compiling selectors v0.36.1
+   Compiling camino v1.2.6
+   Compiling synstructure v0.14.0
+   Compiling darling_core v0.24.1
+   Compiling brotli v8.0.4
+   Compiling glob v0.3.4
+   Compiling objc2 v0.6.4
+   Compiling toml v1.1.6+spec-1.1.0
+   Compiling serde_derive_internals v0.29.1
+   Compiling servo_arc v0.4.3
+   Compiling hashbrown v0.12.3
+   Compiling phf_macros v0.13.1
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.3
+   Compiling serde_derive v1.0.229
+   Compiling zerovec-derive v0.11.6
+   Compiling zerofrom v0.1.8
+   Compiling displaydoc v0.2.7
+   Compiling yoke v0.8.3
+   Compiling thiserror-impl v2.0.20
+   Compiling thiserror-impl v1.0.69
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling phf v0.13.1
+   Compiling darling_macro v0.24.1
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_locale_core v2.3.0
+   Compiling darling v0.24.1
+   Compiling icu_collections v2.3.0
+   Compiling regex v1.13.1
+   Compiling serde_with_macros v3.23.0
+   Compiling cssparser-macros v0.6.1
+   Compiling derive_more-impl v2.1.1
+   Compiling schemars v0.8.22
+   Compiling objc2-encode v4.1.0
+   Compiling cssparser v0.36.0
+   Compiling icu_provider v2.3.1
+   Compiling markup5ever v0.38.0
+   Compiling bit-vec v0.8.0
+   Compiling rustc-hash v2.1.3
+   Compiling html5ever v0.38.0
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling derive_more v2.1.1
+   Compiling bit-set v0.8.0
+   Compiling jsonptr v0.6.3
+   Compiling swift-rs v1.0.8
+   Compiling cargo-platform v0.1.9
+   Compiling schemars_derive v0.8.22
+   Compiling cfb v0.7.3
+   Compiling time v0.3.55
+   Compiling base64 v0.21.7
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling dyn-clone v1.0.20
+   Compiling foldhash v0.2.0
+   Compiling serde-untagged v0.1.9
+   Compiling cargo_metadata v0.19.2
+   Compiling url v2.5.8
+   Compiling infer v0.19.0
+   Compiling dom_query v0.27.0
+   Compiling json-patch v3.0.1
+   Compiling serde_with v3.23.0
+   Compiling objc2-core-foundation v0.3.2
+   Compiling urlpattern v0.3.0
+   Compiling block2 v0.6.2
+   Compiling option-ext v0.2.0
+   Compiling core-foundation-sys v0.8.7
+   Compiling dirs-sys v0.5.0
+   Compiling version_check v0.9.5
+   Compiling objc2-foundation v0.3.2
+   Compiling once_cell v1.21.4
+   Compiling plist v1.10.1
+   Compiling dirs v6.0.0
+   Compiling rustc_version v0.4.1
+   Compiling toml_datetime v0.7.5+spec-1.1.0
+   Compiling winnow v0.7.15
+   Compiling embed-resource v3.0.11
+   Compiling objc2-core-graphics v0.3.2
+   Compiling objc2-core-video v0.3.2
+   Compiling tauri-utils v2.9.3
+   Compiling objc2-core-text v0.3.2
+   Compiling heck v0.5.0
+   Compiling tauri-winres v0.3.6
+   Compiling simd-adler32 v0.3.10
+   Compiling pin-project-lite v0.2.17
+   Compiling crc32fast v1.5.2
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.9.1
+   Compiling tokio-macros v2.7.2
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling flate2 v1.1.10
+   Compiling tokio v1.53.1
+   Compiling miniz_oxide v0.8.9
+   Compiling fdeflate v0.3.7
+   Compiling toml v0.9.12+spec-1.1.0
+   Compiling generic-array v0.14.7
+   Compiling core-foundation v0.10.1
+   Compiling crossbeam-utils v0.8.23
+   Compiling cargo_toml v0.22.3
+   Compiling time-macros v0.2.32
+   Compiling typenum v1.20.1
+   Compiling dpi v0.1.2
+   Compiling raw-window-handle v0.6.2
+   Compiling crossbeam-channel v0.5.17
+   Compiling cookie v0.18.2
+   Compiling foreign-types-macros v0.2.4
+   Compiling foreign-types-shared v0.3.1
+   Compiling base64 v0.22.1
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling foreign-types v0.5.0
+   Compiling core-graphics-types v0.2.0
+   Compiling num-traits v0.2.19
+   Compiling futures-core v0.3.34
+   Compiling unicode-segmentation v1.13.3
+   Compiling bitflags v1.3.2
+   Compiling png v0.17.16
+   Compiling keyboard-types v0.7.0
+   Compiling digest v0.10.7
+   Compiling png v0.18.1
+   Compiling dispatch2 v0.3.1
+   Compiling cpufeatures v0.2.17
+   Compiling tauri-runtime v2.11.3
+   Compiling wry v0.55.1
+   Compiling sha2 v0.10.9
+   Compiling ico v0.5.0
+   Compiling core-graphics v0.25.0
+   Compiling ring v0.17.14
+   Compiling pxfm v0.1.30
+   Compiling tauri-runtime-wry v2.11.4
+   Compiling getrandom v0.3.4
+   Compiling tauri-plugin v2.6.3
+   Compiling tauri-build v2.6.3
+   Compiling tauri-codegen v2.6.3
+   Compiling serialize-to-javascript-impl v0.1.2
+   Compiling byteorder-lite v0.1.0
+   Compiling bytemuck v1.25.2
+   Compiling serialize-to-javascript v0.1.2
+   Compiling serde_repr v0.1.21
+   Compiling getrandom v0.2.17
+   Compiling untrusted v0.9.0
+   Compiling zeroize v1.9.0
+   Compiling mime v0.3.17
+   Compiling embed_plist v1.2.2
+   Compiling rustls-pki-types v1.15.1
+   Compiling futures-macro v0.3.34
+   Compiling http-body v1.1.0
+   Compiling system-configuration-sys v0.6.0
+   Compiling futures-task v0.3.34
+   Compiling slab v0.4.12
+   Compiling httparse v1.10.1
+   Compiling moxcms v0.8.1
+   Compiling rustls v0.23.45
+   Compiling futures-util v0.3.34
+   Compiling tracing-core v0.1.36
+   Compiling rustls-webpki v0.103.15
+   Compiling tracing-attributes v0.1.31
+   Compiling tower-service v0.3.3
+   Compiling subtle v2.6.1
+   Compiling rustix v1.1.5
+   Compiling try-lock v0.2.5
+   Compiling want v0.3.1
+   Compiling tracing v0.1.44
+   Compiling futures-channel v0.3.34
+   Compiling core-foundation v0.9.4
+   Compiling errno v0.3.14
+   Compiling atomic-waker v1.1.2
+   Compiling hyper v1.11.1
+   Compiling system-configuration v0.7.0
+   Compiling sync_wrapper v1.0.2
+   Compiling security-framework-sys v2.17.0
+   Compiling ipnet v2.12.2
+   Compiling tower-layer v0.3.3
+   Compiling hyper-util v0.1.20
+   Compiling tower v0.5.3
+   Compiling image v0.25.10
+   Compiling security-framework v3.7.0
+   Compiling objc2-core-data v0.3.2
+   Compiling objc2-cloud-kit v0.3.2
+   Compiling objc2-core-image v0.3.2
+   Compiling objc2-quartz-core v0.3.2
+   Compiling tauri v2.11.6
+   Compiling objc2-app-kit v0.3.2
+   Compiling tauri-macros v2.6.3
+   Compiling tauri-plugin-fs v2.5.2
+   Compiling tokio-rustls v0.26.5
+   Compiling tauri-plugin-dialog v2.7.3
+   Compiling tauri-plugin-global-shortcut v2.3.2
+   Compiling tauri-plugin-process v2.3.1
+   Compiling tauri-plugin-updater v2.12.0
+   Compiling tauri-plugin-autostart v2.5.1
+   Compiling tauri-plugin-store v2.4.5
+   Compiling dirs-sys v0.3.7
+   Compiling futures-sink v0.3.34
+   Compiling rfd v0.16.0
+   Compiling tokio-util v0.7.19
+   Compiling dirs v4.0.0
+   Compiling hyper-rustls v0.27.9
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling tower-http v0.6.11
+   Compiling xattr v1.6.1
+   Compiling http-body-util v0.1.5
+   Compiling filetime v0.2.29
+   Compiling reqwest v0.13.5
+   Compiling tar v0.4.46
+   Compiling tempfile v3.27.0
+   Compiling auto-launch v0.5.0
+   Compiling baddel v2.0.1 (/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/src-tauri)
+   Compiling minisign-verify v0.2.5
+   Compiling core-graphics v0.24.0
+   Compiling accessibility-sys v0.1.3
+   Compiling objc2-web-kit v0.3.2
+   Compiling tao v0.35.3
+   Compiling muda v0.19.3
+   Compiling window-vibrancy v0.6.0
+   Compiling objc2-osa-kit v0.3.2
+   Compiling global-hotkey v0.8.0
+   Compiling osakit v0.3.1
+   Compiling tray-icon v0.24.2
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 36s
+     Running unittests src/lib.rs (target/debug/deps/baddel_lib-b4d9e50b78ffe09b)
+
+running 37 tests
+test controller::tests::a_failed_undo_offers_the_original_and_keeps_undo_while_it_can_still_work ... ok
+test controller::tests::a_route_waits_for_copies_no_longer_than_the_app_needs ... ok
+test controller::tests::expected_states_are_announced_once_not_on_every_press ... ok
+test controller::tests::only_short_conversions_are_shown_word_for_word ... ok
+test controller::tests::undo_leaves_a_line_alone_unless_it_ends_with_our_text ... ok
+test controller::tests::the_line_is_what_follows_the_last_line_break ... ok
+test controller::tests::undo_puts_the_original_back_at_the_end_of_the_line ... ok
+test diagnostics::tests::the_ring_keeps_the_last_ten_newest_first ... ok
+test diagnostics::tests::the_summary_counts_exceptions_without_naming_them ... ok
+test hud::tests::arabic_runs_are_told_apart_from_latin_ones ... ok
+test menu_text::tests::arabic_counts_take_the_right_noun ... ok
+test report::tests::base64_matches_the_standard ... ok
+test report::tests::description_limits ... ok
+test report::tests::live_report ... ignored, posts to the live Worker
+test report::tests::display_replaces_image_data_with_its_size ... ok
+test report::tests::idempotency_key_is_reused_only_for_the_same_payload ... ok
+test menu_text::tests::every_string_matches_the_interface_files ... ok
+test report::tests::kinds_without_a_category_leave_it_out ... ok
+test report::tests::payload_follows_the_contract ... ok
+test report::tests::responses_map_to_what_the_window_offers ... ok
+test report::tests::payload_carries_no_conversion_text ... ok
+test settings::tests::a_file_from_before_the_defaults_version_gets_the_new_exceptions_once ... ok
+test settings::tests::a_file_from_before_the_optional_commands_reads_them_as_unbound ... ok
+test settings::tests::a_timed_pause_runs_out_and_resuming_forgets_its_end ... ok
+test settings::tests::fresh_settings_are_current ... ok
+test shortcuts::tests::a_command_does_not_conflict_with_itself_or_with_an_empty_binding ... ok
+test shortcuts::tests::a_shortcut_bound_to_another_command_names_that_command ... ok
+test shortcuts::tests::the_optional_commands_conflict_like_the_others ... ok
+test sys::image::tests::rejects_non_images_and_oversized_files ... ok
+test sys::image::tests::signatures ... ok
+test sys::system::tests::a_disk_image_or_a_translocated_copy_is_temporary ... ok
+test sys::system::tests::applications_home_folders_and_external_drives_are_not ... ok
+test sys::clock::tests::the_time_of_day_has_hours_and_two_digit_minutes ... ok
+test hud::tests::the_pill_carries_one_soft_shadow_below_it ... ok
+test sys::image::tests::metadata_does_not_survive ... ok
+test hud::tests::every_state_icon_is_a_black_template_at_2x ... ok
+test sys::image::tests::large_images_are_scaled_down ... ok
+
+test result: ok. 36 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running unittests src/main.rs (target/debug/deps/baddel-e030cbee3c89c7c9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/baddel_core-a12c4a52fecfb86b)
+
+running 1 test
+test tests::detects_arabic_script ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/core.rs (target/debug/deps/core-643ff14addfd26cd)
+
+running 56 tests
+test arabic_indic_digits_count_as_arabic ... ok
+test an_email_survives_a_sentence_typed_on_the_wrong_layout ... ok
+test a_link_does_not_outvote_the_word_beside_it ... ok
+test a_technical_word_does_not_outvote_the_word_beside_it ... ok
+test bundled_maps_are_not_empty ... ok
+test bottom_row_differs_between_layouts ... ok
+test capital_letters_mac ... ok
+test capital_letters_pc ... ok
+test convert_leaves_letterless_text_alone ... ok
+test custom_provider_is_respected ... ok
+test direction_mostly_arabic ... ok
+test convert_reports_direction ... ok
+test collisions_and_shared_symbols ... ok
+test digits_map_both_ways ... ok
+test direction_mostly_latin ... ok
+test direction_none_without_letters ... ok
+test direction_tie_counts_as_arabic ... ok
+test empty_provider_gives_an_empty_map_that_changes_nothing ... ok
+test diacritics_come_from_the_shift_layer ... ok
+test capitals_that_type_hamza_or_marks_still_convert ... ok
+test empty_string ... ok
+test links_emails_and_paths_are_protected ... ok
+test explicit_direction_still_leaves_protected_words_alone ... ok
+test hello_on_both_layouts ... ok
+test mac_comma_and_pc_comma_differ ... ok
+test only_protected_text_has_no_direction ... ok
+test ordinary_and_wrongly_typed_words_are_not_protected ... ok
+test option_layer_is_not_paired ... ok
+test parentheses_swap_like_the_keys_do ... ok
+test paths_are_kept_and_a_lone_slash_still_converts ... ok
+test mac_has_no_lam_alef_key ... ok
+test pc_b_key_types_lam_alef ... ok
+test pc_many_ambiguous_sites_fall_back_to_default ... ok
+test pc_shifted_lam_alef_ligature_keys ... ok
+test question_mark ... ok
+test return_tab_and_space_are_never_remapped ... ok
+test reversed_direction ... ok
+test pc_lam_alef_with_capital ... ok
+test every_base_key_roundtrips ... ok
+test pc_lam_alef_prefers_a_real_word ... ok
+test pc_lam_alef_mixed_in_one_word ... ok
+test pc_lam_alef_ignores_surrounding_punctuation ... ok
+test salam_on_both_layouts ... ok
+test pc_lam_alef_is_decided_per_word ... ok
+test static_layout_out_of_range_keycode ... ok
+test pc_lam_alef_defaults_to_b ... ok
+test technical_words_are_kept_where_the_vote_goes_latin_to_arabic ... ok
+test ta_marbuta_key ... ok
+test the_literal_conversion_keeps_nothing_back ... ok
+test unmapped_characters_pass_through ... ok
+test word_list_lookup ... ok
+test vocalised_arabic_roundtrips ... ok
+test sentences_roundtrip ... ok
+test whitespace_is_preserved_exactly ... ok
+test which_capitals_mark_a_technical_word_depends_on_the_layout ... ok
+test word_list_is_sorted_lowercase_ascii ... ok
+
+test result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/table.rs (target/debug/deps/table-4d343b09efecbbc0)
+
+running 2 tests
+test fixture_table_is_complete ... ok
+test fixture_table ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests baddel_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests baddel_core
+
+running 1 test
+test crates/baddel-core/src/lib.rs - (line 12) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+
+exit: 0
+duration_s: 98

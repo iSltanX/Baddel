@@ -1,0 +1,24 @@
+$ (cd server/report-worker) npm test
+start: 2026-10-12T19:27:18Z
+
+> test
+> node --test test/*.test.js
+
+✔ files an issue and returns its number (111.603125ms)
+✔ stores the attachment under reports/<product>/<id>/ and embeds it (2.527667ms)
+✔ rejects what the contract does not allow (56.546209ms)
+✔ replays an idempotency key instead of filing twice (5.068292ms)
+✔ limits reports per IP, keyed by a salted hash (7.017083ms)
+✔ a failed attachment still returns the number, labelled (8.34475ms)
+✔ user text never renders as Markdown (0.919625ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 469.912166
+
+exit: 0
+duration_s: 1

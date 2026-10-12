@@ -1,0 +1,6 @@
+$ (cd .) python3 scripts/check-docs.py
+start: 2026-10-12T19:27:18Z
+201 links checked, 0 problem(s)
+
+exit: 0
+duration_s: 0

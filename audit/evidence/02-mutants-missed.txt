@@ -1,0 +1,18 @@
+# cargo-mutants v27.1.0 — existing tests only (--lib --test core --test table); 128 mutants: 106 caught, 11 missed, 4 timeout, 7 unviable
+## missed
+crates/baddel-core/src/convert.rs:65:36: replace || with && in is_protected
+crates/baddel-core/src/convert.rs:181:54: replace && with || in LayoutMap::convert_words
+crates/baddel-core/src/convert.rs:204:34: replace > with >= in LayoutMap::tokenize
+crates/baddel-core/src/disambiguate.rs:25:24: replace || with && in is_english_word
+crates/baddel-core/src/disambiguate.rs:49:20: replace > with == in resolve
+crates/baddel-core/src/disambiguate.rs:49:20: replace > with >= in resolve
+crates/baddel-core/src/layout.rs:101:50: replace || with && in LayoutMap::build
+crates/baddel-core/src/layout.rs:101:29: replace || with && in LayoutMap::build
+crates/baddel-core/src/layout.rs:135:5: replace is_mappable -> bool with true
+crates/baddel-core/src/layout.rs:135:19: replace && with || in is_mappable
+crates/baddel-core/src/layout.rs:135:56: replace || with && in is_mappable
+## timeout (infinite loop → counted as detected)
+crates/baddel-core/src/convert.rs:212:23: replace += with *= in LayoutMap::tokenize
+crates/baddel-core/src/convert.rs:216:23: replace += with -= in LayoutMap::tokenize
+crates/baddel-core/src/convert.rs:216:23: replace += with *= in LayoutMap::tokenize
+crates/baddel-core/src/convert.rs:230:57: replace != with == in split_keeping_whitespace

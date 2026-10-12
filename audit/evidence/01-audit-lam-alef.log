@@ -1,0 +1,41 @@
+$ (cd .) cargo test -p baddel-core --test audit_lam_alef
+start: 2026-10-12T19:32:34Z
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/audit_lam_alef.rs (target/debug/deps/audit_lam_alef-5fc0ce3922f1298e)
+
+running 16 tests
+test arabic_digits_and_punctuation_vote_arabic ... ok
+test idn_link_is_not_protected_and_gets_rewritten ... ok
+test lam_alef_on_mac_is_always_two_keys ... ok
+test pc_thirty_two_sites_in_one_word ... ok
+test protection_edges ... ok
+test presentation_form_lam_alef_passes_through ... ok
+test technical_edges ... ok
+test technical_words_do_not_vote ... ok
+test tie_goes_to_arabic ... ok
+test lam_alef_ligature_keys_on_pc ... ok
+test single_key_round_trip_counterexamples_are_exactly_the_tatweel ... ok
+test pc_gh_round_trip_counterexample ... ok
+test pc_more_than_six_sites_reads_single_key ... ok
+test bad_001_thirty_three_sites_in_one_word_must_not_panic ... FAILED
+test pc_disambiguation_cost_is_bounded ... ok
+test lowercase_words_round_trip_on_mac ... ok
+
+failures:
+
+---- bad_001_thirty_three_sites_in_one_word_must_not_panic stdout ----
+
+thread 'bad_001_thirty_three_sites_in_one_word_must_not_panic' (1622322) panicked at crates/baddel-core/src/disambiguate.rs:40:86:
+attempt to shift right with overflow
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    bad_001_thirty_three_sites_in_one_word_must_not_panic
+
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+error: test failed, to rerun pass `-p baddel-core --test audit_lam_alef`
+
+exit: 101
+duration_s: 0

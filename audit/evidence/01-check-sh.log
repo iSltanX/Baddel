@@ -1,0 +1,175 @@
+$ (cd .) ./scripts/check.sh
+start: 2026-10-12T19:29:57Z
+   Compiling baddel v2.0.1 (/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.03s
+     Running unittests src/lib.rs (target/debug/deps/baddel_lib-b4d9e50b78ffe09b)
+
+running 37 tests
+test controller::tests::only_short_conversions_are_shown_word_for_word ... ok
+test controller::tests::a_route_waits_for_copies_no_longer_than_the_app_needs ... ok
+test controller::tests::expected_states_are_announced_once_not_on_every_press ... ok
+test controller::tests::the_line_is_what_follows_the_last_line_break ... ok
+test controller::tests::undo_leaves_a_line_alone_unless_it_ends_with_our_text ... ok
+test controller::tests::undo_puts_the_original_back_at_the_end_of_the_line ... ok
+test diagnostics::tests::the_ring_keeps_the_last_ten_newest_first ... ok
+test controller::tests::a_failed_undo_offers_the_original_and_keeps_undo_while_it_can_still_work ... ok
+test diagnostics::tests::the_summary_counts_exceptions_without_naming_them ... ok
+test hud::tests::arabic_runs_are_told_apart_from_latin_ones ... ok
+test menu_text::tests::arabic_counts_take_the_right_noun ... ok
+test report::tests::base64_matches_the_standard ... ok
+test report::tests::description_limits ... ok
+test report::tests::live_report ... ignored, posts to the live Worker
+test menu_text::tests::every_string_matches_the_interface_files ... ok
+test report::tests::display_replaces_image_data_with_its_size ... ok
+test report::tests::kinds_without_a_category_leave_it_out ... ok
+test report::tests::payload_follows_the_contract ... ok
+test report::tests::idempotency_key_is_reused_only_for_the_same_payload ... ok
+test report::tests::payload_carries_no_conversion_text ... ok
+test report::tests::responses_map_to_what_the_window_offers ... ok
+test settings::tests::a_file_from_before_the_defaults_version_gets_the_new_exceptions_once ... ok
+test settings::tests::a_file_from_before_the_optional_commands_reads_them_as_unbound ... ok
+test settings::tests::a_timed_pause_runs_out_and_resuming_forgets_its_end ... ok
+test settings::tests::fresh_settings_are_current ... ok
+test shortcuts::tests::a_command_does_not_conflict_with_itself_or_with_an_empty_binding ... ok
+test shortcuts::tests::a_shortcut_bound_to_another_command_names_that_command ... ok
+test shortcuts::tests::the_optional_commands_conflict_like_the_others ... ok
+test sys::image::tests::rejects_non_images_and_oversized_files ... ok
+test sys::image::tests::signatures ... ok
+test sys::system::tests::a_disk_image_or_a_translocated_copy_is_temporary ... ok
+test sys::system::tests::applications_home_folders_and_external_drives_are_not ... ok
+test sys::clock::tests::the_time_of_day_has_hours_and_two_digit_minutes ... ok
+test hud::tests::the_pill_carries_one_soft_shadow_below_it ... ok
+test sys::image::tests::metadata_does_not_survive ... ok
+test hud::tests::every_state_icon_is_a_black_template_at_2x ... ok
+test sys::image::tests::large_images_are_scaled_down ... ok
+
+test result: ok. 36 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running unittests src/main.rs (target/debug/deps/baddel-e030cbee3c89c7c9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/baddel_core-a12c4a52fecfb86b)
+
+running 1 test
+test tests::detects_arabic_script ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/core.rs (target/debug/deps/core-643ff14addfd26cd)
+
+running 56 tests
+test arabic_indic_digits_count_as_arabic ... ok
+test an_email_survives_a_sentence_typed_on_the_wrong_layout ... ok
+test bundled_maps_are_not_empty ... ok
+test capital_letters_mac ... ok
+test capital_letters_pc ... ok
+test a_technical_word_does_not_outvote_the_word_beside_it ... ok
+test a_link_does_not_outvote_the_word_beside_it ... ok
+test bottom_row_differs_between_layouts ... ok
+test collisions_and_shared_symbols ... ok
+test capitals_that_type_hamza_or_marks_still_convert ... ok
+test direction_mostly_arabic ... ok
+test convert_leaves_letterless_text_alone ... ok
+test direction_mostly_latin ... ok
+test custom_provider_is_respected ... ok
+test convert_reports_direction ... ok
+test direction_none_without_letters ... ok
+test direction_tie_counts_as_arabic ... ok
+test empty_provider_gives_an_empty_map_that_changes_nothing ... ok
+test diacritics_come_from_the_shift_layer ... ok
+test digits_map_both_ways ... ok
+test links_emails_and_paths_are_protected ... ok
+test empty_string ... ok
+test hello_on_both_layouts ... ok
+test explicit_direction_still_leaves_protected_words_alone ... ok
+test mac_comma_and_pc_comma_differ ... ok
+test only_protected_text_has_no_direction ... ok
+test option_layer_is_not_paired ... ok
+test ordinary_and_wrongly_typed_words_are_not_protected ... ok
+test mac_has_no_lam_alef_key ... ok
+test parentheses_swap_like_the_keys_do ... ok
+test pc_b_key_types_lam_alef ... ok
+test paths_are_kept_and_a_lone_slash_still_converts ... ok
+test pc_many_ambiguous_sites_fall_back_to_default ... ok
+test pc_shifted_lam_alef_ligature_keys ... ok
+test question_mark ... ok
+test return_tab_and_space_are_never_remapped ... ok
+test reversed_direction ... ok
+test pc_lam_alef_with_capital ... ok
+test every_base_key_roundtrips ... ok
+test pc_lam_alef_mixed_in_one_word ... ok
+test pc_lam_alef_prefers_a_real_word ... ok
+test pc_lam_alef_is_decided_per_word ... ok
+test pc_lam_alef_ignores_surrounding_punctuation ... ok
+test static_layout_out_of_range_keycode ... ok
+test pc_lam_alef_defaults_to_b ... ok
+test salam_on_both_layouts ... ok
+test technical_words_are_kept_where_the_vote_goes_latin_to_arabic ... ok
+test ta_marbuta_key ... ok
+test unmapped_characters_pass_through ... ok
+test the_literal_conversion_keeps_nothing_back ... ok
+test sentences_roundtrip ... ok
+test vocalised_arabic_roundtrips ... ok
+test whitespace_is_preserved_exactly ... ok
+test which_capitals_mark_a_technical_word_depends_on_the_layout ... ok
+test word_list_lookup ... ok
+test word_list_is_sorted_lowercase_ascii ... ok
+
+test result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/table.rs (target/debug/deps/table-4d343b09efecbbc0)
+
+running 2 tests
+test fixture_table_is_complete ... ok
+test fixture_table ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests baddel_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests baddel_core
+
+running 1 test
+test crates/baddel-core/src/lib.rs - (line 12) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+    Checking baddel v2.0.1 (/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.12s
+
+> baddel@2.0.1 check
+> svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings
+
+> baddel@2.0.1 build
+> vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 183 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                               0.40 kB │ gzip:  0.28 kB
+dist/assets/luma-BGIL9_T8.png                 5.91 kB
+dist/assets/raff-BU7dIZsi.png                 7.57 kB
+dist/assets/app-icon-m-aQJBVF.png             7.63 kB
+dist/assets/Almarai-Regular-TEKe4XFl.woff2   49.12 kB
+dist/assets/Cairo-Bold-B-_7TOZF.woff2        50.40 kB
+dist/assets/Almarai-Bold-ByK29-r7.woff2      50.78 kB
+dist/assets/index-DmQnOk1a.css               41.63 kB │ gzip:  6.88 kB
+dist/assets/index-DBUY0yAo.js               149.35 kB │ gzip: 53.28 kB
+✓ built in 712ms
+
+exit: 0
+duration_s: 15

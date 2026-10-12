@@ -1,0 +1,91 @@
+$ (cd .) cargo test -p baddel-core
+start: 2026-10-12T19:27:00Z
+   Compiling baddel-core v2.0.1 (/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/crates/baddel-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.80s
+     Running unittests src/lib.rs (target/debug/deps/baddel_core-a12c4a52fecfb86b)
+
+running 1 test
+test tests::detects_arabic_script ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/core.rs (target/debug/deps/core-643ff14addfd26cd)
+
+running 56 tests
+test arabic_indic_digits_count_as_arabic ... ok
+test an_email_survives_a_sentence_typed_on_the_wrong_layout ... ok
+test bundled_maps_are_not_empty ... ok
+test bottom_row_differs_between_layouts ... ok
+test capital_letters_pc ... ok
+test capital_letters_mac ... ok
+test a_technical_word_does_not_outvote_the_word_beside_it ... ok
+test convert_leaves_letterless_text_alone ... ok
+test custom_provider_is_respected ... ok
+test a_link_does_not_outvote_the_word_beside_it ... ok
+test collisions_and_shared_symbols ... ok
+test convert_reports_direction ... ok
+test capitals_that_type_hamza_or_marks_still_convert ... ok
+test direction_mostly_arabic ... ok
+test direction_mostly_latin ... ok
+test direction_tie_counts_as_arabic ... ok
+test direction_none_without_letters ... ok
+test empty_provider_gives_an_empty_map_that_changes_nothing ... ok
+test digits_map_both_ways ... ok
+test empty_string ... ok
+test links_emails_and_paths_are_protected ... ok
+test diacritics_come_from_the_shift_layer ... ok
+test explicit_direction_still_leaves_protected_words_alone ... ok
+test only_protected_text_has_no_direction ... ok
+test mac_comma_and_pc_comma_differ ... ok
+test ordinary_and_wrongly_typed_words_are_not_protected ... ok
+test hello_on_both_layouts ... ok
+test mac_has_no_lam_alef_key ... ok
+test option_layer_is_not_paired ... ok
+test parentheses_swap_like_the_keys_do ... ok
+test paths_are_kept_and_a_lone_slash_still_converts ... ok
+test pc_b_key_types_lam_alef ... ok
+test pc_many_ambiguous_sites_fall_back_to_default ... ok
+test pc_shifted_lam_alef_ligature_keys ... ok
+test question_mark ... ok
+test return_tab_and_space_are_never_remapped ... ok
+test reversed_direction ... ok
+test salam_on_both_layouts ... ok
+test pc_lam_alef_with_capital ... ok
+test every_base_key_roundtrips ... ok
+test pc_lam_alef_prefers_a_real_word ... ok
+test pc_lam_alef_mixed_in_one_word ... ok
+test pc_lam_alef_is_decided_per_word ... ok
+test pc_lam_alef_ignores_surrounding_punctuation ... ok
+test sentences_roundtrip ... ok
+test pc_lam_alef_defaults_to_b ... ok
+test static_layout_out_of_range_keycode ... ok
+test technical_words_are_kept_where_the_vote_goes_latin_to_arabic ... ok
+test unmapped_characters_pass_through ... ok
+test ta_marbuta_key ... ok
+test the_literal_conversion_keeps_nothing_back ... ok
+test whitespace_is_preserved_exactly ... ok
+test vocalised_arabic_roundtrips ... ok
+test which_capitals_mark_a_technical_word_depends_on_the_layout ... ok
+test word_list_lookup ... ok
+test word_list_is_sorted_lowercase_ascii ... ok
+
+test result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/table.rs (target/debug/deps/table-4d343b09efecbbc0)
+
+running 2 tests
+test fixture_table_is_complete ... ok
+test fixture_table ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests baddel_core
+
+running 1 test
+test crates/baddel-core/src/lib.rs - (line 12) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+
+exit: 0
+duration_s: 3
