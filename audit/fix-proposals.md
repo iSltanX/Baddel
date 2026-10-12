@@ -56,6 +56,34 @@
 **الكلفة:** قراءة أنواع الحافظة مرة عند النهاية.
 **التحقق:** الحالة S5.
 
+## BAD-308 — كل الأوامر متاحة لكل نافذة
+
+**ما في الشيفرة:**
+- `src-tauri/build.rs` يستدعي `tauri_build::build()` دون `AppManifest`.
+- القدرة الوحيدة `capabilities/default.json` تشمل النوافذ الثلاث.
+
+فأي سكربت يُحقن في نافذة البلاغ يستطيع استدعاء `set_settings` أو `install_update` أو `add_excluded_app`.
+الـ CSP الصارم يقلّل الاحتمال. وقد ضيّق BAD-301 وBAD-303 أخطر أمرين في هذا الفرع: `suspend_shortcuts` صار للإعدادات وحدها، و`set_settings` صار بحقول محددة.
+
+**لماذا لم يُنفَّذ:** التغيير ليس صغيرًا:
+- `build.rs` يصير `tauri_build::try_build(Attributes::new().app_manifest(AppManifest::new().commands(&[…35 أمرًا…])))`.
+- `default.json` ينقسم إلى ثلاث قدرات، لكل نافذة واحدة.
+
+ونسيان أمر في قدرة نافذة يكسر زرًّا فيها بصمت. لا اختبار للواجهة في المشروع يكشف ذلك، فيحتاج تشغيل كل شاشة يدويًا.
+
+**مسودة التوزيع**، مستخرجة من استيرادات النوافذ الثلاث وأجزائها المباشرة. المكوّنات المتداخلة، مثل `ShortcutRecorder` والأجزاء الصغيرة، لم تُتتبَّع كلها، فتُكمَّل بـ `grep` على `invoke(` قبل التنفيذ:
+
+| القدرة | النافذة | الأوامر |
+|---|---|---|
+| `common` | الثلاث | `get_settings`، `permission_granted`، `update_status`، `app_version`، `reveal_window`، `set_content_height`، `set_window_title` |
+| `settings` | `settings` | `set_settings`، `set_shortcut`، `suspend_shortcuts`، `list_layouts`، `keyboard_map`، `convert_text`، `excluded_apps`، `add_excluded_app`، `remove_excluded_app`، `check_for_updates`، `install_update`، `preview_hud`، `open_onboarding`، `open_external`، `copy_diagnostics`، `open_report`، `open_keyboard_settings`، `request_permission` |
+| `onboarding` | `onboarding` | `convert_text`، `finish_onboarding`، `request_permission`، `app_needs_move`، `reveal_app_in_finder`، `open_keyboard_settings`، `set_settings` (إن استعملته الشاشة) |
+| `report` | `report` | `report_pick_image`، `report_paste_image`، `report_clear_image`، `report_preview`، `report_send`، `report_copy`، `report_copy_number` |
+
+**التحقق:**
+- كل شاشة يدويًا.
+- الحالة S8 بعد التغيير: من Web Inspector في نافذة البلاغ، يجب أن يُرفض `invoke('set_settings', …)`.
+
 ## BAD-101 وBAD-103 — ضمان صارم عبر الـ isolates
 
 **ما نُفِّذ:**
