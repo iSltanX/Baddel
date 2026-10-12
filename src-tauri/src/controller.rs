@@ -1342,8 +1342,20 @@ fn previous_word(focused: &Focused, end: usize) -> Option<Word> {
     if utf16_len(&text) != end - from {
         return None; // the app's idea of offsets is not UTF-16; do not guess
     }
+    last_word(&text, from)
+}
+
+/// The last whitespace-delimited word of `text`, which was read from UTF-16 offset `from`. Unless
+/// the read began at the field's start, the word must begin after whitespace within it: one that
+/// runs back past the read is longer than [`LOOKBEHIND_UNITS`], and converting its tail would leave
+/// the rest behind, or split an emoji whose low half opened the read.
+fn last_word(text: &str, from: usize) -> Option<Word> {
     let trimmed = text.trim_end();
-    let word_start = trimmed.rfind(char::is_whitespace).map_or(0, |i| i + trimmed[i..].chars().next().unwrap().len_utf8());
+    let word_start = match trimmed.rfind(char::is_whitespace) {
+        Some(i) => i + trimmed[i..].chars().next().unwrap().len_utf8(),
+        None if from == 0 => 0,
+        None => return None,
+    };
     let word = &trimmed[word_start..];
     (!word.is_empty()).then(|| Word {
         start: from + utf16_len(&text[..word_start]),
@@ -1464,6 +1476,22 @@ mod tests {
         target.copy_times = vec![Duration::from_millis(400)];
         route.learn(&target);
         assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
+    }
+
+    #[test]
+    fn the_previous_word_is_read_whole_or_not_at_all() {
+        let word = |text: &str, from: usize| last_word(text, from).map(|w| (w.start, w.len, w.text));
+        assert_eq!(word("Dear team, sghl", 0), Some((11, 4, "sghl".into())));
+        assert_eq!(word("x sghl  ", 100), Some((102, 4, "sghl".into())));
+        assert_eq!(word("sghl", 0), Some((0, 4, "sghl".into())));
+        assert_eq!(word("   ", 0), None);
+        // BAD-208: the read began inside a word longer than the look-behind; converting its tail
+        // would leave the rest unconverted.
+        assert_eq!(word(&"x".repeat(LOOKBEHIND_UNITS), 7), None);
+        // BAD-207: the read began on the low half of an emoji, now U+FFFD; it never reaches the word.
+        let edge = format!("\u{FFFD}{} سلام", "x".repeat(LOOKBEHIND_UNITS - 6));
+        assert_eq!(word(&edge, 7), Some((7 + LOOKBEHIND_UNITS - 4, 4, "سلام".into())));
+        assert_eq!(word("\u{FFFD}xx", 7), None);
     }
 
     #[test]
