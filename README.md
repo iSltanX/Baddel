@@ -268,6 +268,8 @@ curl -fsSL https://github.com/iSltanX/Baddel/releases/latest/download/install.sh
 | --- | --- |
 | **مُختبَر على الجهاز** | TextEdit · Notes · Mail (نافذة رسالة جديدة) · Safari · Chrome · Brave (في `textarea` و`contenteditable`) · Claude (تطبيق Electron) · Luma (تطبيق Tauri) · Figma (نص على اللوحة): التحديد وآخر كلمة والمدّ، والحافظة تعود كما كانت في كل مرة. وحقول كلمات المرور في المتصفحات الثلاثة لا تُمسّ. |
 | **لم يُختبر بعد** | تطبيقات Electron الأخرى (Slack وVS Code وDiscord) · Spotlight. المسار موجود لها، لكننا لا ندّعي ما لم نشغّله. |
+| **مشكلة معروفة** | **Chrome 155:** في `textarea` و`contenteditable` قد يقول بدّل «تم التحويل» ويبقى النص كما هو (ظهر في 2.0.1 أيضًا). لم يُصلح بعد؛ Safari وBrave (Chromium 154) يعملان. |
+| **أُعيد اختباره في 2.0.2** | TextEdit وSafari وBrave وحقول كلمات المرور وTerminal المستثنى. أما Mail وFigma وClaude وLuma فنتائجها أعلاه من 2.0.0، وإعادة اختبارها مؤجلة. |
 | **مستثنى عمدًا** | الطرفيات (Terminal وiTerm وWarp وGhostty وkitty وAlacritty وWezTerm)، ومديرو كلمات المرور (Keychain Access وPasswords و1Password وBitwarden وKeePassXC وEnpass). تُدار من **الإعدادات ← الاستثناءات**. |
 
 النتائج والأزمنة بالتفصيل في [docs/test-matrix.md](docs/test-matrix.md).

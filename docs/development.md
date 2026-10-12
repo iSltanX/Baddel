@@ -2,7 +2,7 @@
 
 المرجع الدائم لمن يعمل على المصدر: البنية، والثوابت التي لا تُكسر، ونظام التصميم والهوية، والفحص والإصدار، وما بقي مفتوحًا. استخدام التطبيق في [README](../README.md)، والخصوصية في [PRIVACY.md](../PRIVACY.md)، وتاريخ الإصدارات في [CHANGELOG.md](../CHANGELOG.md).
 
-**آخر إصدار:** 2.0.1 (2026-10-01). الوسوم المنشورة `v1.0.0` و`v2.0.0` و`v2.0.1`، والإصدارات على GitHub Releases، وصفحة التنزيل من `main` و`/docs` على https://isltanx.github.io/Baddel/.
+**آخر إصدار:** 2.0.2 (2026-10-13). الوسوم المنشورة `v1.0.0` و`v2.0.0` و`v2.0.1` و`v2.0.2`، والإصدارات على GitHub Releases، وصفحة التنزيل من `main` و`/docs` على https://isltanx.github.io/Baddel/.
 
 ## البنية
 
@@ -78,6 +78,17 @@ python3 scripts/check-docs.py       # روابط README وCHANGELOG وPRIVACY و
 
 ## ما بقي مفتوحًا
 
+- **Chrome 155 (عيب، لم يُصلح):**
+  - في `textarea` و`contenteditable` تُقبل كتابة AX ثم تُهمَل، ويعدّها `write_dropped` ناجحة بعد `WRITE_SETTLE`، فيظهر «تم» والنص كما هو. ويحدث في 2.0.1 أيضًا، وBrave (Chromium 154) سليم.
+  - للتشخيص: طبّق `audit/macos/chrome155-diag.patch`، وشغّل نسخة debug مع `BADDEL_TRACE_WRITES=1`، ثم المصفوفة في Chrome.
+  - الأدلة في `audit/evidence/04-device-test.txt`.
+- **اختبار الجهاز المؤجل لـ 2.0.2:**
+  - Mail وFigma وClaude وLuma بعد حارس المفاتيح (BAD-201/206).
+  - تخطيط Arabic – PC.
+  - حالات `audit/macos/README.md` غير المشغَّلة: S3، وS6–S13، وM7، وM10، وM12–M15.
+  - تراجع مسار المفاتيح في Mail وFigma. فشل بـ `NotHere` في TextEdit بالمسار المفروض، وفي `main` كذلك.
+- **العامل:** إصلاحات BAD-101..107 في `server/report-worker/` لم تُنشر. تُنشر بـ `deploy.sh` بقرار المالك، والضمان الصارم بـ Durable Object مقترح.
+- **مقترحات التدقيق:** BAD-203، وBAD-204، وBAD-205، وBAD-308 في `audit/fix-proposals.md`.
 - **مصفوفة التوافق (مؤجَّلة):** TextEdit وSafari وChrome وBrave لكل الأوامر الجديدة، ثم VS Code وSlack وDiscord وPages وWord وSpotlight، وأجهزة macOS 13–15 وIntel. الحالات جاهزة في `scripts/device-test/v12.py` و`matrix.py`.
 - **مرشّحات غير معتمدة** (تصير متطلبًا بقرار مكتوب من المالك، وشكلها من Figma): الواصلة والفاصلة العليا في حسم «لا» (`high-level` بتخطيط Arabic – PC)؛ تخطي الكلمات الإنجليزية الصحيحة بالقاموس خيارًا (يحتاج قياسًا)؛ قواعد لكل تطبيق؛ «لا تستخدم الحافظة أبدًا» تحت «متقدم»؛ سطر التخطيطات في القائمة؛ وصول البلاغ دون الصورة (تغيير في العقد)؛ `baddel-core` حزمة مستقلة؛ نطاق مخصص لنقطة البلاغ.
 - **مستبعد:** النقر المزدوج على ⇧ (يحتاج Input Monitoring)، ولوحة معاينة قبل التحويل (تأخذ التركيز وتبطئ).
