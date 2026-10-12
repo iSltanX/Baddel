@@ -27,6 +27,9 @@ const FIRST_CHECK_DELAY: Duration = Duration::from_secs(20);
 const WAKE_INTERVAL: Duration = Duration::from_secs(60 * 60);
 /// Automatic checks are at least this far apart, across relaunches too.
 const CHECK_INTERVAL_MS: u64 = 24 * 60 * 60 * 1000;
+/// A check that has not answered by then has failed: a stalled connection must not hold the
+/// "checking" state, which turns every later check away. (The download has no such limit.)
+const CHECK_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Trigger {
@@ -101,20 +104,21 @@ pub fn check_in_background(app: &AppHandle, trigger: Trigger) {
 }
 
 async fn check(app: &AppHandle, trigger: Trigger) {
-    {
-        let status = app.state::<UpdateState>().status.lock().unwrap().clone();
-        if matches!(status.phase, Phase::Checking | Phase::Installing) {
-            return;
-        }
+    if !claim(&mut app.state::<UpdateState>().status.lock().unwrap()) {
+        return;
     }
     set_status(app, Phase::Checking, None);
 
-    let result = match app.updater() {
+    let result = match app.updater_builder().timeout(CHECK_TIMEOUT).build() {
         Ok(updater) => updater.check().await,
         Err(error) => Err(error),
     };
-    let checked = now_ms();
-    settings::update(app, |s| s.last_update_check = Some(checked));
+    // Only a check that got an answer counts: a failed one is retried at the next wake-up,
+    // not a day later.
+    if result.is_ok() {
+        let checked = now_ms();
+        settings::update(app, |s| s.last_update_check = Some(checked));
+    }
 
     match result {
         Ok(Some(update)) => {
@@ -212,6 +216,16 @@ fn step_back(app: &AppHandle) {
     }
 }
 
+/// Takes the check for the caller, unless one is running or an update is being installed. The
+/// test and the claim are one step under the lock: two checks started together run once.
+fn claim(status: &mut Status) -> bool {
+    if matches!(status.phase, Phase::Checking | Phase::Installing) {
+        return false;
+    }
+    status.phase = Phase::Checking;
+    true
+}
+
 fn set_status(app: &AppHandle, phase: Phase, version: Option<String>) {
     let last_checked = app.state::<AppState>().get().last_update_check;
     {
@@ -231,4 +245,24 @@ fn strings(app: &AppHandle) -> &'static menu_text::Strings {
 
 fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_one_check_runs_at_a_time() {
+        let mut status = Status::default();
+        assert!(claim(&mut status));
+        assert_eq!(status.phase, Phase::Checking);
+        // BAD-304: the second of two checks started together is turned away.
+        assert!(!claim(&mut status));
+        status.phase = Phase::Installing;
+        assert!(!claim(&mut status));
+        for phase in [Phase::Idle, Phase::UpToDate, Phase::Available, Phase::Failed] {
+            let mut status = Status { phase, ..Status::default() };
+            assert!(claim(&mut status));
+        }
+    }
 }
