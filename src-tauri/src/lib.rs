@@ -99,9 +99,16 @@ pub fn run() {
             let mut trusted = permissions::is_trusted(true);
             tray::set_trusted(&handle, trusted);
             shortcuts::apply(&handle, &stored);
-            if stored.launch_at_login {
+            // The login item follows the preference both ways: one left from an earlier install,
+            // or from a failed switch, would otherwise start Baddel with the option shown off.
+            {
                 use tauri_plugin_autostart::ManagerExt;
-                let _ = handle.autolaunch().enable();
+                let autostart = handle.autolaunch();
+                if stored.launch_at_login {
+                    let _ = autostart.enable();
+                } else if autostart.is_enabled().unwrap_or(false) {
+                    let _ = autostart.disable();
+                }
             }
             updater::start(&handle);
             if !stored.welcomed {
