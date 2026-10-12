@@ -1,4 +1,4 @@
-# Audit proposal — needs owner review and approval before use. Proves compilation and unit tests only:
+# Audit proposal — inactive here; move to .github/workflows/ only after owner review and approval. Proves compilation and unit tests only:
 # a GitHub-hosted macOS runner cannot grant Accessibility, so no conversion is exercised here.
 # With fix/audit-findings, every audit test passes, so `cargo test --workspace` is expected to pass.
 name: baddel-audit-macos
