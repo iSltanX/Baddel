@@ -110,7 +110,7 @@ pub fn glyphs(accelerator: &str) -> Option<String> {
 fn pretty_key(key: &str) -> String {
     match key.to_ascii_lowercase().as_str() {
         "space" => "Space".into(),
-        "enter" | "return" => "↩".into(),
+        "enter" | "return" | "numpadenter" => "↩".into(),
         "escape" | "esc" => "⎋".into(),
         "backspace" => "⌫".into(),
         "delete" => "⌦".into(),
@@ -119,6 +119,18 @@ fn pretty_key(key: &str) -> String {
         "arrowright" | "right" => "→".into(),
         "arrowup" | "up" => "↑".into(),
         "arrowdown" | "down" => "↓".into(),
+        // As `NAMED` in src/lib/accelerator.ts, so the menu and Settings read the same.
+        "comma" => ",".into(),
+        "period" => ".".into(),
+        "slash" => "/".into(),
+        "backslash" => "\\".into(),
+        "semicolon" => ";".into(),
+        "quote" => "'".into(),
+        "backquote" => "`".into(),
+        "minus" => "-".into(),
+        "equal" => "=".into(),
+        "bracketleft" => "[".into(),
+        "bracketright" => "]".into(),
         other => {
             // "KeyA" → "A", "Digit1" → "1", "F5" → "F5".
             let trimmed = other.trim_start_matches("key").trim_start_matches("digit");
@@ -146,6 +158,45 @@ mod tests {
         assert_eq!(owner(&settings, Binding::ToLatin, "Shift+Alt+A"), Some(Binding::ToArabic));
         assert_eq!(owner(&settings, Binding::ConvertLine, "Alt+Shift+Space"), Some(Binding::Convert));
         assert_eq!(owner(&settings, Binding::Undo, "Alt+Shift+A"), Some(Binding::ToArabic));
+    }
+
+    /// The `NAMED` table of `src/lib/accelerator.ts`, as `(code, legend)` pairs.
+    fn named_in_settings() -> Vec<(String, String)> {
+        let source = include_str!("../../src/lib/accelerator.ts");
+        let start = source.find("const NAMED").expect("accelerator.ts has its NAMED table");
+        let body = &source[start..];
+        let body = &body[body.find('{').unwrap() + 1..body.find("\n}").unwrap()];
+        let mut pairs = Vec::new();
+        let mut rest = body;
+        while let Some(colon) = rest.find(':') {
+            let name = rest[..colon].trim().trim_start_matches(',').trim().to_string();
+            let value = rest[colon + 1..].trim_start();
+            let quote = value.chars().next().unwrap();
+            let mut legend = String::new();
+            let mut chars = value[1..].char_indices();
+            let end = loop {
+                match chars.next().unwrap() {
+                    (_, '\\') => legend.push(chars.next().unwrap().1),
+                    (i, c) if c == quote => break i + 2,
+                    (_, c) => legend.push(c),
+                }
+            };
+            pairs.push((name, legend));
+            rest = &value[end..];
+        }
+        pairs
+    }
+
+    #[test]
+    fn the_menu_names_keys_as_the_settings_window_does() {
+        // BAD-307: «⌥ ⇧ ,» in Settings was «⌥ ⇧ COMMA» in the menu.
+        let named = named_in_settings();
+        assert!(named.len() >= 20, "{named:?}");
+        for (code, legend) in named {
+            assert_eq!(pretty_key(&code), legend, "{code}");
+        }
+        assert_eq!(pretty_key("KeyA"), "A");
+        assert_eq!(pretty_key("Digit1"), "1");
     }
 
     #[test]
