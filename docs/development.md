@@ -10,7 +10,7 @@
 |---|---|
 | `crates/baddel-core/` | المنطق الصِرف: خرائط التخطيطات، والتحويل، وحسم «لا»، وحماية الروابط والرموز التقنية. بلا Tauri ولا macOS، ويُختبر بـ `cargo test -p baddel-core` |
 | `src-tauri/src/` | التطبيق: مسار التحويل (`controller.rs`)، والقائمة (`tray.rs`، ونصوصها في `menu_text.rs`)، والإشعار (`hud.rs`)، والاختصارات، والإعدادات وترحيلها، والمحدِّث، والتشخيص (`diagnostics.rs`) والبلاغ (`report.rs`)، والنوافذ (`windows.rs`) |
-| `src-tauri/src/sys/` | **كل** `unsafe` واستدعاءات النظام: AX وCGEvent وNSPasteboard وCarbon TIS والصور والساعة، خلف واجهات آمنة |
+| `src-tauri/src/sys/` | **كل** `unsafe` واستدعاءات النظام: AX وCGEvent وNSPasteboard وCarbon TIS والصور ورسم الإشعار وخطّه والساعة، خلف واجهات آمنة. يفرضه `#![deny(unsafe_code)]` في `lib.rs`، ولا يُستثنى منه إلا `sys` |
 | `src/` | الواجهة (Svelte 5 + TypeScript): الإعدادات والترحيب ونافذة البلاغ. عرض فقط عبر `invoke` والأحداث؛ و`src/lib/mock.ts` يحاكي أوامر Rust في `npm run dev` |
 | `server/report-worker/` | Cloudflare Worker عام لقناة البلاغات المشتركة (القسم «الإبلاغ») |
 | `design/icon/` | أصول أيقونة D2 المُصدَّرة من Figma وسكربت بنائها |

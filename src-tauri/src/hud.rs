@@ -9,24 +9,20 @@
 //! line icon tinted by the state, and on a conversion the original word, an arrow, the
 //! result and a chip naming the layout it switched to. It mirrors with the interface.
 
-use std::ffi::c_void;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::Duration;
 
-use core_foundation::base::{CFType, CFTypeRef, TCFType};
-use core_foundation::data::{CFData, CFDataRef};
 use objc2::rc::Retained;
 use objc2::{AllocAnyThread, MainThreadMarker};
 use objc2_app_kit::{
-    NSApplication, NSBackingStoreType, NSBezierPath, NSBitmapImageFileType, NSBitmapImageRep, NSColor,
-    NSDeviceRGBColorSpace, NSFont, NSGraphicsContext, NSImage, NSImageView, NSPanel, NSScreen, NSShadow, NSTextField,
+    NSApplication, NSBackingStoreType, NSBezierPath, NSColor, NSFont, NSGraphicsContext, NSImage, NSImageView, NSPanel, NSScreen, NSShadow, NSTextField,
     NSView, NSWindowCollectionBehavior, NSWindowStyleMask, NSWorkspace,
 };
-use objc2_foundation::{NSData, NSDictionary, NSPoint, NSRect, NSSize, NSString};
+use objc2_foundation::{NSData, NSPoint, NSRect, NSSize, NSString};
 use tauri::{AppHandle, Manager};
 
-use crate::sys::on_main;
+use crate::sys::{drawing, on_main};
 
 const ALMARAI_REGULAR: &[u8] = include_bytes!("../../src/assets/fonts/Almarai-Regular.ttf");
 const ALMARAI_BOLD: &[u8] = include_bytes!("../../src/assets/fonts/Almarai-Bold.ttf");
@@ -251,11 +247,7 @@ pub fn capture(app: &AppHandle, path: String) -> bool {
                 return false;
             };
             hud.content.cacheDisplayInRect_toBitmapImageRep(bounds, &rep);
-            // SAFETY: the rep now holds drawn pixels, and PNG takes no required properties.
-            let data = unsafe {
-                rep.representationUsingType_properties(NSBitmapImageFileType::PNG, &NSDictionary::new())
-            };
-            data.is_some_and(|data| std::fs::write(&path, data.to_vec()).is_ok())
+            drawing::png(&rep).is_some_and(|data| std::fs::write(&path, data).is_ok())
         })
         .unwrap_or(false)
     })
@@ -583,15 +575,7 @@ fn pill(width: f64, border: [f64; 4], chip: Option<NSRect>) -> Retained<NSImage>
     // Drawn at twice the size and declared at the point size, so it stays crisp on
     // a Retina display.
     let pixels = |points: f64| (points * PILL_SCALE) as isize;
-    // SAFETY: a null `planes` pointer asks AppKit to own the pixel buffer; the rest
-    // describes a plain 8-bit RGBA bitmap of the given size.
-    let rep = unsafe {
-        NSBitmapImageRep::initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bytesPerRow_bitsPerPixel(
-            NSBitmapImageRep::alloc(), std::ptr::null_mut(), pixels(size.width), pixels(size.height), 8, 4, true, false,
-            NSDeviceRGBColorSpace, 0, 0,
-        )
-    };
-    if let Some(rep) = rep {
+    if let Some(rep) = drawing::rgba_bitmap(pixels(size.width), pixels(size.height)) {
         rep.setSize(size);
         if let Some(context) = NSGraphicsContext::graphicsContextWithBitmapImageRep(&rep) {
             NSGraphicsContext::saveGraphicsState_class();
@@ -662,35 +646,11 @@ fn chip_font(label: &str) -> Retained<NSFont> {
     }
 }
 
-/// Almarai ships inside the app, so the notice reads the same on every Mac.
-///
-/// The font is built straight from the embedded file rather than registered with
-/// the system: nothing is installed, and no other app sees it. `CTFont` and
-/// `NSFont` are the same object, so the result needs no conversion.
+/// Almarai ships inside the app, so the notice reads the same on every Mac. It is built
+/// from the embedded file ([`drawing::font_from`]), never installed.
 fn almarai(size: f64, bold: bool) -> Retained<NSFont> {
     let bytes = if bold { ALMARAI_BOLD } else { ALMARAI_REGULAR };
-    font_from(bytes, size).unwrap_or_else(|| NSFont::systemFontOfSize(size))
-}
-
-fn font_from(bytes: &'static [u8], size: f64) -> Option<Retained<NSFont>> {
-    let data = CFData::from_buffer(bytes);
-    // SAFETY: valid CFData holding a complete TrueType file; the descriptor comes
-    // back under the create rule.
-    let descriptor = unsafe { CTFontManagerCreateFontDescriptorFromData(data.as_concrete_TypeRef()) };
-    if descriptor.is_null() {
-        return None;
-    }
-    let descriptor = unsafe { CFType::wrap_under_create_rule(descriptor) };
-    // SAFETY: valid descriptor; a null transform means "no transform". The font is
-    // created, and `NSFont` is the toll-free bridged form of `CTFont`.
-    let font = unsafe { CTFontCreateWithFontDescriptor(descriptor.as_CFTypeRef(), size, std::ptr::null()) };
-    unsafe { Retained::from_raw(font.cast_mut().cast()) }
-}
-
-#[link(name = "CoreText", kind = "framework")]
-extern "C" {
-    fn CTFontManagerCreateFontDescriptorFromData(data: CFDataRef) -> CFTypeRef;
-    fn CTFontCreateWithFontDescriptor(descriptor: CFTypeRef, size: f64, matrix: *const c_void) -> CFTypeRef;
+    drawing::font_from(bytes, size).unwrap_or_else(|| NSFont::systemFontOfSize(size))
 }
 
 /// `NSFloatingWindowLevel`: above ordinary windows, below the menu bar.
@@ -706,6 +666,7 @@ fn visible_frame(mtm: MainThreadMarker) -> NSRect {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use objc2_app_kit::NSBitmapImageRep;
 
     #[test]
     fn arabic_runs_are_told_apart_from_latin_ones() {

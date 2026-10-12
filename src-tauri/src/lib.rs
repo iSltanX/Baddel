@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 mod commands;
 mod controller;
 mod diagnostics;
@@ -7,6 +9,8 @@ mod report;
 mod settings;
 mod shortcuts;
 mod sync;
+// All `unsafe` lives in `sys`, behind safe functions; the compiler holds the rest to that.
+#[allow(unsafe_code)]
 mod sys;
 mod tray;
 mod updater;
