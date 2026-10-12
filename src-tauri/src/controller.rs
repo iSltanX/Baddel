@@ -157,6 +157,24 @@ pub enum Reason {
     UndoRejected,
     /// Undo on the key-based path of a result too long to reselect.
     TooLong,
+    /// Another app came to the front while the keys were being sent; the rest were not sent.
+    FocusMoved,
+}
+
+/// Why the key-based path stopped before its next key press.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Halt {
+    /// Another app is in front than the one the command began in.
+    OtherApp,
+}
+
+/// Whether the next synthetic keys may be sent: they go to whatever app is in front now, so only
+/// while that is still the app the command began in (`started_in`). Checked before each batch.
+fn halt(started_in: Option<i32>, in_front: Option<i32>) -> Option<Halt> {
+    match started_in {
+        Some(pid) if in_front != Some(pid) => Some(Halt::OtherApp),
+        _ => None,
+    }
 }
 
 #[derive(Clone)]
@@ -339,6 +357,10 @@ struct Controller {
 struct Target {
     focused: Option<Focused>,
     method: Method,
+    /// The app in front when the command began: synthetic keys go only to it.
+    pid: Option<i32>,
+    /// Set when a check before a key press stopped the command ([`Target::may_type`]).
+    halted: Option<Halt>,
     /// Pasteboard contents to put back, taken before our first ⌘C.
     saved: Option<pasteboard::Snapshot>,
     /// The pasteboard's change count as our own last use of it left it. Different at the end
@@ -480,7 +502,7 @@ impl Controller {
             first_arrow: route.arrow,
             switch_input_source: settings.switch_input_source,
         };
-        let mut target = Target::new(self.focused_element(front.pid));
+        let mut target = Target::new(self.focused_element(front.pid), front.pid);
         target.copy_timeout = route.copy_timeout();
         trace!("route: arrow {:?}, copy wait {:?} over {} answers", route.arrow, target.copy_timeout, route.copies);
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
@@ -499,6 +521,7 @@ impl Controller {
             target.method = Method::Pasteboard;
         }
         let outcome = self.convert_in(&mut target, &cx, mode);
+        let outcome = self.halted(&target).unwrap_or(outcome);
         self.path = Some(target.path());
         target.restore_pasteboard();
         self.remember_route(front, &target, outcome);
@@ -768,6 +791,13 @@ impl Controller {
         Outcome::Failed
     }
 
+    /// What a command stopped before a key press ends as, whatever it got to before the stop.
+    fn halted(&mut self, target: &Target) -> Option<Outcome> {
+        Some(match target.halted? {
+            Halt::OtherApp => self.fail(Reason::FocusMoved),
+        })
+    }
+
     /// Remembers a conversion that went through, with where it happened.
     fn finish(&mut self, mut op: LastOp, target: &Target, cx: &Context) {
         op.literal = cx.forced.is_some();
@@ -801,7 +831,7 @@ impl Controller {
             return self.undo_failed(Reason::OtherApp);
         }
         keysynth::wait_for_modifiers_released(MODIFIER_RELEASE_TIMEOUT);
-        let mut target = Target::new(Focused::get());
+        let mut target = Target::new(Focused::get(), front.pid);
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
         }
@@ -812,12 +842,13 @@ impl Controller {
         let result = undo_in(&mut target, &last);
         self.path = Some(target.path());
         target.restore_pasteboard();
-        match result {
-            Ok(()) => {
+        match (result, target.halted) {
+            (Ok(()), _) => {
                 self.last = None;
                 Outcome::Undone
             }
-            Err(reason) => self.undo_failed(reason),
+            (Err(_), Some(Halt::OtherApp)) => self.undo_failed(Reason::FocusMoved),
+            (Err(reason), None) => self.undo_failed(reason),
         }
     }
 
@@ -911,6 +942,9 @@ fn undo_in(target: &mut Target, last: &LastOp) -> Result<(), Reason> {
     }
 
     target.keys = true;
+    if !target.may_type() {
+        return Err(Reason::UndoRejected);
+    }
     for _ in 0..stops {
         keysynth::select_char(last.back_arrow);
     }
@@ -923,7 +957,9 @@ fn undo_in(target: &mut Target, last: &LastOp) -> Result<(), Reason> {
             }
         }
         _ => {
-            keysynth::arrow(opposite(last.back_arrow));
+            if target.may_type() {
+                keysynth::arrow(opposite(last.back_arrow));
+            }
             Err(Reason::NotHere)
         }
     }
@@ -990,7 +1026,7 @@ impl Controller {
                 Some(Reason::NotHere | Reason::TextChanged) => message(hud::Kind::NotHere, text.hud_not_here),
                 Some(Reason::UndoRejected) => message(hud::Kind::UndoFailed, text.hud_undo_failed),
                 Some(Reason::TooLong) => message(hud::Kind::TooLong, text.hud_too_long),
-                Some(Reason::CopyTimedOut | Reason::WriteRejected) | None => {
+                Some(Reason::CopyTimedOut | Reason::WriteRejected | Reason::FocusMoved) | None => {
                     message(hud::Kind::Failed, text.hud_failed)
                 }
             },
@@ -1068,10 +1104,12 @@ impl LastOp {
 }
 
 impl Target {
-    fn new(focused: Option<Focused>) -> Self {
+    fn new(focused: Option<Focused>, pid: Option<i32>) -> Self {
         Target {
             focused,
             method: Method::Accessibility,
+            pid,
+            halted: None,
             saved: None,
             ours: 0,
             pending_copy: false,
@@ -1082,6 +1120,15 @@ impl Target {
             late_copy: false,
             arrow: None,
         }
+    }
+
+    /// Checked before each batch of synthetic keys, which land wherever focus is by then: `false`,
+    /// for good, once the app the command began in is no longer in front.
+    fn may_type(&mut self) -> bool {
+        if self.halted.is_none() {
+            self.halted = halt(self.pid, frontmost::pid());
+        }
+        self.halted.is_none()
     }
 
     /// Takes the snapshot to put back, before our first use of the pasteboard.
@@ -1144,6 +1191,9 @@ impl Target {
                     self.method = Method::Pasteboard
                 }
             }
+        }
+        if !self.may_type() {
+            return None;
         }
         self.save_pasteboard();
         self.adopt_late_copy();
@@ -1214,12 +1264,17 @@ impl Target {
         plan: impl Fn(&str) -> Option<LineEdit>,
     ) -> KeyEdit {
         self.keys = true;
+        if !self.may_type() {
+            return KeyEdit::Failed;
+        }
         select();
         let line = self.await_selection();
         trace!("key path: line read = {:?} chars", line.as_ref().map(|l| l.chars().count()));
         let Some(line) = line else { return KeyEdit::NothingHere };
         let Some(edit) = plan(&line) else {
-            keysynth::arrow(collapse); // collapse back onto the caret
+            if self.may_type() {
+                keysynth::arrow(collapse); // collapse back onto the caret
+            }
             return KeyEdit::NothingHere;
         };
         let replacement = format!("{}{}", &line[..edit.keep], edit.converted);
@@ -1296,6 +1351,9 @@ impl Target {
                 }
             }
             self.method = Method::Pasteboard;
+        }
+        if !self.may_type() {
+            return false;
         }
         self.save_pasteboard();
         // Where the app reports its selection, the paste can be seen landing: the selected
@@ -1457,7 +1515,7 @@ mod tests {
     fn a_route_waits_for_copies_no_longer_than_the_app_needs() {
         let mut route = Route::default();
         assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
-        let mut target = Target::new(None);
+        let mut target = Target::new(None, None);
         target.copy_times = vec![Duration::from_millis(12), Duration::from_millis(30)];
         target.arrow = Some(KEY_RIGHT);
         route.learn(&target);
@@ -1476,6 +1534,16 @@ mod tests {
         target.copy_times = vec![Duration::from_millis(400)];
         route.learn(&target);
         assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
+    }
+
+    #[test]
+    fn keys_go_only_to_the_app_the_command_began_in() {
+        // BAD-201: the user switched apps while the keys were being sent.
+        assert_eq!(halt(Some(501), Some(501)), None);
+        assert_eq!(halt(Some(501), Some(733)), Some(Halt::OtherApp));
+        assert_eq!(halt(Some(501), None), Some(Halt::OtherApp));
+        // No app was known to be in front at the press: nothing to compare with.
+        assert_eq!(halt(None, Some(733)), None);
     }
 
     #[test]
