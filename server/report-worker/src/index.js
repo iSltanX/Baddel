@@ -256,7 +256,9 @@ export function fence(text) {
 const code = (value) => `\`${String(value).replace(/[`\r\n]/g, '')}\``
 
 export function title(report) {
-  const firstLine = report.description.split(/\r?\n/)[0].replace(/[\u0000-\u001f]/g, '').trim()
+  // Controls, and the bidi marks, embeddings, overrides and isolates that could make a title read
+  // as something else (ZWJ and ZWNJ stay: they are part of the text).
+  const firstLine = report.description.split(/\r?\n/)[0].replace(/[\u0000-\u001f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim()
   const short = [...firstLine].length > 60 ? `${[...firstLine].slice(0, 59).join('')}…` : firstLine
   return `[${report.product}] ${report.kind}: ${short}`
 }
