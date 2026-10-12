@@ -285,7 +285,14 @@ fn animate(app: &AppHandle, generation: u64) {
     }
     on_main(app, move || {
         if GENERATION.load(Ordering::SeqCst) == generation {
-            with_panel(|hud| hud.panel.orderOut(None));
+            with_panel(|hud| {
+                hud.panel.orderOut(None);
+                // The labels would otherwise hold the last conversion's text until the next
+                // notice, past the 30 seconds PRIVACY.md promises.
+                for label in [&hud.from, &hud.to, &hud.message] {
+                    label.setStringValue(&NSString::from_str(""));
+                }
+            });
         }
     });
 }
