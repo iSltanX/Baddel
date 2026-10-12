@@ -58,6 +58,11 @@ const UNDO_WINDOW: Duration = Duration::from_secs(30);
 const PERMISSION_NOTICE_EVERY: Duration = Duration::from_secs(30);
 
 const MAX_CHARS: usize = 10_000;
+
+/// Whether `text` is short enough to convert: no command takes more than [`MAX_CHARS`].
+pub fn within_limit(text: &str) -> bool {
+    text.chars().nth(MAX_CHARS).is_none()
+}
 /// Longer than this, a conversion is not shown word for word in the notice or the menu: the
 /// notice gives its length and the menu a plain "Undo Last Conversion". The text itself still
 /// converts in full; this only keeps paragraphs off the screen.
@@ -1554,6 +1559,15 @@ mod tests {
         target.copy_times = vec![Duration::from_millis(400)];
         route.learn(&target);
         assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
+    }
+
+    #[test]
+    fn text_past_the_limit_is_refused() {
+        assert!(within_limit(""));
+        assert!(within_limit(&"ب".repeat(MAX_CHARS)));
+        assert!(!within_limit(&"ب".repeat(MAX_CHARS + 1)));
+        // BAD-302: megabytes from a webview stop at the first character past the limit.
+        assert!(!within_limit(&"a".repeat(5_000_000)));
     }
 
     #[test]

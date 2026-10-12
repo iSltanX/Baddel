@@ -184,6 +184,10 @@ pub fn keyboard_map(app: AppHandle) -> KeyboardMap {
 /// This is what the practice field in the welcome window uses.
 #[tauri::command]
 pub fn convert_text(app: AppHandle, text: String) -> Option<String> {
+    // As for the shortcut: this runs on the main thread, and a page could send megabytes.
+    if !controller::within_limit(&text) {
+        return None;
+    }
     let settings = app.state::<AppState>().get();
     let (arabic, latin) = (settings.arabic_layout.clone(), settings.latin_layout.clone());
     let snapshot = on_main(&app, move || input_source::snapshot(&arabic, &latin))?;
