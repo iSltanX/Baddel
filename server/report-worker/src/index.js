@@ -73,17 +73,34 @@ export async function handle(request, env) {
 
   // A retry after a lost response gets the same report number instead of a duplicate.
   const key = idempotencyKey(request)
-  if (key) {
-    const known = await env.REPORTS_KV.get(`idem:${key}`)
-    if (known) return json(200, { id: Number(known) })
+  if (!key) {
+    await rateLimit(request, env)
+    return json(201, { id: await fileReport(env, clean) })
   }
-
-  await rateLimit(request, env)
-  const id = await fileReport(env, clean)
-  // The issue exists now: a failure to remember the key must not turn its number into a 502.
-  if (key) await env.REPORTS_KV.put(`idem:${key}`, String(id), { expirationTtl: IDEMPOTENCY_TTL }).catch(() => {})
-  return json(201, { id })
+  // A request whose key is still being filed in this isolate waits for that one: KV alone cannot
+  // stop two at once, since its read and the later write are not atomic.
+  const pending = inFlight.get(key)
+  if (pending) return json(200, { id: (await pending).id })
+  const filing = (async () => {
+    const known = await env.REPORTS_KV.get(`idem:${key}`)
+    if (known) return { id: Number(known), replayed: true }
+    await rateLimit(request, env)
+    const id = await fileReport(env, clean)
+    // The issue exists now: a failure to remember the key must not turn its number into a 502.
+    await env.REPORTS_KV.put(`idem:${key}`, String(id), { expirationTtl: IDEMPOTENCY_TTL }).catch(() => {})
+    return { id, replayed: false }
+  })()
+  inFlight.set(key, filing)
+  try {
+    const { id, replayed } = await filing
+    return json(replayed ? 200 : 201, { id })
+  } finally {
+    inFlight.delete(key)
+  }
 }
+
+/** Idempotency keys being filed by this isolate, each with its filing. */
+const inFlight = new Map()
 
 /** Reads the body, refusing to buffer more than `limit` bytes. */
 async function readLimited(request, limit) {
