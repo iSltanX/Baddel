@@ -193,9 +193,17 @@ async function sha256Hex(text) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** 5 reports per IP per hour, and 100 per day across all products. The IP is kept only as a
- *  salted hash, under a key that expires with its window. */
-async function rateLimit(request, env, now = Date.now()) {
+/** 5 reports per IP per hour, and 100 per day across all products. KV has no atomic increment,
+ *  so within this isolate one check-and-count runs at a time: a burst cannot all read one count. */
+let counting = Promise.resolve()
+function rateLimit(request, env) {
+  const run = counting.then(() => count(request, env))
+  counting = run.catch(() => {})
+  return run
+}
+
+/** The IP is kept only as a salted hash, under a key that expires with its window. */
+async function count(request, env, now = Date.now()) {
   const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
   const hour = Math.floor(now / 3_600_000)
   const day = Math.floor(now / 86_400_000)
