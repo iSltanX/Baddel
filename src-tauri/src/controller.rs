@@ -370,7 +370,7 @@ struct Controller {
 struct Target {
     focused: Option<Focused>,
     method: Method,
-    /// The app in front when the command began: synthetic keys go only to it.
+    /// The app whose window was in front when the command began: synthetic keys go only to it.
     pid: Option<i32>,
     /// Set when a check before a key press stopped the command ([`Target::may_type`]).
     halted: Option<Halt>,
@@ -515,7 +515,7 @@ impl Controller {
             first_arrow: route.arrow,
             switch_input_source: settings.switch_input_source,
         };
-        let mut target = Target::new(self.focused_element(front.pid), front.pid);
+        let mut target = Target::new(self.focused_element(front.pid), frontmost::front_window_pid());
         target.copy_timeout = route.copy_timeout();
         trace!("route: arrow {:?}, copy wait {:?} over {} answers", route.arrow, target.copy_timeout, route.copies);
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
@@ -856,7 +856,7 @@ impl Controller {
             return self.undo_failed(Reason::OtherApp);
         }
         keysynth::wait_for_modifiers_released(MODIFIER_RELEASE_TIMEOUT);
-        let mut target = Target::new(Focused::get(), front.pid);
+        let mut target = Target::new(Focused::get(), frontmost::front_window_pid());
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
         }
@@ -1155,7 +1155,7 @@ impl Target {
     fn may_type(&mut self) -> bool {
         if self.halted.is_none() {
             let secure = permissions::secure_input_enabled() || Focused::get().is_some_and(|f| f.is_secure());
-            self.halted = halt(self.pid, frontmost::pid(), secure);
+            self.halted = halt(self.pid, frontmost::front_window_pid(), secure);
         }
         self.halted.is_none()
     }
