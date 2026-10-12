@@ -303,8 +303,10 @@ async function fileReport(env, report) {
     if (stored?.status === 201 || stored?.status === 200) images.push(`https://github.com/${env.REPORTS_REPO}/blob/main/${path}?raw=true`)
     else failed = true
   }
-  // Its number is returned either way, and a failed attachment is labelled.
-  await after('PATCH', `/repos/${env.REPORTS_REPO}/issues/${number}`, { body: body(report, images, failed) })
+  // Its number is returned either way, and a failed attachment is labelled — as is a failed update,
+  // which leaves the issue without its image links.
+  const patched = await after('PATCH', `/repos/${env.REPORTS_REPO}/issues/${number}`, { body: body(report, images, failed) })
+  if (!patched?.ok) failed = true
   if (failed) await after('POST', `/repos/${env.REPORTS_REPO}/issues/${number}/labels`, { labels: ['attachment-failed'] })
   return number
 }

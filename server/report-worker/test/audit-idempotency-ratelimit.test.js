@@ -111,11 +111,13 @@ test('BAD-102 (variant): a network error adding the attachment-failed label also
   assert.equal(r.status, 201, 'README: "A failed attachment still returns the number"')
 })
 
-test('characterisation: a 5xx on the PATCH is ignored — 201 is returned and the issue body keeps no image links', async () => {
+// Approved change (owner, fix/audit-findings): this characterised BAD-107 (a 5xx PATCH went
+// unlabelled); it now asserts the fixed behaviour.
+test('BAD-107: a 5xx on the PATCH still returns 201 and labels the issue attachment-failed', async () => {
   fail.PATCH = 503
   const r = await worker.fetch(post(report({ attachments: [{ type: 'image/png', data: PNG }] })), env)
   assert.equal(r.status, 201)
-  assert.ok(!calls.some((c) => c.path.endsWith('/labels') && c.method === 'POST'), 'no attachment-failed label either')
+  assert.ok(calls.some((c) => c.path.endsWith('/issues/42/labels') && c.method === 'POST'), 'the issue lost its image links, so it is labelled')
 })
 
 test('a replayed key is answered before the rate limit (retries are never 429)', async () => {
