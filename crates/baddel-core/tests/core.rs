@@ -201,9 +201,12 @@ fn direction_none_without_letters() {
     }
 }
 
+/// Only letters vote: digits typed on the Arabic layout say which layout was on, not that it was
+/// the wrong one (BAD-002).
 #[test]
-fn arabic_indic_digits_count_as_arabic() {
-    assert_eq!(detect_direction("١٢٣"), Some(Direction::ArabicToLatin));
+fn arabic_indic_digits_do_not_vote() {
+    assert_eq!(detect_direction("١٢٣"), None);
+    assert!(mac().convert("١٢٣ ؟").is_none());
 }
 
 #[test]
@@ -513,4 +516,60 @@ fn word_list_is_sorted_lowercase_ascii() {
         n += 1;
     }
     assert!(n > 20_000, "word list too small: {n}");
+}
+
+// ── Rules the stock layouts never reach ──────────────────────────────────────
+
+/// A layout given as what each key types on the Base layer.
+struct Keys(&'static [(u16, &'static str)]);
+
+impl LayoutProvider for Keys {
+    fn output(&self, keycode: u16, layer: Layer) -> Option<String> {
+        let (_, typed) = self.0.iter().find(|(k, _)| *k == keycode && layer == Layer::Base)?;
+        Some((*typed).to_string())
+    }
+}
+
+#[test]
+fn whitespace_and_control_keys_are_never_paired() {
+    // A no-break space (whitespace, not control) and Escape (control, not whitespace) on the
+    // Arabic side must not turn the Latin letters typed on those keys into them, or back.
+    let map = LayoutMap::build(&Keys(&[(0, "\u{a0}"), (1, "\u{1b}"), (2, "ب")]), &Keys(&[(0, "a"), (1, "b"), (2, "c")]));
+    assert_eq!(map.convert_literal("abc", Direction::LatinToArabic), "abب");
+    assert_eq!(map.convert_literal("\u{1b}ب", Direction::ArabicToLatin), "\u{1b}c");
+}
+
+#[test]
+fn up_to_six_ambiguous_spots_in_a_word_are_searched() {
+    // Six two-letter keys, each also typed by two single keys whose Latin letters spell
+    // "abstractions" when every spot is read as those single keys.
+    let arabic = Keys(&[
+        (0, "ش"), (1, "ل"), (2, "س"), (3, "ف"), (4, "ق"), (5, "ؤ"), (6, "ه"), (7, "خ"), (8, "ى"),
+        (10, "شل"), (11, "سف"), (12, "قش"), (13, "ؤف"), (14, "هخ"), (15, "ىس"),
+    ]);
+    let latin = Keys(&[
+        (0, "a"), (1, "b"), (2, "s"), (3, "t"), (4, "r"), (5, "c"), (6, "i"), (7, "o"), (8, "n"),
+        (10, "Q"), (11, "W"), (12, "E"), (13, "R"), (14, "T"), (15, "Y"),
+    ]);
+    let map = LayoutMap::build(&arabic, &latin);
+    assert_eq!(map.convert_as("شلسفقشؤفهخىس", Direction::ArabicToLatin), "abstractions");
+    // One spot more and the word is not searched: every spot reads as its single key.
+    assert_eq!(map.convert_as("شلسفقشؤفهخىسشل", Direction::ArabicToLatin), "QWERTYQ");
+}
+
+#[test]
+fn a_word_with_more_spots_than_bits_reads_as_single_keys() {
+    // BAD-001: 33 and more لا in one word used to overflow the reading mask.
+    for n in [33, 40, 64] {
+        assert_eq!(to_latin(&pc(), &"لا".repeat(n)), "b".repeat(n));
+    }
+}
+
+#[test]
+fn a_word_without_latin_letters_is_never_protected() {
+    // Protection keeps Latin text as it is; with no Latin letter there is nothing to keep, even
+    // in a link's or an address's shape.
+    assert!(!is_protected("1://2"));
+    assert!(!is_protected("12@34.56"));
+    assert!(is_protected("a://2"));
 }

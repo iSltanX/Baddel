@@ -7,11 +7,14 @@ The shared report Worker for the apps published under iSltanX. An app posts a pr
 ## What it does
 
 1. Accepts `POST /v1/reports` with `Content-Type: application/json` and a body up to 16 MB; anything else gets `404`, `405`, `413` or `415`.
-2. Validates every field against the contract and rejects unknown ones (`400 invalid_field`), then requires the label `product:<id>` (`400 unknown_product`; the answer is cached in KV for 10 minutes).
-3. Replays a known `Idempotency-Key` with `200 { "id": … }` instead of filing twice (keys kept 24 hours).
-4. Applies the limits: 5 reports per IP per hour, 100 per day across all products (`429` with `Retry-After`). The IP is kept only as a salted SHA-256 hash, in a key that expires with its window.
-5. Opens the issue (`[<product>] <kind>: <first line>`, labels `product:<id>`, `kind:<kind>` and `test` when set), with the description in a fence longer than any backtick run in it so user text never renders as Markdown, and `diagnostics` as JSON in `<details>`.
-6. Checks each attachment's signature, stores it at `reports/<product>/<id>/<n>.<png|jpg>`, embeds it in the issue, and returns `201 { "id": <issue number> }`. A failed attachment still returns the number and adds the `attachment-failed` label.
+2. Validates every field against the contract and rejects unknown ones (`400 invalid_field`).
+3. Replays a known `Idempotency-Key` with `200 { "id": … }` instead of filing twice (keys kept 24 hours). A request whose key is still being filed waits for that filing and gets the same number.
+4. Applies the limits before anything costs a GitHub call: 5 reports per IP per hour, 100 per day across all products (`429` with `Retry-After`). The IP is kept only as a salted SHA-256 hash, in a key that expires with its window.
+5. Requires the label `product:<id>` (`400 unknown_product`; the answer is cached in KV for 10 minutes).
+6. Opens the issue (`[<product>] <kind>: <first line>`, with control characters and bidi overrides removed from that line; labels `product:<id>`, `kind:<kind>` and `test` when set), with the description in a fence longer than any backtick run in it so user text never renders as Markdown, and `diagnostics` as JSON in `<details>`.
+7. Checks each attachment's signature, stores it at `reports/<product>/<id>/<n>.<png|jpg>`, embeds it in the issue, and returns `201 { "id": <issue number> }`. Once the issue exists its number is always returned and its key kept: a failed attachment, or a failed update that leaves the issue without its image links, adds the `attachment-failed` label, and no later network error turns the number into a `502`.
+
+**Limits of the guarantees in 3 and 4.** KV has no atomic read-and-write and is eventually consistent, so the Worker serialises the idempotency check and the rate-limit count within one isolate. Two requests that reach different isolates or locations at the same instant can still both pass; a strict guarantee would need a Durable Object.
 
 No CORS headers: reports come from apps, not web pages. Nothing is logged by the Worker.
 

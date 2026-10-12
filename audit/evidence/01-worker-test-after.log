@@ -1,0 +1,145 @@
+$ (cd server/report-worker) npm test
+start: 2026-10-12T19:34:20Z
+
+> test
+> node --test test/*.test.js
+
+✔ sequential retry with the same key replays the id and files once (43.899083ms)
+✖ BAD-101: two concurrent requests with the same Idempotency-Key file only one issue (14.009833ms)
+✔ characterisation: the key is not bound to the payload — a different report replays the old id (15.452208ms)
+✔ a failed issue POST stores no key, so a retry can file it (19.246958ms)
+✖ BAD-102: a network error on the PATCH after the issue exists still returns its number (no 502, no duplicate on retry) (30.943958ms)
+✖ BAD-102 (variant): a network error adding the attachment-failed label also loses the number (18.217667ms)
+✔ characterisation: a 5xx on the PATCH is ignored — 201 is returned and the issue body keeps no image links (15.304833ms)
+✔ a replayed key is answered before the rate limit (retries are never 429) (44.466958ms)
+✔ sequential: the sixth report from one IP within the hour is 429 with Retry-After (34.953875ms)
+✖ BAD-103: a concurrent burst from one IP is held to 5 issues per hour (12.26125ms)
+✔ characterisation: requests without cf-connecting-ip share one "unknown" bucket (36.379ms)
+✖ BAD-104: unknown products are not rate-limited and each costs an authenticated GitHub API call (138.783125ms)
+✔ content-type variants: charset suffix and case are accepted, others 415 (30.199167ms)
+✔ a body over 16 MB is 413 from the streaming cap (20.591542ms)
+✔ malformed JSON, arrays, null and __proto__ keys are 400 (0.859333ms)
+✔ description: limits count trimmed code points (2000), not UTF-16 units (0.382583ms)
+✔ characterisation: short fields count UTF-16 units while description counts code points (0.124666ms)
+✔ diagnostics: 16384 compact UTF-8 bytes is the limit (0.202166ms)
+✔ attachments: count, keys, padding and signature (0.350625ms)
+✔ attachment size: exactly 3 MiB decoded passes, one byte more is 413 (137.547625ms)
+✔ description cannot escape its fence or render Markdown/HTML (0.279375ms)
+✔ inline fields cannot break out of their code spans (0.100542ms)
+✖ BAD-105: bidi control characters are removed from the issue title (0.556041ms)
+✔ characterisation: the title is cut at 59 code points, which can split a grapheme (0.097ms)
+✔ title uses only the first line and strips C0 controls (0.070084ms)
+✔ files an issue and returns its number (33.669125ms)
+✔ stores the attachment under reports/<product>/<id>/ and embeds it (1.024459ms)
+✔ rejects what the contract does not allow (1.6655ms)
+✔ replays an idempotency key instead of filing twice (0.61125ms)
+✔ limits reports per IP, keyed by a salted hash (1.712459ms)
+✔ a failed attachment still returns the number, labelled (0.558084ms)
+✔ user text never renders as Markdown (0.15475ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 26
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 503.244041
+
+✖ failing tests:
+
+test at test/audit-idempotency-ratelimit.test.js:70:1
+✖ BAD-101: two concurrent requests with the same Idempotency-Key file only one issue (14.009833ms)
+  AssertionError [ERR_ASSERTION]: filed 2 issues, ids 42,43
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:74:10)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/audit-idempotency-ratelimit.test.js:96:1
+✖ BAD-102: a network error on the PATCH after the issue exists still returns its number (no 502, no duplicate on retry) (30.943958ms)
+  AssertionError [ERR_ASSERTION]: first=502, retry=201, issues filed=2
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:102:10)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/audit-idempotency-ratelimit.test.js:106:1
+✖ BAD-102 (variant): a network error adding the attachment-failed label also loses the number (18.217667ms)
+  AssertionError [ERR_ASSERTION]: README: "A failed attachment still returns the number"
+  
+  502 !== 201
+  
+      at TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:111:10)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 502,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/audit-idempotency-ratelimit.test.js:137:1
+✖ BAD-103: a concurrent burst from one IP is held to 5 issues per hour (12.26125ms)
+  AssertionError [ERR_ASSERTION]: 20 of 20 concurrent reports were filed (limit 5/hour)
+      at TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:140:10)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/audit-idempotency-ratelimit.test.js:149:1
+✖ BAD-104: unknown products are not rate-limited and each costs an authenticated GitHub API call (138.783125ms)
+  AssertionError [ERR_ASSERTION]: 30 GitHub label lookups for 30 requests from one IP; none was rate-limited
+      at TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-idempotency-ratelimit.test.js:155:10)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/audit-input-render.test.js:110:1
+✖ BAD-105: bidi control characters are removed from the issue title (0.556041ms)
+  AssertionError [ERR_ASSERTION]: title keeps bidi controls: "[baddel] bug: abc‮fdp.exe⁦x⁩"
+      at TestContext.<anonymous> (file:///Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/server/report-worker/test/audit-input-render.test.js:112:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+exit: 1
+duration_s: 1

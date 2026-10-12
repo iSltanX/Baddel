@@ -1,0 +1,13 @@
+# cargo-mutants 27.1.0 — after fix/audit-findings; same files and tests as 02-mutants-missed.txt
+# cargo mutants -p baddel-core -f convert.rs -f disambiguate.rs -f layout.rs -j 4 --timeout 60 -- --lib --test core --test table
+# 128 mutants: 113 caught, 3 missed, 5 timeout (infinite loop → detected), 7 unviable
+## missed — equivalent (no input changes the output; see BADDEL-COPILOT-AUDIT.md §11)
+crates/baddel-core/src/convert.rs:186:54: replace && with || in LayoutMap::convert_words
+crates/baddel-core/src/convert.rs:209:34: replace > with >= in LayoutMap::tokenize
+crates/baddel-core/src/disambiguate.rs:25:24: replace || with && in is_english_word
+## timeout
+crates/baddel-core/src/convert.rs:221:23: replace += with *= in LayoutMap::tokenize
+crates/baddel-core/src/convert.rs:217:23: replace += with *= in LayoutMap::tokenize
+crates/baddel-core/src/convert.rs:217:23: replace += with -= in LayoutMap::tokenize
+crates/baddel-core/src/convert.rs:221:23: replace += with -= in LayoutMap::tokenize
+crates/baddel-core/src/convert.rs:235:57: replace != with == in split_keeping_whitespace

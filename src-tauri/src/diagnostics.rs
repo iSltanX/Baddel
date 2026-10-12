@@ -79,6 +79,9 @@ pub struct Details {
     pub layouts: Layouts,
     pub layout_choice: LayoutChoice,
     pub recent: Vec<Recent>,
+    /// The bundle identifier of the app the last attempt happened in: the one app a report names,
+    /// since where a conversion failed is part of the problem. PRIVACY.md lists it and the preview
+    /// shows it; the exceptions, which say nothing about the problem, go as a count.
     pub last_app: Option<String>,
     pub settings: SettingsSummary,
     pub build: &'static str,
@@ -123,8 +126,8 @@ pub struct Shortcuts {
     pub to_latin: String,
 }
 
-/// The general preferences. The exceptions are a count, not a list: bundle identifiers would
-/// tell which apps are installed.
+/// The general preferences. The exceptions are a count, not a list: their bundle identifiers
+/// would tell which apps are installed and say nothing about the problem (unlike `last_app`).
 #[derive(Clone, Debug, Serialize)]
 pub struct SettingsSummary {
     pub language: Language,

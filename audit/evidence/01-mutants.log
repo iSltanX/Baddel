@@ -1,0 +1,23 @@
+$ (cd .) perl -e alarm 480; exec @ARGV cargo mutants -p baddel-core -f crates/baddel-core/src/convert.rs -f crates/baddel-core/src/disambiguate.rs -f crates/baddel-core/src/layout.rs -j 4 --timeout 60 -o /var/folders/39/08324w6s5t99bsl4pmvbkgqw0000gn/T//aud/mut -- --lib --test core --test table
+start: 2026-10-12T19:35:41Z
+Found 128 mutants to test
+ok       Unmutated baseline in 2s build + 0s test
+MISSED   crates/baddel-core/src/convert.rs:65:36: replace || with && in is_protected in 1s build + 1s test
+MISSED   crates/baddel-core/src/convert.rs:181:54: replace && with || in LayoutMap::convert_words in 1s build + 1s test
+MISSED   crates/baddel-core/src/convert.rs:204:34: replace > with >= in LayoutMap::tokenize in 0s build + 1s test
+TIMEOUT  crates/baddel-core/src/convert.rs:212:23: replace += with *= in LayoutMap::tokenize in 0s build + 60s test
+TIMEOUT  crates/baddel-core/src/convert.rs:216:23: replace += with -= in LayoutMap::tokenize in 1s build + 60s test
+TIMEOUT  crates/baddel-core/src/convert.rs:216:23: replace += with *= in LayoutMap::tokenize in 1s build + 60s test
+TIMEOUT  crates/baddel-core/src/convert.rs:230:57: replace != with == in split_keeping_whitespace in 1s build + 60s test
+MISSED   crates/baddel-core/src/disambiguate.rs:25:24: replace || with && in is_english_word in 1s build + 1s test
+MISSED   crates/baddel-core/src/disambiguate.rs:49:20: replace > with == in resolve in 0s build + 1s test
+MISSED   crates/baddel-core/src/disambiguate.rs:49:20: replace > with >= in resolve in 0s build + 1s test
+MISSED   crates/baddel-core/src/layout.rs:101:50: replace || with && in LayoutMap::build in 1s build + 1s test
+MISSED   crates/baddel-core/src/layout.rs:101:29: replace || with && in LayoutMap::build in 1s build + 1s test
+MISSED   crates/baddel-core/src/layout.rs:135:5: replace is_mappable -> bool with true in 1s build + 1s test
+MISSED   crates/baddel-core/src/layout.rs:135:19: replace && with || in is_mappable in 0s build + 1s test
+MISSED   crates/baddel-core/src/layout.rs:135:56: replace || with && in is_mappable in 1s build + 1s test
+128 mutants tested in 2m: 11 missed, 106 caught, 7 unviable, 4 timeouts
+
+exit: 3
+duration_s: 139

@@ -1,0 +1,16 @@
+$ (cd .) cargo test -p baddel-core --test audit_generative -- --nocapture
+start: 2026-10-12T19:32:32Z
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running tests/audit_generative.rs (target/debug/deps/audit_generative-8968c5e37dd89d5f)
+
+running 2 tests
+[mac] 10000 cases in 1.241845708s (base seed 802586435622)
+test generative_invariants_arabic_mac ... ok
+[pc] 10000 cases in 1.410680417s (base seed 802586435622)
+test generative_invariants_arabic_pc ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
+
+
+exit: 0
+duration_s: 2

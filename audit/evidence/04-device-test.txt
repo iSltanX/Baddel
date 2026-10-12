@@ -1,0 +1,41 @@
+# Device test of fix/audit-findings — owner's Mac, macOS 27.0.1 arm64, 2026-10-12 23:57 → 2026-10-13 00:17
+# Owner asked for it in the session and was away. Debug build of the branch (stderr log: outcomes,
+# reasons, paths, timings — no text). Test texts only; text pasteboard restored by matrix.py after
+# each run; Baddel settings backed up and restored; scripts/device-test/cleanup.sh at the end.
+# Layout on the Mac: Arabic (Mac) + ABC. Chrome 155.0.8059.39.
+
+## Crash (BAD-207, S1) — TextEdit, "😀" + N×"x" + " اثممخ", caret at end, ⌥⇧Space
+branch  S1-392x PASS Converted alive   S1-393x PASS Converted alive   S1-394x PASS Converted alive (×3 runs)
+2.0.1   S1-393x baddel QUIT: EXC_CRASH SIGABRT "Abort trap: 6" on thread baddel-controller
+        (~/Library/Logs/DiagnosticReports/baddel-2026-10-12-235946.ips)
+branch  BAD-208 450×"x"+"اثممخ" → NoText, text unchanged (×2)
+note    two runs once returned Blocked in 0.6–3ms: the existing Secure Input check at the press,
+        set by something else on the Mac for a moment; both passed on re-run.
+
+## Accessibility path (normal build)
+TextEdit         word/l2a/select/extend  PASS ×4, pasteboard unchanged
+Safari#ta, #ce   PASS 8/8                Brave#ta, #ce  PASS 8/8
+Safari/Chrome/Brave password field  --expect Blocked  PASS ×3
+Terminal --expect Excluded  PASS
+BAD-002 select "sg ١٢٣" → "سل ١٢٣" PASS     M11 "اثممخ iPhone mp3 x86_64" → "hello iPhone mp3 x86_64" PASS
+M3 undo (⌥⇧Z, temporary binding) → Undone PASS; undo after 31 s → NoText, text kept PASS
+M4 convert in TextEdit, undo with Safari in front → Failed(OtherApp), Safari field untouched; back in TextEdit → Undone PASS
+S14 menu with convert = Alt+Shift+Comma reads "⌥⇧," (2.0.1: "⌥ ⇧ COMMA") PASS
+Chrome#ta, #ce   FAIL 6/8: "Converted" reported, text unchanged (~250 ms, text range path)
+2.0.1 Chrome     FAIL 4/8 the same way  → pre-existing with Chrome 155, not from this branch
+
+## Key path forced (BADDEL_FORCE_KEYS=1)
+TextEdit-keys, Safari-keys#ta, #ce  PASS 12/12, pasteboard unchanged
+M5 image on the pasteboard (8×8 PNG) → same SHA-256 after the conversion PASS
+S2 (switch to Safari 0.1/0.25/0.4 s after the press, no selection):
+  first fix (NSWorkspace from the controller thread): Safari's field was SELECTED AND COPIED
+     ("line read = Some(22)" = the field's 22-char marker); untouched only because it did not convert
+  fixed (5510afe, window server): Failed(FocusMoved) ×3, Safari never read, TextEdit unchanged PASS
+S2 with a selection: the conversion finished before Safari came forward (Converted ×3, Safari untouched)
+S6 Tab into the password field after the press: System Events' Tab always arrived after Baddel's paste
+   (ce converted ×3) — the interleaving could not be produced with these tools; nothing reached the field
+M3 undo on the forced key path in TextEdit → Failed(NotHere) ×3 — main's debug build the same ×2:
+   pre-existing, and TextEdit itself uses the accessibility path
+
+## Not run
+S3, S7, S8–S13, M7, M10 (needs Arabic – PC enabled), M12–M15; S4/S5/S7 cover unfixed proposals.

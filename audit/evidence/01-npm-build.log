@@ -1,0 +1,24 @@
+$ (cd .) npm run build
+start: 2026-10-12T19:27:11Z
+
+> baddel@2.0.1 build
+> vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 183 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                               0.40 kB │ gzip:  0.28 kB
+dist/assets/luma-BGIL9_T8.png                 5.91 kB
+dist/assets/raff-BU7dIZsi.png                 7.57 kB
+dist/assets/app-icon-m-aQJBVF.png             7.63 kB
+dist/assets/Almarai-Regular-TEKe4XFl.woff2   49.12 kB
+dist/assets/Cairo-Bold-B-_7TOZF.woff2        50.40 kB
+dist/assets/Almarai-Bold-ByK29-r7.woff2      50.78 kB
+dist/assets/index-DmQnOk1a.css               41.63 kB │ gzip:  6.88 kB
+dist/assets/index-DBUY0yAo.js               149.35 kB │ gzip: 53.28 kB
+✓ built in 4.09s
+
+exit: 0
+duration_s: 7

@@ -1,0 +1,9 @@
+$ cargo mutants -p baddel-core -f crates/baddel-core/src/disambiguate.rs --re disambiguate.rs:49 -j 2 --timeout 60 -- --test audit_lam_alef pc_more_than_six_sites_reads_single_key
+start: 2026-10-12T19:43:53Z
+outcomes: /var/folders/39/08324w6s5t99bsl4pmvbkgqw0000gn/T//aud/mut49
+## missed
+crates/baddel-core/src/disambiguate.rs:49:20: replace > with == in resolve
+crates/baddel-core/src/disambiguate.rs:49:20: replace > with < in resolve
+crates/baddel-core/src/disambiguate.rs:49:20: replace > with >= in resolve
+## caught
+result: 3 mutants tested: 3 missed

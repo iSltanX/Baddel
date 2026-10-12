@@ -31,20 +31,36 @@ pub fn get_settings(state: tauri::State<'_, AppState>) -> Settings {
     state.get()
 }
 
-/// Merges `patch` — an object with any subset of the settings fields — into the
-/// current preferences and applies the result.
+/// Merges `patch` — an object with any subset of the [`PATCHABLE`] fields — into the current
+/// preferences and applies the result.
 #[tauri::command]
 pub fn set_settings(app: AppHandle, patch: serde_json::Value) -> Result<Settings, String> {
-    let previous = app.state::<AppState>().get();
-    let mut merged = serde_json::to_value(&previous).map_err(|e| e.to_string())?;
-    match (merged.as_object_mut(), patch.as_object()) {
-        (Some(base), Some(patch)) => base.extend(patch.clone()),
-        _ => return Err("expected an object of settings fields".into()),
-    }
-    let next: Settings = serde_json::from_value(merged).map_err(|e| e.to_string())?;
-    let next = settings::update(&app, |current| *current = next);
-    sync::apply(&app, &previous, &next);
+    // Merged under the settings lock, so that a change made meanwhile elsewhere (an app excluded
+    // from the menu, a pause running out) is kept, not written over with an older copy.
+    let mut previous = Err(String::new());
+    let next = settings::update(&app, |current| {
+        previous = patched(current, &patch).map(|next| std::mem::replace(current, next));
+    });
+    sync::apply(&app, &previous?, &next);
     Ok(next)
+}
+
+/// The fields `set_settings` changes: the settings window's switches and pickers. The rest have
+/// commands that check them (shortcuts, exceptions) or are Baddel's own (pause, update check).
+const PATCHABLE: [&str; 9] = [
+    "launchAtLogin", "showTrayIcon", "language", "switchInputSource", "showHud", "sound", "autoUpdate",
+    "arabicLayout", "latinLayout",
+];
+
+/// `current` with `patch` merged in.
+fn patched(current: &Settings, patch: &serde_json::Value) -> Result<Settings, String> {
+    let patch = patch.as_object().ok_or("expected an object of settings fields")?;
+    if let Some(field) = patch.keys().find(|field| !PATCHABLE.contains(&field.as_str())) {
+        return Err(format!("{field} is not set through set_settings"));
+    }
+    let mut merged = serde_json::to_value(current).map_err(|e| e.to_string())?;
+    merged.as_object_mut().ok_or("settings are not an object")?.extend(patch.clone());
+    serde_json::from_value(merged).map_err(|e| e.to_string())
 }
 
 #[derive(Serialize)]
@@ -59,8 +75,16 @@ pub struct ShortcutResult {
 
 /// The recorder is listening (`true`) or done (`false`): see [`shortcuts::suspend`].
 #[tauri::command]
-pub fn suspend_shortcuts(app: AppHandle, suspended: bool) {
-    shortcuts::suspend(&app, suspended);
+pub fn suspend_shortcuts(window: WebviewWindow, suspended: bool) {
+    if may_suspend_shortcuts(window.label()) {
+        shortcuts::suspend(window.app_handle(), suspended);
+    }
+}
+
+/// Only the settings window has the recorder, and only its closing binds the shortcuts again:
+/// any other window that switched them off would leave them off until Baddel restarts.
+fn may_suspend_shortcuts(label: &str) -> bool {
+    label == windows::SETTINGS
 }
 
 /// Tries to bind `accelerator`, keeping the old one if it is refused. An empty
@@ -176,6 +200,10 @@ pub fn keyboard_map(app: AppHandle) -> KeyboardMap {
 /// This is what the practice field in the welcome window uses.
 #[tauri::command]
 pub fn convert_text(app: AppHandle, text: String) -> Option<String> {
+    // As for the shortcut: this runs on the main thread, and a page could send megabytes.
+    if !controller::within_limit(&text) {
+        return None;
+    }
     let settings = app.state::<AppState>().get();
     let (arabic, latin) = (settings.arabic_layout.clone(), settings.latin_layout.clone());
     let snapshot = on_main(&app, move || input_source::snapshot(&arabic, &latin))?;
@@ -408,7 +436,7 @@ pub async fn report_send(app: AppHandle) -> Result<u64, SendError> {
         let state = app.state::<ReportState>();
         let mut session = state.0.lock().unwrap();
         let payload = session.previewed.clone().ok_or(SendError::Rejected { reason: "no preview".into() })?;
-        let key = session.key_for(&payload.to_string());
+        let key = session.key_for(&payload);
         (payload, key)
     };
     let version = app.package_info().version.to_string();
@@ -527,4 +555,31 @@ pub fn open_external(url: String) -> Result<(), String> {
         return Err("only https links can be opened".into());
     }
     std::process::Command::new("/usr/bin/open").arg(url).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_patch_changes_only_the_window_switches() {
+        let current = Settings::default();
+        let next = patched(&current, &serde_json::json!({ "sound": true, "language": "en" })).unwrap();
+        assert!(next.sound);
+        assert_eq!(next.excluded_apps, current.excluded_apps);
+        // BAD-303: shortcuts go through set_shortcut, which checks them; the rest have their own.
+        for field in ["shortcutConvert", "excludedApps", "paused", "welcomed", "lastUpdateCheck"] {
+            assert!(patched(&current, &serde_json::json!({ field: serde_json::Value::Null })).is_err(), "{field}");
+        }
+        assert!(patched(&current, &serde_json::json!(["sound"])).is_err());
+        assert!(patched(&current, &serde_json::json!({ "sound": "yes" })).is_err());
+    }
+
+    #[test]
+    fn only_the_settings_window_can_suspend_the_shortcuts() {
+        // BAD-301: a call from the report or welcome window would leave them off for good.
+        assert!(may_suspend_shortcuts(windows::SETTINGS));
+        assert!(!may_suspend_shortcuts(windows::REPORT));
+        assert!(!may_suspend_shortcuts(windows::ONBOARDING));
+    }
 }

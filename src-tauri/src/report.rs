@@ -143,7 +143,7 @@ pub enum SendError {
     Retry,
     /// Too many reports from this network: Retry later and Copy Report.
     RateLimited { minutes: u64 },
-    /// The server refused this report as it is: Copy Report only.
+    /// The server refused this request as it is (any other 4xx): Copy Report only.
     Rejected { reason: String },
 }
 
@@ -177,7 +177,8 @@ fn interpret(status: u16, retry_after: Option<u64>, body: &Value) -> Result<u64,
     match status {
         200 | 201 => body.get("id").and_then(Value::as_u64).ok_or(SendError::Retry),
         429 => Err(SendError::RateLimited { minutes: retry_after.map_or(60, |s| s.div_ceil(60).max(1)) }),
-        400 | 413 | 415 => {
+        // A retry cannot change a refusal; only a request timeout is worth repeating.
+        400..=499 if status != 408 => {
             let error = body.get("error").and_then(Value::as_str).unwrap_or("rejected");
             let reason = match body.get("field").and_then(Value::as_str) {
                 Some(field) => format!("{error}: {field}"),
@@ -223,13 +224,20 @@ pub struct Session {
 }
 
 impl Session {
-    /// The key for this exact payload: the same one on a retry, a new one once anything changed.
-    pub fn key_for(&mut self, payload: &str) -> String {
+    /// The key for this report: the same one on a retry, a new one once anything the user chose
+    /// changed. The diagnostics are left out, since previewing again refreshes their timings and
+    /// a new key would let the Worker file the same report twice.
+    pub fn key_for(&mut self, payload: &Value) -> String {
+        let mut report = payload.clone();
+        if let Some(fields) = report.as_object_mut() {
+            fields.remove("diagnostics");
+        }
+        let report = report.to_string();
         match &self.sent {
-            Some((last, key)) if last == payload => key.clone(),
+            Some((last, key)) if *last == report => key.clone(),
             _ => {
                 let key = uuid_v4();
-                self.sent = Some((payload.to_string(), key.clone()));
+                self.sent = Some((report, key.clone()));
                 key
             }
         }
@@ -434,11 +442,41 @@ mod tests {
     }
 
     #[test]
+    fn client_errors_are_not_retried() {
+        // A retry cannot fix a refused request; only a timeout (408) or the rate limit is temporary.
+        for status in [404, 405, 409, 422] {
+            assert!(matches!(interpret(status, None, &Value::Null), Err(SendError::Rejected { .. })), "{status}");
+        }
+        assert_eq!(interpret(408, None, &Value::Null), Err(SendError::Retry));
+    }
+
+    #[test]
+    fn previewing_again_keeps_the_key_of_the_same_report() {
+        // Going back and previewing again refreshes the diagnostics' timings, not the report.
+        let later = {
+            let mut s = snapshot();
+            s.details.recent[0].ago_s += 90;
+            s
+        };
+        let image = Image { mime: "image/png", bytes: vec![1, 2, 3, 4], width: 2, height: 2, thumbnail: vec![] };
+        let first = payload(&draft("وصف"), &snapshot(), Some(&image)).unwrap();
+        let again = payload(&draft("وصف"), &later, Some(&image)).unwrap();
+        assert_ne!(first, again);
+        let mut session = Session::default();
+        let key = session.key_for(&first);
+        assert_eq!(session.key_for(&again), key);
+        // Anything the user chose is the report itself: a new description or image is a new key.
+        assert_ne!(session.key_for(&payload(&draft("وصف آخر"), &later, Some(&image)).unwrap()), key);
+        let other = Image { bytes: vec![5, 6, 7, 8], ..image };
+        assert_ne!(session.key_for(&payload(&draft("وصف"), &later, Some(&other)).unwrap()), key);
+    }
+
+    #[test]
     fn idempotency_key_is_reused_only_for_the_same_payload() {
         let mut session = Session::default();
-        let first = session.key_for("a");
-        assert_eq!(session.key_for("a"), first);
-        let second = session.key_for("b");
+        let first = session.key_for(&json!({ "description": "a" }));
+        assert_eq!(session.key_for(&json!({ "description": "a" })), first);
+        let second = session.key_for(&json!({ "description": "b" }));
         assert_ne!(second, first);
         assert_eq!(second.len(), 36);
         assert_eq!(&second[14..15], "4");

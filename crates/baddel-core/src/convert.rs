@@ -27,8 +27,8 @@ pub struct Conversion {
     pub direction: Direction,
 }
 
-/// Majority vote between Arabic-script characters and Latin letters.
-/// `None` when the text has neither (digits, punctuation, whitespace only);
+/// Majority vote between Arabic and Latin letters.
+/// `None` when the text has neither (digits, Arabic or Latin, punctuation and whitespace only);
 /// a tie counts as Arabic, since Arabic text legitimately embeds Latin words more often than the reverse.
 ///
 /// Links, email addresses and file paths ([`is_protected`]) do not vote: a URL's dozen Latin
@@ -41,9 +41,14 @@ pub fn detect_direction(text: &str) -> Option<Direction> {
 fn vote(text: &str, skip: impl Fn(&str) -> bool) -> Option<Direction> {
     let (mut arabic, mut latin) = (0usize, 0usize);
     for c in split_keeping_whitespace(text).filter(|word| !skip(word)).flat_map(str::chars) {
+        // Letters (and Arabic marks) only: a digit or a «؟» shows which layout was on, not that it
+        // was the wrong one.
+        if !c.is_alphabetic() {
+            continue;
+        }
         if is_arabic(c) {
             arabic += 1;
-        } else if c.is_alphabetic() {
+        } else {
             latin += 1;
         }
     }

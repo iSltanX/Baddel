@@ -69,19 +69,40 @@ export async function handle(request, env) {
     throw new HttpError(400, { error: 'invalid_json' })
   }
   const clean = validate(report)
-  if (!(await productEnabled(env, clean.product))) throw new HttpError(400, { error: 'unknown_product' })
 
   // A retry after a lost response gets the same report number instead of a duplicate.
   const key = idempotencyKey(request)
-  if (key) {
+  if (!key) return json(201, { id: await submit(request, env, clean) })
+  // A request whose key is still being filed in this isolate waits for that one: KV alone cannot
+  // stop two at once, since its read and the later write are not atomic.
+  const pending = inFlight.get(key)
+  if (pending) return json(200, { id: (await pending).id })
+  const filing = (async () => {
     const known = await env.REPORTS_KV.get(`idem:${key}`)
-    if (known) return json(200, { id: Number(known) })
+    if (known) return { id: Number(known), replayed: true }
+    const id = await submit(request, env, clean)
+    // The issue exists now: a failure to remember the key must not turn its number into a 502.
+    await env.REPORTS_KV.put(`idem:${key}`, String(id), { expirationTtl: IDEMPOTENCY_TTL }).catch(() => {})
+    return { id, replayed: false }
+  })()
+  inFlight.set(key, filing)
+  try {
+    const { id, replayed } = await filing
+    return json(replayed ? 200 : 201, { id })
+  } finally {
+    inFlight.delete(key)
   }
+}
 
+/** Idempotency keys being filed by this isolate, each with its filing. */
+const inFlight = new Map()
+
+/** Files a report that is not a replay. The rate limit comes first, so that no request, whatever
+ *  product it names, costs a GitHub call or a KV write once its IP is over the limit. */
+async function submit(request, env, report) {
   await rateLimit(request, env)
-  const id = await fileReport(env, clean)
-  if (key) await env.REPORTS_KV.put(`idem:${key}`, String(id), { expirationTtl: IDEMPOTENCY_TTL })
-  return json(201, { id })
+  if (!(await productEnabled(env, report.product))) throw new HttpError(400, { error: 'unknown_product' })
+  return fileReport(env, report)
 }
 
 /** Reads the body, refusing to buffer more than `limit` bytes. */
@@ -172,9 +193,17 @@ async function sha256Hex(text) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** 5 reports per IP per hour, and 100 per day across all products. The IP is kept only as a
- *  salted hash, under a key that expires with its window. */
-async function rateLimit(request, env, now = Date.now()) {
+/** 5 reports per IP per hour, and 100 per day across all products. KV has no atomic increment,
+ *  so within this isolate one check-and-count runs at a time: a burst cannot all read one count. */
+let counting = Promise.resolve()
+function rateLimit(request, env) {
+  const run = counting.then(() => count(request, env))
+  counting = run.catch(() => {})
+  return run
+}
+
+/** The IP is kept only as a salted hash, under a key that expires with its window. */
+async function count(request, env, now = Date.now()) {
   const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
   const hour = Math.floor(now / 3_600_000)
   const day = Math.floor(now / 86_400_000)
@@ -227,7 +256,9 @@ export function fence(text) {
 const code = (value) => `\`${String(value).replace(/[`\r\n]/g, '')}\``
 
 export function title(report) {
-  const firstLine = report.description.split(/\r?\n/)[0].replace(/[\u0000-\u001f]/g, '').trim()
+  // Controls, and the bidi marks, embeddings, overrides and isolates that could make a title read
+  // as something else (ZWJ and ZWNJ stay: they are part of the text).
+  const firstLine = report.description.split(/\r?\n/)[0].replace(/[\u0000-\u001f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim()
   const short = [...firstLine].length > 60 ? `${[...firstLine].slice(0, 59).join('')}…` : firstLine
   return `[${report.product}] ${report.kind}: ${short}`
 }
@@ -259,19 +290,23 @@ async function fileReport(env, report) {
   const { number } = await created.json()
   if (!report.files.length) return number
 
+  // The issue exists from here on, so nothing may throw: a 502 now would make the app file it again.
+  const after = (method, path, payload) => github(env, method, path, payload).catch(() => null)
   const images = []
   let failed = false
   for (const [index, file] of report.files.entries()) {
     const path = `reports/${report.product}/${number}/${index + 1}.${file.ext}`
-    const stored = await github(env, 'PUT', `/repos/${env.REPORTS_REPO}/contents/${path}`, {
+    const stored = await after('PUT', `/repos/${env.REPORTS_REPO}/contents/${path}`, {
       message: `${report.product} report #${number}: attachment ${index + 1}`,
       content: file.base64,
     })
-    if (stored.status === 201 || stored.status === 200) images.push(`https://github.com/${env.REPORTS_REPO}/blob/main/${path}?raw=true`)
+    if (stored?.status === 201 || stored?.status === 200) images.push(`https://github.com/${env.REPORTS_REPO}/blob/main/${path}?raw=true`)
     else failed = true
   }
-  // The issue exists either way: its number is returned, and a failed attachment is labelled.
-  await github(env, 'PATCH', `/repos/${env.REPORTS_REPO}/issues/${number}`, { body: body(report, images, failed) })
-  if (failed) await github(env, 'POST', `/repos/${env.REPORTS_REPO}/issues/${number}/labels`, { labels: ['attachment-failed'] })
+  // Its number is returned either way, and a failed attachment is labelled — as is a failed update,
+  // which leaves the issue without its image links.
+  const patched = await after('PATCH', `/repos/${env.REPORTS_REPO}/issues/${number}`, { body: body(report, images, failed) })
+  if (!patched?.ok) failed = true
+  if (failed) await after('POST', `/repos/${env.REPORTS_REPO}/issues/${number}/labels`, { labels: ['attachment-failed'] })
   return number
 }

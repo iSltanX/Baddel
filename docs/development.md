@@ -10,7 +10,7 @@
 |---|---|
 | `crates/baddel-core/` | المنطق الصِرف: خرائط التخطيطات، والتحويل، وحسم «لا»، وحماية الروابط والرموز التقنية. بلا Tauri ولا macOS، ويُختبر بـ `cargo test -p baddel-core` |
 | `src-tauri/src/` | التطبيق: مسار التحويل (`controller.rs`)، والقائمة (`tray.rs`، ونصوصها في `menu_text.rs`)، والإشعار (`hud.rs`)، والاختصارات، والإعدادات وترحيلها، والمحدِّث، والتشخيص (`diagnostics.rs`) والبلاغ (`report.rs`)، والنوافذ (`windows.rs`) |
-| `src-tauri/src/sys/` | **كل** `unsafe` واستدعاءات النظام: AX وCGEvent وNSPasteboard وCarbon TIS والصور والساعة، خلف واجهات آمنة |
+| `src-tauri/src/sys/` | **كل** `unsafe` واستدعاءات النظام: AX وCGEvent وNSPasteboard وCarbon TIS والصور ورسم الإشعار وخطّه والساعة، خلف واجهات آمنة. يفرضه `#![deny(unsafe_code)]` في `lib.rs`، ولا يُستثنى منه إلا `sys` |
 | `src/` | الواجهة (Svelte 5 + TypeScript): الإعدادات والترحيب ونافذة البلاغ. عرض فقط عبر `invoke` والأحداث؛ و`src/lib/mock.ts` يحاكي أوامر Rust في `npm run dev` |
 | `server/report-worker/` | Cloudflare Worker عام لقناة البلاغات المشتركة (القسم «الإبلاغ») |
 | `design/icon/` | أصول أيقونة D2 المُصدَّرة من Figma وسكربت بنائها |
@@ -45,7 +45,7 @@
 ## الإبلاغ
 
 - **القناة:** مستودع `iSltanX/app-reports` الخاص، وREADME فيه هو العقد (v1). بدّل يرسل `"product": "baddel"` إلى `https://app-reports.isultantf.workers.dev/v1/reports`.
-- **الحمولة** تُبنى مرة في Rust عند المعاينة، و«أرسل» و«انسخ البلاغ» يستعملان القيمة نفسها، مع `Idempotency-Key` لكل حمولة. الوصف حتى 1,000 حرف، وصورة واحدة تُعاد ترميزها إلى ≤ 3MB (المدخل حتى 20MB)، والصورة لا تعبر إلى الواجهة. لا تُقرأ الحافظة إلا حين يلصق المستخدم صورة في نافذة البلاغ.
+- **الحمولة** تُبنى مرة في Rust عند المعاينة، و«أرسل» و«انسخ البلاغ» يستعملان القيمة نفسها، مع `Idempotency-Key` لكل بلاغ: يتغيّر بتغيّر ما اختاره المستخدم لا بتوقيتات التشخيص، فإعادة المعاينة لا تكرّر البلاغ، وأي رفض 4xx (عدا 408 و429) لا يُعاد. الوصف حتى 1,000 حرف، وصورة واحدة تُعاد ترميزها إلى ≤ 3MB (المدخل حتى 20MB)، والصورة لا تعبر إلى الواجهة. لا تُقرأ الحافظة إلا حين يلصق المستخدم صورة في نافذة البلاغ.
 - **حد المعدل** في الـ Worker: 5 لكل IP في الساعة و100 في اليوم، دون إعفاء لبلاغات `test` (العلم يضعه العميل).
 - **التشغيل:** `server/report-worker/`: `npm ci && npm test && ./scripts/deploy.sh` (يقرأ `.env` في الجذر، ولا يطبع قيمة). في debug: `BADDEL_REPORT_ENDPOINT=http://127.0.0.1:9/v1/reports` لمسار الفشل، واختبار القناة الحيّ `BADDEL_LIVE_REPORT=1 cargo test -p baddel live_report -- --ignored --nocapture`.
 
@@ -58,7 +58,7 @@ python3 scripts/check-docs.py       # روابط README وCHANGELOG وPRIVACY و
 ./scripts/dev-build.sh              # حزمة debug موقَّعة في target/debug/bundle/macos/
 ```
 
-- **متغيرات debug وحده:** `BADDEL_WINDOW` (`settings[:pane]` أو `onboarding[:step]` أو `report` أو `hud:<state>`) و`BADDEL_THEME` و`BADDEL_HUD_CAPTURE` للقطات، و`BADDEL_FORCE_KEYS` لفرض مسار المفاتيح، و`BADDEL_LOG` لسجل النتائج (بلا نص).
+- **متغيرات debug وحده:** `BADDEL_WINDOW` (`settings[:pane]` أو `onboarding[:step]` أو `report` أو `hud:<state>`) و`BADDEL_THEME` و`BADDEL_HUD_CAPTURE` للقطات، و`BADDEL_FORCE_KEYS` لفرض مسار المفاتيح. ونسخة debug تكتب في stderr سطرًا لكل أمر (النتيجة والسبب والمسار والزمن، بلا نص)؛ أما `BADDEL_LOG` فلا يقرؤه التطبيق، بل هو الملف الذي يوجّه إليه `scripts/device-test/run.sh` ذلك الخرج.
 - **اللقطات:** `./scripts/dev-build.sh && ./scripts/capture.sh` يعيد لقطات README كلها، ويحفظ إعدادات المستخدم ويعيد تشغيل بدّل المثبَّت بعده.
 - **اختبار الجهاز** (`scripts/device-test/`) يرسل ضغطات حقيقية إلى تطبيقات المستخدم، فلا يُشغَّل إلا بطلب صريح من المالك وهو بعيد عن الجهاز. طريقته وبيئته ونتائجه في [test-matrix.md](test-matrix.md).
 - **ملاحظة صلاحية:** نسخة تُشغَّل من صدفة طرفية ترث صلاحية تطبيق الطرفية (TCC تحاسب العملية المسؤولة)؛ لاختبار الصلاحية فعلًا: `open -n --env BADDEL_WINDOW=… target/debug/bundle/macos/Baddel.app`.

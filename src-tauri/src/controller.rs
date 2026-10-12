@@ -58,6 +58,11 @@ const UNDO_WINDOW: Duration = Duration::from_secs(30);
 const PERMISSION_NOTICE_EVERY: Duration = Duration::from_secs(30);
 
 const MAX_CHARS: usize = 10_000;
+
+/// Whether `text` is short enough to convert: no command takes more than [`MAX_CHARS`].
+pub fn within_limit(text: &str) -> bool {
+    text.chars().nth(MAX_CHARS).is_none()
+}
 /// Longer than this, a conversion is not shown word for word in the notice or the menu: the
 /// notice gives its length and the menu a plain "Undo Last Conversion". The text itself still
 /// converts in full; this only keeps paragraphs off the screen.
@@ -157,6 +162,32 @@ pub enum Reason {
     UndoRejected,
     /// Undo on the key-based path of a result too long to reselect.
     TooLong,
+    /// The keyboard is with another app than the one in front at the press: it came to the
+    /// front while the keys were being sent (the rest were not sent), or it is an excepted app
+    /// whose element has focus.
+    FocusMoved,
+}
+
+/// Why the key-based path stopped before its next key press.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Halt {
+    /// Another app is in front than the one the command began in.
+    OtherApp,
+    /// Secure Input came on, or focus moved into a password field.
+    Secure,
+}
+
+/// Whether the next synthetic keys may be sent: they go to whatever has focus now, so only while
+/// that is still the app the command began in (`started_in`), and not a password (`secure`).
+/// Checked before each batch.
+fn halt(started_in: Option<i32>, in_front: Option<i32>, secure: bool) -> Option<Halt> {
+    if secure {
+        return Some(Halt::Secure);
+    }
+    match started_in {
+        Some(pid) if in_front != Some(pid) => Some(Halt::OtherApp),
+        _ => None,
+    }
 }
 
 #[derive(Clone)]
@@ -339,6 +370,10 @@ struct Controller {
 struct Target {
     focused: Option<Focused>,
     method: Method,
+    /// The app whose window was in front when the command began: synthetic keys go only to it.
+    pid: Option<i32>,
+    /// Set when a check before a key press stopped the command ([`Target::may_type`]).
+    halted: Option<Halt>,
     /// Pasteboard contents to put back, taken before our first ⌘C.
     saved: Option<pasteboard::Snapshot>,
     /// The pasteboard's change count as our own last use of it left it. Different at the end
@@ -480,11 +515,18 @@ impl Controller {
             first_arrow: route.arrow,
             switch_input_source: settings.switch_input_source,
         };
-        let mut target = Target::new(self.focused_element(front.pid));
+        let mut target = Target::new(self.focused_element(front.pid), frontmost::front_window_pid());
         target.copy_timeout = route.copy_timeout();
         trace!("route: arrow {:?}, copy wait {:?} over {} answers", route.arrow, target.copy_timeout, route.copies);
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
+        }
+        // The focused element can belong to another app than the one in front: focus moved since
+        // the press, or a panel took the keyboard without coming to the front. The exceptions hold
+        // for that app too.
+        let owner = target.focused.as_ref().and_then(Focused::pid).filter(|&pid| Some(pid) != front.pid);
+        if owner.and_then(frontmost::bundle_id_of).is_some_and(|id| settings.excluded_apps.contains(&id)) {
+            return self.fail(Reason::FocusMoved);
         }
         // A stand-in says "caret at 0, nothing selected" whatever is really there (Figma's
         // canvas text). Believing it means never converting; the keyboard knows.
@@ -499,6 +541,11 @@ impl Controller {
             target.method = Method::Pasteboard;
         }
         let outcome = self.convert_in(&mut target, &cx, mode);
+        // A conversion that went through stands; one that stopped says why it stopped.
+        let outcome = match outcome {
+            Outcome::Converted | Outcome::Extended => outcome,
+            _ => self.halted(&target).unwrap_or(outcome),
+        };
         self.path = Some(target.path());
         target.restore_pasteboard();
         self.remember_route(front, &target, outcome);
@@ -768,6 +815,14 @@ impl Controller {
         Outcome::Failed
     }
 
+    /// What a command stopped before a key press ends as, whatever it got to before the stop.
+    fn halted(&mut self, target: &Target) -> Option<Outcome> {
+        Some(match target.halted? {
+            Halt::OtherApp => self.fail(Reason::FocusMoved),
+            Halt::Secure => Outcome::Blocked,
+        })
+    }
+
     /// Remembers a conversion that went through, with where it happened.
     fn finish(&mut self, mut op: LastOp, target: &Target, cx: &Context) {
         op.literal = cx.forced.is_some();
@@ -801,7 +856,7 @@ impl Controller {
             return self.undo_failed(Reason::OtherApp);
         }
         keysynth::wait_for_modifiers_released(MODIFIER_RELEASE_TIMEOUT);
-        let mut target = Target::new(Focused::get());
+        let mut target = Target::new(Focused::get(), frontmost::front_window_pid());
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
         }
@@ -812,12 +867,15 @@ impl Controller {
         let result = undo_in(&mut target, &last);
         self.path = Some(target.path());
         target.restore_pasteboard();
-        match result {
-            Ok(()) => {
+        match (result, target.halted) {
+            (Ok(()), _) => {
                 self.last = None;
                 Outcome::Undone
             }
-            Err(reason) => self.undo_failed(reason),
+            (Err(_), Some(Halt::OtherApp)) => self.undo_failed(Reason::FocusMoved),
+            // As at the press: a passing condition, and the conversion stays remembered.
+            (Err(_), Some(Halt::Secure)) => Outcome::Blocked,
+            (Err(reason), None) => self.undo_failed(reason),
         }
     }
 
@@ -911,6 +969,9 @@ fn undo_in(target: &mut Target, last: &LastOp) -> Result<(), Reason> {
     }
 
     target.keys = true;
+    if !target.may_type() {
+        return Err(Reason::UndoRejected);
+    }
     for _ in 0..stops {
         keysynth::select_char(last.back_arrow);
     }
@@ -923,7 +984,9 @@ fn undo_in(target: &mut Target, last: &LastOp) -> Result<(), Reason> {
             }
         }
         _ => {
-            keysynth::arrow(opposite(last.back_arrow));
+            if target.may_type() {
+                keysynth::arrow(opposite(last.back_arrow));
+            }
             Err(Reason::NotHere)
         }
     }
@@ -990,7 +1053,7 @@ impl Controller {
                 Some(Reason::NotHere | Reason::TextChanged) => message(hud::Kind::NotHere, text.hud_not_here),
                 Some(Reason::UndoRejected) => message(hud::Kind::UndoFailed, text.hud_undo_failed),
                 Some(Reason::TooLong) => message(hud::Kind::TooLong, text.hud_too_long),
-                Some(Reason::CopyTimedOut | Reason::WriteRejected) | None => {
+                Some(Reason::CopyTimedOut | Reason::WriteRejected | Reason::FocusMoved) | None => {
                     message(hud::Kind::Failed, text.hud_failed)
                 }
             },
@@ -1068,10 +1131,12 @@ impl LastOp {
 }
 
 impl Target {
-    fn new(focused: Option<Focused>) -> Self {
+    fn new(focused: Option<Focused>, pid: Option<i32>) -> Self {
         Target {
             focused,
             method: Method::Accessibility,
+            pid,
+            halted: None,
             saved: None,
             ours: 0,
             pending_copy: false,
@@ -1082,6 +1147,17 @@ impl Target {
             late_copy: false,
             arrow: None,
         }
+    }
+
+    /// Checked before each batch of synthetic keys, which land wherever focus is by then: `false`,
+    /// for good, once the app the command began in is no longer in front, or Secure Input or a
+    /// password field has taken the keyboard since the press.
+    fn may_type(&mut self) -> bool {
+        if self.halted.is_none() {
+            let secure = permissions::secure_input_enabled() || Focused::get().is_some_and(|f| f.is_secure());
+            self.halted = halt(self.pid, frontmost::front_window_pid(), secure);
+        }
+        self.halted.is_none()
     }
 
     /// Takes the snapshot to put back, before our first use of the pasteboard.
@@ -1144,6 +1220,9 @@ impl Target {
                     self.method = Method::Pasteboard
                 }
             }
+        }
+        if !self.may_type() {
+            return None;
         }
         self.save_pasteboard();
         self.adopt_late_copy();
@@ -1214,12 +1293,17 @@ impl Target {
         plan: impl Fn(&str) -> Option<LineEdit>,
     ) -> KeyEdit {
         self.keys = true;
+        if !self.may_type() {
+            return KeyEdit::Failed;
+        }
         select();
         let line = self.await_selection();
         trace!("key path: line read = {:?} chars", line.as_ref().map(|l| l.chars().count()));
         let Some(line) = line else { return KeyEdit::NothingHere };
         let Some(edit) = plan(&line) else {
-            keysynth::arrow(collapse); // collapse back onto the caret
+            if self.may_type() {
+                keysynth::arrow(collapse); // collapse back onto the caret
+            }
             return KeyEdit::NothingHere;
         };
         let replacement = format!("{}{}", &line[..edit.keep], edit.converted);
@@ -1297,6 +1381,9 @@ impl Target {
             }
             self.method = Method::Pasteboard;
         }
+        if !self.may_type() {
+            return false;
+        }
         self.save_pasteboard();
         // Where the app reports its selection, the paste can be seen landing: the selected
         // original gives way to the caret. Only then is it safe to put the user's pasteboard back.
@@ -1342,8 +1429,20 @@ fn previous_word(focused: &Focused, end: usize) -> Option<Word> {
     if utf16_len(&text) != end - from {
         return None; // the app's idea of offsets is not UTF-16; do not guess
     }
+    last_word(&text, from)
+}
+
+/// The last whitespace-delimited word of `text`, which was read from UTF-16 offset `from`. Unless
+/// the read began at the field's start, the word must begin after whitespace within it: one that
+/// runs back past the read is longer than [`LOOKBEHIND_UNITS`], and converting its tail would leave
+/// the rest behind, or split an emoji whose low half opened the read.
+fn last_word(text: &str, from: usize) -> Option<Word> {
     let trimmed = text.trim_end();
-    let word_start = trimmed.rfind(char::is_whitespace).map_or(0, |i| i + trimmed[i..].chars().next().unwrap().len_utf8());
+    let word_start = match trimmed.rfind(char::is_whitespace) {
+        Some(i) => i + trimmed[i..].chars().next().unwrap().len_utf8(),
+        None if from == 0 => 0,
+        None => return None,
+    };
     let word = &trimmed[word_start..];
     (!word.is_empty()).then(|| Word {
         start: from + utf16_len(&text[..word_start]),
@@ -1445,7 +1544,7 @@ mod tests {
     fn a_route_waits_for_copies_no_longer_than_the_app_needs() {
         let mut route = Route::default();
         assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
-        let mut target = Target::new(None);
+        let mut target = Target::new(None, None);
         target.copy_times = vec![Duration::from_millis(12), Duration::from_millis(30)];
         target.arrow = Some(KEY_RIGHT);
         route.learn(&target);
@@ -1464,6 +1563,48 @@ mod tests {
         target.copy_times = vec![Duration::from_millis(400)];
         route.learn(&target);
         assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
+    }
+
+    #[test]
+    fn text_past_the_limit_is_refused() {
+        assert!(within_limit(""));
+        assert!(within_limit(&"ب".repeat(MAX_CHARS)));
+        assert!(!within_limit(&"ب".repeat(MAX_CHARS + 1)));
+        // BAD-302: megabytes from a webview stop at the first character past the limit.
+        assert!(!within_limit(&"a".repeat(5_000_000)));
+    }
+
+    #[test]
+    fn keys_go_only_to_the_app_the_command_began_in() {
+        // BAD-201: the user switched apps while the keys were being sent.
+        assert_eq!(halt(Some(501), Some(501), false), None);
+        assert_eq!(halt(Some(501), Some(733), false), Some(Halt::OtherApp));
+        assert_eq!(halt(Some(501), None, false), Some(Halt::OtherApp));
+        // No app was known to be in front at the press: nothing to compare with.
+        assert_eq!(halt(None, Some(733), false), None);
+    }
+
+    #[test]
+    fn keys_stop_once_a_password_has_the_keyboard() {
+        // BAD-206: Secure Input came on, or Tab moved focus into a password field, mid-command.
+        assert_eq!(halt(Some(501), Some(501), true), Some(Halt::Secure));
+        assert_eq!(halt(None, None, true), Some(Halt::Secure));
+    }
+
+    #[test]
+    fn the_previous_word_is_read_whole_or_not_at_all() {
+        let word = |text: &str, from: usize| last_word(text, from).map(|w| (w.start, w.len, w.text));
+        assert_eq!(word("Dear team, sghl", 0), Some((11, 4, "sghl".into())));
+        assert_eq!(word("x sghl  ", 100), Some((102, 4, "sghl".into())));
+        assert_eq!(word("sghl", 0), Some((0, 4, "sghl".into())));
+        assert_eq!(word("   ", 0), None);
+        // BAD-208: the read began inside a word longer than the look-behind; converting its tail
+        // would leave the rest unconverted.
+        assert_eq!(word(&"x".repeat(LOOKBEHIND_UNITS), 7), None);
+        // BAD-207: the read began on the low half of an emoji, now U+FFFD; it never reaches the word.
+        let edge = format!("\u{FFFD}{} سلام", "x".repeat(LOOKBEHIND_UNITS - 6));
+        assert_eq!(word(&edge, 7), Some((7 + LOOKBEHIND_UNITS - 4, 4, "سلام".into())));
+        assert_eq!(word("\u{FFFD}xx", 7), None);
     }
 
     #[test]

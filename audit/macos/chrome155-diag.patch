@@ -1,0 +1,70 @@
+diff --git a/src-tauri/src/controller.rs b/src-tauri/src/controller.rs
+index 30fa433..9a560fa 100644
+--- a/src-tauri/src/controller.rs
++++ b/src-tauri/src/controller.rs
+@@ -1362,6 +1362,7 @@ impl Target {
+                 return false;
+             }
+             if Instant::now() >= deadline {
++                diag_dropped(focused, word, replacement);
+                 return focused.string_for_range(word.start, word.len).as_deref() == Some(word.text.as_str());
+             }
+             sleep(Duration::from_millis(10));
+@@ -1375,6 +1376,7 @@ impl Target {
+                 let accepted = focused.replace_selection(result);
+                 // Some apps accept the request and ignore it: the old text is then still selected.
+                 let ignored = matches!(focused.selection(), Selection::Text(t) if t == original && t != result);
++                diag_write(focused, accepted, ignored, original, result);
+                 if accepted && !ignored {
+                     return true;
+                 }
+@@ -1412,6 +1414,49 @@ impl Target {
+     }
+ }
+ 
++fn diag_on() -> bool {
++    cfg!(debug_assertions) && std::env::var_os("BADDEL_TRACE_WRITES").is_some()
++}
++
++fn shape(read: Option<&str>, original: &str, result: &str) -> String {
++    match read {
++        None => "none".into(),
++        Some(t) if t == result => "result".into(),
++        Some(t) if t == original => "original".into(),
++        Some(t) => format!("other(len {})", t.chars().count()),
++    }
++}
++
++fn diag_write(focused: &Focused, accepted: bool, ignored: bool, original: &str, result: &str) {
++    if !diag_on() {
++        return;
++    }
++    let sel = |f: &Focused| match f.selection() {
++        Selection::Text(t) => format!("text:{}", shape(Some(&t), original, result)),
++        Selection::Empty => "empty".into(),
++        Selection::Unavailable => "unavailable".into(),
++    };
++    trace!("diag ax write: accepted {accepted} ignored {ignored} sel_now {} range {:?}", sel(focused), focused.selected_range());
++    for ms in [50u64, 150, 400, 900] {
++        sleep(Duration::from_millis(if ms == 50 { 50 } else { ms / 2 }));
++        let range = focused.selected_range();
++        let around = range.and_then(|(loc, _)| loc.checked_sub(utf16_len(result))).and_then(|start| focused.string_for_range(start, utf16_len(result)));
++        trace!("diag +{ms}ms: sel {} range {:?} before_caret {}", sel(focused), range, shape(around.as_deref(), original, result));
++    }
++}
++
++fn diag_dropped(focused: &Focused, word: &Word, replacement: &str) {
++    if !diag_on() {
++        return;
++    }
++    let at_new = focused.string_for_range(word.start, utf16_len(replacement));
++    let at_old = focused.string_for_range(word.start, word.len);
++    trace!("diag dropped? at_new {} at_old {} range {:?}", shape(at_new.as_deref(), &word.text, replacement), shape(at_old.as_deref(), &word.text, replacement), focused.selected_range());
++    sleep(Duration::from_millis(500));
++    let later = focused.string_for_range(word.start, utf16_len(replacement));
++    trace!("diag +500ms at_new {}", shape(later.as_deref(), &word.text, replacement));
++}
++
+ /// Undo on a line read up to the caret: when the line ends with `result` (give or take trailing
+ /// whitespace), how much of it to keep and what replaces the rest. `None` when it does not.
+ fn undo_line(line: &str, original: &str, result: &str) -> Option<(usize, String)> {

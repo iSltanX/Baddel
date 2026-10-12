@@ -1,0 +1,18 @@
+# Audit proposal — inactive here; move to .github/workflows/ only after owner review and approval. Proves compilation and unit tests only:
+# a GitHub-hosted macOS runner cannot grant Accessibility, so no conversion is exercised here.
+# With fix/audit-findings, every audit test passes, so `cargo test --workspace` is expected to pass.
+name: baddel-audit-macos
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci && npm run check && npm run build
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace

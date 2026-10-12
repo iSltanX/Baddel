@@ -1,0 +1,13 @@
+$ (cd .) npm run check
+start: 2026-10-12T19:27:04Z
+
+> baddel@2.0.1 check
+> svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings
+
+exit: 0
+duration_s: 7

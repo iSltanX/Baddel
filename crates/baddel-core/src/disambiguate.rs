@@ -37,7 +37,13 @@ pub(crate) fn resolve(tokens: &[Token<'_>]) -> String {
     let render = |mask: u32| -> String {
         let mut s = String::new();
         for (i, t) in tokens.iter().enumerate() {
-            let use_alt = sites.iter().position(|&site| site == i).is_some_and(|bit| mask >> bit & 1 == 1);
+            // A word can hold more sites than `mask` has bits (it is only searched up to
+            // MAX_AMBIGUOUS_SITES); a site past them reads as the single key.
+            let use_alt = sites
+                .iter()
+                .position(|&site| site == i)
+                .and_then(|bit| mask.checked_shr(u32::try_from(bit).ok()?))
+                .is_some_and(|m| m & 1 == 1);
             match (&t.alt, use_alt) {
                 (Some(alt), true) => s.push_str(alt),
                 _ => s.push_str(t.out.unwrap_or(t.src)),

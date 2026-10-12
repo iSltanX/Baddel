@@ -1,0 +1,7 @@
+$ (cd .) cargo clippy -p baddel-core --all-targets -- -D warnings
+start: 2026-10-12T19:27:03Z
+    Checking baddel-core v2.0.1 (/Users/abutalal/.copilot/repos/copilot-worktrees/Baddel/isltanx-silver-pancake/crates/baddel-core)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.55s
+
+exit: 0
+duration_s: 1
