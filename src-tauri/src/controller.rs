@@ -541,7 +541,11 @@ impl Controller {
             target.method = Method::Pasteboard;
         }
         let outcome = self.convert_in(&mut target, &cx, mode);
-        let outcome = self.halted(&target).unwrap_or(outcome);
+        // A conversion that went through stands; one that stopped says why it stopped.
+        let outcome = match outcome {
+            Outcome::Converted | Outcome::Extended => outcome,
+            _ => self.halted(&target).unwrap_or(outcome),
+        };
         self.path = Some(target.path());
         target.restore_pasteboard();
         self.remember_route(front, &target, outcome);
