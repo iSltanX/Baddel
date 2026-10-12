@@ -80,7 +80,8 @@ export async function handle(request, env) {
 
   await rateLimit(request, env)
   const id = await fileReport(env, clean)
-  if (key) await env.REPORTS_KV.put(`idem:${key}`, String(id), { expirationTtl: IDEMPOTENCY_TTL })
+  // The issue exists now: a failure to remember the key must not turn its number into a 502.
+  if (key) await env.REPORTS_KV.put(`idem:${key}`, String(id), { expirationTtl: IDEMPOTENCY_TTL }).catch(() => {})
   return json(201, { id })
 }
 
@@ -259,19 +260,21 @@ async function fileReport(env, report) {
   const { number } = await created.json()
   if (!report.files.length) return number
 
+  // The issue exists from here on, so nothing may throw: a 502 now would make the app file it again.
+  const after = (method, path, payload) => github(env, method, path, payload).catch(() => null)
   const images = []
   let failed = false
   for (const [index, file] of report.files.entries()) {
     const path = `reports/${report.product}/${number}/${index + 1}.${file.ext}`
-    const stored = await github(env, 'PUT', `/repos/${env.REPORTS_REPO}/contents/${path}`, {
+    const stored = await after('PUT', `/repos/${env.REPORTS_REPO}/contents/${path}`, {
       message: `${report.product} report #${number}: attachment ${index + 1}`,
       content: file.base64,
     })
-    if (stored.status === 201 || stored.status === 200) images.push(`https://github.com/${env.REPORTS_REPO}/blob/main/${path}?raw=true`)
+    if (stored?.status === 201 || stored?.status === 200) images.push(`https://github.com/${env.REPORTS_REPO}/blob/main/${path}?raw=true`)
     else failed = true
   }
-  // The issue exists either way: its number is returned, and a failed attachment is labelled.
-  await github(env, 'PATCH', `/repos/${env.REPORTS_REPO}/issues/${number}`, { body: body(report, images, failed) })
-  if (failed) await github(env, 'POST', `/repos/${env.REPORTS_REPO}/issues/${number}/labels`, { labels: ['attachment-failed'] })
+  // Its number is returned either way, and a failed attachment is labelled.
+  await after('PATCH', `/repos/${env.REPORTS_REPO}/issues/${number}`, { body: body(report, images, failed) })
+  if (failed) await after('POST', `/repos/${env.REPORTS_REPO}/issues/${number}/labels`, { labels: ['attachment-failed'] })
   return number
 }
