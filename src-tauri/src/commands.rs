@@ -408,7 +408,7 @@ pub async fn report_send(app: AppHandle) -> Result<u64, SendError> {
         let state = app.state::<ReportState>();
         let mut session = state.0.lock().unwrap();
         let payload = session.previewed.clone().ok_or(SendError::Rejected { reason: "no preview".into() })?;
-        let key = session.key_for(&payload.to_string());
+        let key = session.key_for(&payload);
         (payload, key)
     };
     let version = app.package_info().version.to_string();
