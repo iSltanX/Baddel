@@ -201,9 +201,12 @@ fn direction_none_without_letters() {
     }
 }
 
+/// Only letters vote: digits typed on the Arabic layout say which layout was on, not that it was
+/// the wrong one (BAD-002).
 #[test]
-fn arabic_indic_digits_count_as_arabic() {
-    assert_eq!(detect_direction("١٢٣"), Some(Direction::ArabicToLatin));
+fn arabic_indic_digits_do_not_vote() {
+    assert_eq!(detect_direction("١٢٣"), None);
+    assert!(mac().convert("١٢٣ ؟").is_none());
 }
 
 #[test]

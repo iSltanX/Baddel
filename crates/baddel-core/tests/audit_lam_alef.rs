@@ -158,14 +158,16 @@ fn tie_goes_to_arabic() {
     assert_eq!(detect_direction("abc اب"), Some(L2A));
 }
 
-/// Characterisation (see BAD report): Arabic-Indic digits and Arabic punctuation count as Arabic
-/// votes, so six Arabic digits outvote a five-letter Latin word.
+/// BAD-002 (approved change, fix/audit-findings): this characterised Arabic-Indic digits and Arabic
+/// punctuation voting Arabic; by the owner's decision only letters vote, as `detect_direction`
+/// documents, so a digit typed on the Arabic layout no longer outvotes the word beside it.
 #[test]
-fn arabic_digits_and_punctuation_vote_arabic() {
-    assert_eq!(detect_direction("١٢٣"), Some(A2L));
-    assert_eq!(detect_direction("؟؟"), Some(A2L));
-    assert_eq!(detect_direction("hello ١٢٣٤٥٦"), Some(A2L));
-    assert_eq!(mac().convert("hello ١٢٣٤٥٦").unwrap().text, "hello 123456");
+fn arabic_digits_and_punctuation_do_not_vote() {
+    assert_eq!(detect_direction("١٢٣"), None);
+    assert_eq!(detect_direction("؟؟"), None);
+    assert_eq!(detect_direction("hello ١٢٣٤٥٦"), Some(L2A));
+    assert_eq!(mac().convert("sg ١٢٣").unwrap().text, "سل ١٢٣");
+    assert_eq!(mac().convert("اثممخ ١٢٣").unwrap().text, "hello 123");
     assert_eq!(detect_direction("123 ..."), None);
 }
 
