@@ -13,7 +13,7 @@ use accessibility_sys::{
 use core_foundation::base::{CFRange, CFType, TCFType};
 use core_foundation::boolean::CFBoolean;
 use core_foundation::number::CFNumber;
-use core_foundation::string::CFString;
+use core_foundation::string::{CFString, CFStringGetCharacters};
 
 /// Seconds to wait for the target app to answer an accessibility request.
 const AX_TIMEOUT: f32 = 0.25;
@@ -80,8 +80,8 @@ impl Focused {
 
     pub fn selection(&self) -> Selection {
         match copy_attribute(&self.0, kAXSelectedTextAttribute).and_then(|v| v.downcast::<CFString>()) {
-            Some(s) if s.to_string().is_empty() => Selection::Empty,
-            Some(s) => Selection::Text(s.to_string()),
+            Some(s) if s.char_len() == 0 => Selection::Empty,
+            Some(s) => Selection::Text(text_of(&s)),
             // Some elements (Safari's contenteditable) expose the range but not its text.
             None => match self.selected_range() {
                 Some((_, 0)) => Selection::Empty,
@@ -141,7 +141,7 @@ impl Focused {
         if status != kAXErrorSuccess || value.is_null() {
             return None;
         }
-        unsafe { CFType::wrap_under_create_rule(value) }.downcast::<CFString>().map(|s| s.to_string())
+        unsafe { CFType::wrap_under_create_rule(value) }.downcast::<CFString>().map(|s| text_of(&s))
     }
 
     /// Replaces the selection. `true` only means the app accepted the request —
@@ -200,6 +200,18 @@ fn ax_range(location: usize, length: usize) -> Option<CFType> {
     (!value.is_null()).then(|| unsafe { CFType::wrap_under_create_rule(value.cast()) })
 }
 
+/// The string's text, unit for unit. `CFString::to_string` asserts (and so aborts the app) when
+/// the string holds half a surrogate pair, which is what a range read from inside an emoji is;
+/// here a lone half becomes U+FFFD, one UTF-16 unit as before, so offsets taken from the text
+/// stay right and the caller decides what to do with the edge.
+fn text_of(s: &CFString) -> String {
+    let len = s.char_len();
+    let mut units = vec![0u16; usize::try_from(len).unwrap_or(0)];
+    // SAFETY: the buffer holds exactly `len` units of the live string.
+    unsafe { CFStringGetCharacters(s.as_concrete_TypeRef(), CFRange { location: 0, length: len }, units.as_mut_ptr()) };
+    String::from_utf16_lossy(&units)
+}
+
 fn copy_attribute(element: &CFType, attribute: &str) -> Option<CFType> {
     let attribute = CFString::new(attribute);
     let mut value = ptr::null();
@@ -212,4 +224,32 @@ fn copy_attribute(element: &CFType, attribute: &str) -> Option<CFType> {
         )
     };
     (status == kAXErrorSuccess && !value.is_null()).then(|| unsafe { CFType::wrap_under_create_rule(value) })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core_foundation::base::kCFAllocatorDefault;
+    use core_foundation::string::CFStringCreateWithCharacters;
+
+    /// A CFString made of exactly these UTF-16 units, as an app's `AXStringForRange` returns
+    /// for a range that starts or ends inside a surrogate pair.
+    fn cf_units(units: &[u16]) -> CFString {
+        // SAFETY: the buffer is valid for its length; create rule.
+        unsafe { CFString::wrap_under_create_rule(CFStringCreateWithCharacters(kCFAllocatorDefault, units.as_ptr(), units.len() as isize)) }
+    }
+
+    /// BAD-207: a range read from 400 units before the caret can begin with the low half of 😀.
+    #[test]
+    fn a_split_surrogate_pair_reads_without_panicking() {
+        let emoji: Vec<u16> = "😀".encode_utf16().collect();
+        let mut units = vec![emoji[1]];
+        units.extend("xx سلام".encode_utf16());
+        let text = text_of(&cf_units(&units));
+        // Every unit keeps its place, so UTF-16 offsets computed from the text stay right.
+        assert_eq!(text.encode_utf16().count(), units.len());
+        assert!(text.ends_with("xx سلام"));
+        assert_eq!(text_of(&cf_units(&[emoji[0]])).encode_utf16().count(), 1);
+        assert_eq!(text_of(&cf_units(&"😀 سلام".encode_utf16().collect::<Vec<_>>())), "😀 سلام");
+    }
 }
