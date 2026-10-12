@@ -166,11 +166,17 @@ pub enum Reason {
 enum Halt {
     /// Another app is in front than the one the command began in.
     OtherApp,
+    /// Secure Input came on, or focus moved into a password field.
+    Secure,
 }
 
-/// Whether the next synthetic keys may be sent: they go to whatever app is in front now, so only
-/// while that is still the app the command began in (`started_in`). Checked before each batch.
-fn halt(started_in: Option<i32>, in_front: Option<i32>) -> Option<Halt> {
+/// Whether the next synthetic keys may be sent: they go to whatever has focus now, so only while
+/// that is still the app the command began in (`started_in`), and not a password (`secure`).
+/// Checked before each batch.
+fn halt(started_in: Option<i32>, in_front: Option<i32>, secure: bool) -> Option<Halt> {
+    if secure {
+        return Some(Halt::Secure);
+    }
     match started_in {
         Some(pid) if in_front != Some(pid) => Some(Halt::OtherApp),
         _ => None,
@@ -795,6 +801,7 @@ impl Controller {
     fn halted(&mut self, target: &Target) -> Option<Outcome> {
         Some(match target.halted? {
             Halt::OtherApp => self.fail(Reason::FocusMoved),
+            Halt::Secure => Outcome::Blocked,
         })
     }
 
@@ -848,6 +855,8 @@ impl Controller {
                 Outcome::Undone
             }
             (Err(_), Some(Halt::OtherApp)) => self.undo_failed(Reason::FocusMoved),
+            // As at the press: a passing condition, and the conversion stays remembered.
+            (Err(_), Some(Halt::Secure)) => Outcome::Blocked,
             (Err(reason), None) => self.undo_failed(reason),
         }
     }
@@ -1123,10 +1132,12 @@ impl Target {
     }
 
     /// Checked before each batch of synthetic keys, which land wherever focus is by then: `false`,
-    /// for good, once the app the command began in is no longer in front.
+    /// for good, once the app the command began in is no longer in front, or Secure Input or a
+    /// password field has taken the keyboard since the press.
     fn may_type(&mut self) -> bool {
         if self.halted.is_none() {
-            self.halted = halt(self.pid, frontmost::pid());
+            let secure = permissions::secure_input_enabled() || Focused::get().is_some_and(|f| f.is_secure());
+            self.halted = halt(self.pid, frontmost::pid(), secure);
         }
         self.halted.is_none()
     }
@@ -1539,11 +1550,18 @@ mod tests {
     #[test]
     fn keys_go_only_to_the_app_the_command_began_in() {
         // BAD-201: the user switched apps while the keys were being sent.
-        assert_eq!(halt(Some(501), Some(501)), None);
-        assert_eq!(halt(Some(501), Some(733)), Some(Halt::OtherApp));
-        assert_eq!(halt(Some(501), None), Some(Halt::OtherApp));
+        assert_eq!(halt(Some(501), Some(501), false), None);
+        assert_eq!(halt(Some(501), Some(733), false), Some(Halt::OtherApp));
+        assert_eq!(halt(Some(501), None, false), Some(Halt::OtherApp));
         // No app was known to be in front at the press: nothing to compare with.
-        assert_eq!(halt(None, Some(733)), None);
+        assert_eq!(halt(None, Some(733), false), None);
+    }
+
+    #[test]
+    fn keys_stop_once_a_password_has_the_keyboard() {
+        // BAD-206: Secure Input came on, or Tab moved focus into a password field, mid-command.
+        assert_eq!(halt(Some(501), Some(501), true), Some(Halt::Secure));
+        assert_eq!(halt(None, None, true), Some(Halt::Secure));
     }
 
     #[test]
