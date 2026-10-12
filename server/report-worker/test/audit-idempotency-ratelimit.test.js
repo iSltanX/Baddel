@@ -151,6 +151,8 @@ test('BAD-104: unknown products are not rate-limited and each costs an authentic
   const rs = []
   for (let i = 0; i < n; i++) rs.push(await worker.fetch(post(report({ product: `nope-${i}` })), env))
   const ghCalls = calls.filter((c) => c.method === 'GET').length
-  assert.ok(rs.every((r) => r.status === 400))
+  // Approved change (owner, fix/audit-findings): once the IP is over the limit the answer is 429,
+  // since the limit now comes before the label lookup — which is the fix this test asks for.
+  assert.ok(rs.every((r) => r.status === 400 || r.status === 429))
   assert.ok(ghCalls <= 5, `${ghCalls} GitHub label lookups for ${n} requests from one IP; none was rate-limited`)
 })
