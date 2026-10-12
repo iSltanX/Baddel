@@ -7,7 +7,7 @@ use accessibility_sys::{
     kAXSecureTextFieldSubrole, kAXSelectedTextAttribute, kAXSelectedTextRangeAttribute,
     kAXStringForRangeParameterizedAttribute, kAXSubroleAttribute, kAXTextAreaRole, kAXTextFieldRole,
     kAXValueTypeCFRange, AXUIElementCopyAttributeValue, AXUIElementCopyParameterizedAttributeValue,
-    AXUIElementCreateApplication, AXUIElementCreateSystemWide, AXUIElementRef, AXUIElementSetAttributeValue,
+    AXUIElementCreateApplication, AXUIElementCreateSystemWide, AXUIElementGetPid, AXUIElementRef, AXUIElementSetAttributeValue,
     AXUIElementSetMessagingTimeout, AXValueCreate, AXValueGetValue, AXValueRef,
 };
 use core_foundation::base::{CFRange, CFType, TCFType};
@@ -53,6 +53,14 @@ impl Focused {
         copy_attribute(&system, kAXFocusedUIElementAttribute)
             .or_else(|| copy_attribute(&app_element(super::frontmost::pid()?)?, kAXFocusedUIElementAttribute))
             .map(Focused)
+    }
+
+    /// The process the element belongs to.
+    pub fn pid(&self) -> Option<i32> {
+        let mut pid = 0;
+        // SAFETY: valid element; `pid` is written only on success.
+        let status = unsafe { AXUIElementGetPid(self.0.as_CFTypeRef() as AXUIElementRef, &mut pid) };
+        (status == kAXErrorSuccess).then_some(pid)
     }
 
     /// A password field. Not every app turns Secure Input on for one (Safari's web password

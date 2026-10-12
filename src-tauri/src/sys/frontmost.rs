@@ -26,3 +26,27 @@ pub fn current() -> App {
 pub fn pid() -> Option<i32> {
     autoreleasepool(|_| Some(NSWorkspace::sharedWorkspace().frontmostApplication()?.processIdentifier()))
 }
+
+/// The bundle identifier of the running app with this process id.
+pub fn bundle_id_of(pid: i32) -> Option<String> {
+    autoreleasepool(|_| {
+        let apps = NSWorkspace::sharedWorkspace().runningApplications();
+        let app = apps.iter().find(|app| app.processIdentifier() == pid)?;
+        app.bundleIdentifier().map(|id| id.to_string())
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Reads the running apps only; no input is sent.
+    #[test]
+    fn the_app_in_front_is_found_by_its_pid() {
+        let front = current();
+        if let Some(pid) = front.pid {
+            assert_eq!(bundle_id_of(pid), front.bundle_id);
+        }
+        assert_eq!(bundle_id_of(-1), None);
+    }
+}

@@ -157,7 +157,9 @@ pub enum Reason {
     UndoRejected,
     /// Undo on the key-based path of a result too long to reselect.
     TooLong,
-    /// Another app came to the front while the keys were being sent; the rest were not sent.
+    /// The keyboard is with another app than the one in front at the press: it came to the
+    /// front while the keys were being sent (the rest were not sent), or it is an excepted app
+    /// whose element has focus.
     FocusMoved,
 }
 
@@ -513,6 +515,13 @@ impl Controller {
         trace!("route: arrow {:?}, copy wait {:?} over {} answers", route.arrow, target.copy_timeout, route.copies);
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
+        }
+        // The focused element can belong to another app than the one in front: focus moved since
+        // the press, or a panel took the keyboard without coming to the front. The exceptions hold
+        // for that app too.
+        let owner = target.focused.as_ref().and_then(Focused::pid).filter(|&pid| Some(pid) != front.pid);
+        if owner.and_then(frontmost::bundle_id_of).is_some_and(|id| settings.excluded_apps.contains(&id)) {
+            return self.fail(Reason::FocusMoved);
         }
         // A stand-in says "caret at 0, nothing selected" whatever is really there (Figma's
         // canvas text). Believing it means never converting; the keyboard knows.
