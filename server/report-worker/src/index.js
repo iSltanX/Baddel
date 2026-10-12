@@ -69,14 +69,10 @@ export async function handle(request, env) {
     throw new HttpError(400, { error: 'invalid_json' })
   }
   const clean = validate(report)
-  if (!(await productEnabled(env, clean.product))) throw new HttpError(400, { error: 'unknown_product' })
 
   // A retry after a lost response gets the same report number instead of a duplicate.
   const key = idempotencyKey(request)
-  if (!key) {
-    await rateLimit(request, env)
-    return json(201, { id: await fileReport(env, clean) })
-  }
+  if (!key) return json(201, { id: await submit(request, env, clean) })
   // A request whose key is still being filed in this isolate waits for that one: KV alone cannot
   // stop two at once, since its read and the later write are not atomic.
   const pending = inFlight.get(key)
@@ -84,8 +80,7 @@ export async function handle(request, env) {
   const filing = (async () => {
     const known = await env.REPORTS_KV.get(`idem:${key}`)
     if (known) return { id: Number(known), replayed: true }
-    await rateLimit(request, env)
-    const id = await fileReport(env, clean)
+    const id = await submit(request, env, clean)
     // The issue exists now: a failure to remember the key must not turn its number into a 502.
     await env.REPORTS_KV.put(`idem:${key}`, String(id), { expirationTtl: IDEMPOTENCY_TTL }).catch(() => {})
     return { id, replayed: false }
@@ -101,6 +96,14 @@ export async function handle(request, env) {
 
 /** Idempotency keys being filed by this isolate, each with its filing. */
 const inFlight = new Map()
+
+/** Files a report that is not a replay. The rate limit comes first, so that no request, whatever
+ *  product it names, costs a GitHub call or a KV write once its IP is over the limit. */
+async function submit(request, env, report) {
+  await rateLimit(request, env)
+  if (!(await productEnabled(env, report.product))) throw new HttpError(400, { error: 'unknown_product' })
+  return fileReport(env, report)
+}
 
 /** Reads the body, refusing to buffer more than `limit` bytes. */
 async function readLimited(request, limit) {
