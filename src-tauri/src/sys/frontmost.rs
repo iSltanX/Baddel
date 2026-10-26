@@ -54,6 +54,31 @@ pub fn front_window_pid() -> Option<i32> {
     })
 }
 
+/// A running app, as Launch Services lists it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Running {
+    pub pid: i32,
+    pub bundle_id: Option<String>,
+    /// The bundle it runs from.
+    pub bundle: Option<std::path::PathBuf>,
+}
+
+/// Every running app with its bundle, for telling whether another Baddel runs, or anything runs
+/// from a folder about to be removed.
+pub fn running_apps() -> Vec<Running> {
+    autoreleasepool(|_| {
+        NSWorkspace::sharedWorkspace()
+            .runningApplications()
+            .iter()
+            .map(|app| Running {
+                pid: app.processIdentifier(),
+                bundle_id: app.bundleIdentifier().map(|id| id.to_string()),
+                bundle: app.bundleURL().and_then(|url| url.path()).map(|path| path.to_string().into()),
+            })
+            .collect()
+    })
+}
+
 /// The bundle identifier of the running app with this process id.
 pub fn bundle_id_of(pid: i32) -> Option<String> {
     autoreleasepool(|_| {

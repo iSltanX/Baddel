@@ -33,16 +33,23 @@ pub fn at_launch(app: &AppHandle, saved_launch_at_login: bool, source: Source) {
         .map(|dir| format!("{:?}", upgrade::after_launch(&upgrade::Paths::new(&dir), &version)))
         .unwrap_or_else(|_| "no app data folder".into());
 
-    let (mut removed, mut failed) = (0, 0);
-    for staging in upgrade::stale_staging(&std::env::temp_dir(), &identifier, SystemTime::now(), upgrade::STAGING_MIN_AGE) {
-        match std::fs::remove_dir_all(&staging) {
-            Ok(()) => removed += 1,
-            Err(_) => failed += 1,
-        }
-    }
+    // The updater's staging left by a cut-short install: only what is provably Baddel's and idle.
+    let (uid, now, age) = (crate::sys::system::uid(), SystemTime::now(), upgrade::STAGING_MIN_AGE);
+    let candidates = upgrade::stale_staging(&std::env::temp_dir(), &identifier, uid, now, age);
+    let staging = if candidates.is_empty() {
+        Vec::new()
+    } else {
+        let checks = upgrade::SystemChecks {
+            requirement: crate::sys::system::bundle_path().and_then(|ours| upgrade::SystemChecks::requirement_of(&ours)),
+            identifier: identifier.clone(),
+        };
+        upgrade::remove_stale_staging(candidates, &checks, &identifier, uid, now, age)
+    };
+    let removed = staging.iter().filter(|s| s.kept.is_none()).count();
+    let failed = staging.len() - removed;
 
     #[cfg(debug_assertions)]
-    eprintln!("[baddel] at launch: login item {:?} ({:?}); update {update}; staging removed {removed}, failed {failed}", done.status, done.legacy);
+    eprintln!("[baddel] at launch: login item {:?} ({:?}); update {update}; staging removed {removed}, kept {failed}", done.status, done.legacy);
     let instance = match &app.state::<Launch>().unguarded {
         None => "guarded".to_string(),
         Some(why) => format!("unguarded: {why}"),
@@ -54,7 +61,7 @@ pub fn at_launch(app: &AppHandle, saved_launch_at_login: bool, source: Source) {
         "settings": format!("{source:?}"),
         "loginItem": { "status": done.status, "legacy": format!("{:?}", done.legacy) },
         "update": update,
-        "staging": { "removed": removed, "failed": failed },
+        "staging": staging,
     });
     if let Ok(dir) = app.path().app_data_dir() {
         let _ = std::fs::write(dir.join(RECORD), serde_json::to_vec_pretty(&record).unwrap_or_default());

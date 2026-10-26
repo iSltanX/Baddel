@@ -1,32 +1,72 @@
+   Compiling objc2-exception-helper v0.1.1
+   Compiling ring v0.17.14
+   Compiling objc2 v0.6.4
+   Compiling objc2-core-foundation v0.3.2
+   Compiling block2 v0.6.2
+   Compiling dispatch2 v0.3.1
+   Compiling rustls v0.23.45
+   Compiling objc2-foundation v0.3.2
+   Compiling objc2-core-text v0.3.2
+   Compiling objc2-core-graphics v0.3.2
+   Compiling objc2-core-video v0.3.2
+   Compiling rustls-webpki v0.103.15
+   Compiling tokio-rustls v0.26.5
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.13.5
+   Compiling objc2-cloud-kit v0.3.2
+   Compiling objc2-quartz-core v0.3.2
+   Compiling objc2-core-image v0.3.2
+   Compiling objc2-core-data v0.3.2
+   Compiling objc2-app-kit v0.3.2
+   Compiling objc2-web-kit v0.3.2
+   Compiling muda v0.19.3
+   Compiling tao v0.35.3
+   Compiling window-vibrancy v0.6.0
+   Compiling objc2-osa-kit v0.3.2
+   Compiling rfd v0.16.0
+   Compiling global-hotkey v0.8.0
+   Compiling osakit v0.3.1
+   Compiling tauri-runtime v2.11.3
+   Compiling wry v0.55.1
+   Compiling tray-icon v0.24.2
+   Compiling tauri-runtime-wry v2.11.4
+   Compiling tauri v2.11.6
+   Compiling tauri-plugin-fs v2.5.2
+   Compiling tauri-plugin-global-shortcut v2.3.2
+   Compiling tauri-plugin-process v2.3.1
+   Compiling tauri-plugin-store v2.4.5
+   Compiling tauri-plugin-updater v2.12.0
+   Compiling tauri-plugin-dialog v2.7.3
    Compiling baddel v2.0.2 (/Volumes/iSltanXx/Projects/Baddel/src-tauri)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.88s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 33.16s
      Running unittests src/lib.rs (target/debug/deps/baddel_lib-6080091cc5c140b3)
 
-running 99 tests
+running 104 tests
 test controller::tests::a_lagging_frontmost_app_is_not_taken_for_the_one_in_front ... ok
-test controller::tests::a_panel_that_takes_the_keyboard_stops_the_keys ... ok
 test commands::tests::only_the_settings_window_can_suspend_the_shortcuts ... ok
+test controller::tests::a_panel_that_takes_the_keyboard_stops_the_keys ... ok
 test controller::tests::a_switch_during_the_hotkey_wait_sends_nothing_anywhere ... ok
 test controller::tests::keys_go_only_to_the_app_the_command_began_in ... ok
-test controller::tests::keys_stop_once_a_password_has_the_keyboard ... ok
-test controller::tests::only_short_conversions_are_shown_word_for_word ... ok
-test controller::tests::the_keyboard_staying_put_is_not_mistaken_for_a_move ... ok
-test controller::tests::a_failed_undo_offers_the_original_and_keeps_undo_while_it_can_still_work ... ok
-test controller::tests::a_route_waits_for_copies_no_longer_than_the_app_needs ... ok
 test commands::tests::a_saved_layout_macos_no_longer_has_is_shown_as_missing_not_as_nothing ... ok
-test controller::tests::the_line_is_what_follows_the_last_line_break ... ok
-test controller::tests::the_previous_word_is_read_whole_or_not_at_all ... ok
+test controller::tests::a_failed_undo_offers_the_original_and_keeps_undo_while_it_can_still_work ... ok
+test controller::tests::keys_stop_once_a_password_has_the_keyboard ... ok
+test commands::tests::restoring_defaults_never_leaves_a_command_without_the_shortcut_it_had ... ok
+test controller::tests::only_short_conversions_are_shown_word_for_word ... ok
+test controller::tests::a_route_waits_for_copies_no_longer_than_the_app_needs ... ok
+test controller::tests::the_keyboard_staying_put_is_not_mistaken_for_a_move ... ok
 test controller::tests::expected_states_are_announced_once_not_on_every_press ... ok
 test controller::tests::undo_leaves_a_line_alone_unless_it_ends_with_our_text ... ok
+test controller::tests::the_line_is_what_follows_the_last_line_break ... ok
 test controller::tests::undo_puts_the_original_back_at_the_end_of_the_line ... ok
-test controller::tests::text_past_the_limit_is_refused ... ok
-test commands::tests::restoring_defaults_never_leaves_a_command_without_the_shortcut_it_had ... ok
+test controller::tests::the_previous_word_is_read_whole_or_not_at_all ... ok
 test hud::tests::arabic_runs_are_told_apart_from_latin_ones ... ok
 test diagnostics::tests::the_summary_counts_exceptions_without_naming_them ... ok
 test commands::tests::a_patch_changes_only_the_window_switches ... ok
-test instance::tests::a_folder_too_deep_for_a_socket_still_has_one_of_its_own ... ok
-test instance::tests::contender ... ignored
 test diagnostics::tests::the_ring_keeps_the_last_ten_newest_first ... ok
+test controller::tests::text_past_the_limit_is_refused ... ok
+test instance::tests::contender ... ignored
+test instance::tests::a_folder_too_deep_for_a_socket_still_has_one_of_its_own ... ok
 test instance::tests::only_the_old_launch_agent_counts_as_a_background_launch ... ok
 test hud::tests::the_pill_carries_one_soft_shadow_below_it ... ok
 test hud::tests::every_state_icon_is_a_black_template_at_2x ... ok
@@ -88,22 +128,28 @@ test updater::tests::a_menu_check_during_another_is_answered_by_that_one ... ok
 test updater::tests::only_one_check_runs_at_a_time ... ok
 test upgrade::tests::a_bundle_that_cannot_be_read_is_not_removed_to_make_room ... ok
 test upgrade::tests::a_bundle_that_is_not_the_version_asked_for_is_not_taken_as_installed ... ok
+test upgrade::tests::a_change_anywhere_inside_an_old_folder_keeps_it ... ok
 test upgrade::tests::a_failed_download_or_check_leaves_the_previous_version_as_it_was ... ok
+test upgrade::tests::a_folder_changed_between_the_look_and_the_removal_is_kept ... ok
 test upgrade::tests::a_successful_update_restarts_into_the_new_version_and_the_next_launch_clears_up ... ok
+test instance::tests::a_launch_while_the_owner_quits_owns_once_the_lock_is_free ... ok
+test instance::tests::a_link_in_place_of_the_lock_is_not_followed ... ok
+test upgrade::tests::an_unsigned_or_ad_hoc_build_removes_nothing ... ok
+test instance::tests::a_lock_left_by_a_process_that_ended_is_free_again ... ok
 test upgrade::tests::a_swap_that_stops_halfway_puts_the_previous_version_back ... ok
 test upgrade::tests::an_app_not_where_it_says_it_is_is_not_updated ... ok
+test upgrade::tests::only_folders_that_look_like_baddels_own_staging_are_candidates ... ok
 test upgrade::tests::an_update_cut_short_before_the_swap_is_settled_by_the_version_that_runs ... ok
-test upgrade::tests::only_baddels_own_stale_staging_is_found ... ok
 test upgrade::tests::something_else_in_the_apps_place_is_never_removed ... ok
-test instance::tests::a_launch_while_the_owner_quits_owns_once_the_lock_is_free ... ok
-test instance::tests::a_lock_left_by_a_process_that_ended_is_free_again ... ok
+test upgrade::tests::staging_is_removed_only_when_ours_beyond_doubt_and_idle ... ok
+/var/folders/39/08324w6s5t99bsl4pmvbkgqw0000gn/T/baddel-upgrade-51578-real-checks/Fake.app: code object is not signed at all
 test instance::tests::an_owner_restarting_into_an_update_hands_over_ownership_not_the_request ... ok
-test instance::tests::a_link_in_place_of_the_lock_is_not_followed ... ok
 test instance::tests::nothing_but_a_socket_is_removed_from_the_socket_path ... ok
+test upgrade::tests::the_real_checks_tell_a_signed_baddel_and_an_open_file ... ok
 test instance::tests::simultaneous_launches_leave_exactly_one_owner ... ok
 test instance::tests::the_second_launch_hands_its_request_to_the_first_and_does_not_own ... ok
 
-test result: ok. 97 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 5.28s
+test result: ok. 102 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 5.27s
 
      Running unittests src/main.rs (target/debug/deps/baddel-9233868d85806848)
 
@@ -124,70 +170,70 @@ running 2 tests
 test generative_invariants_arabic_mac ... ok
 test generative_invariants_arabic_pc ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.42s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
 
      Running tests/audit_lam_alef.rs (target/debug/deps/audit_lam_alef-8c4535b43e3f66c2)
 
 running 16 tests
+test lam_alef_on_mac_is_always_two_keys ... ok
 test idn_link_is_not_protected_and_gets_rewritten ... ok
 test arabic_digits_and_punctuation_do_not_vote ... ok
-test lam_alef_on_mac_is_always_two_keys ... ok
 test pc_thirty_two_sites_in_one_word ... ok
-test presentation_form_lam_alef_passes_through ... ok
 test protection_edges ... ok
+test presentation_form_lam_alef_passes_through ... ok
 test technical_edges ... ok
 test technical_words_do_not_vote ... ok
 test tie_goes_to_arabic ... ok
-test pc_gh_round_trip_counterexample ... ok
 test lam_alef_ligature_keys_on_pc ... ok
-test pc_more_than_six_sites_reads_single_key ... ok
+test pc_gh_round_trip_counterexample ... ok
 test single_key_round_trip_counterexamples_are_exactly_the_tatweel ... ok
+test pc_more_than_six_sites_reads_single_key ... ok
 test bad_001_thirty_three_sites_in_one_word_must_not_panic ... ok
 test pc_disambiguation_cost_is_bounded ... ok
 test lowercase_words_round_trip_on_mac ... ok
 
-test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
 
      Running tests/core.rs (target/debug/deps/core-0e517edb9dfbcbd3)
 
 running 64 tests
 test a_word_without_latin_letters_is_never_protected ... ok
-test an_email_survives_a_sentence_typed_on_the_wrong_layout ... ok
-test a_technical_word_does_not_outvote_the_word_beside_it ... ok
 test arabic_indic_digits_do_not_vote ... ok
-test a_word_with_more_spots_than_bits_reads_as_single_keys ... ok
-test a_link_does_not_outvote_the_word_beside_it ... ok
+test a_technical_word_does_not_outvote_the_word_beside_it ... ok
+test an_email_survives_a_sentence_typed_on_the_wrong_layout ... ok
 test bottom_row_differs_between_layouts ... ok
-test ambiguous_keys_follow_the_layout_not_a_guess ... ok
+test a_link_does_not_outvote_the_word_beside_it ... ok
+test a_word_with_more_spots_than_bits_reads_as_single_keys ... ok
 test bundled_maps_are_not_empty ... ok
-test capital_letters_mac ... ok
-test a_word_typed_on_punctuation_keys_converts_by_the_layout_it_was_typed_with ... ok
 test capital_letters_pc ... ok
-test convert_leaves_letterless_text_alone ... ok
-test collisions_and_shared_symbols ... ok
-test convert_reports_direction ... ok
+test capital_letters_mac ... ok
+test ambiguous_keys_follow_the_layout_not_a_guess ... ok
 test capitals_that_type_hamza_or_marks_still_convert ... ok
-test custom_provider_is_respected ... ok
 test direction_mostly_arabic ... ok
+test a_word_typed_on_punctuation_keys_converts_by_the_layout_it_was_typed_with ... ok
 test direction_mostly_latin ... ok
+test convert_leaves_letterless_text_alone ... ok
 test direction_none_without_letters ... ok
-test direction_tie_counts_as_arabic ... ok
-test empty_provider_gives_an_empty_map_that_changes_nothing ... ok
-test diacritics_come_from_the_shift_layer ... ok
 test digits_map_both_ways ... ok
+test direction_tie_counts_as_arabic ... ok
+test custom_provider_is_respected ... ok
+test empty_provider_gives_an_empty_map_that_changes_nothing ... ok
+test convert_reports_direction ... ok
+test diacritics_come_from_the_shift_layer ... ok
+test links_emails_and_paths_are_protected ... ok
+test collisions_and_shared_symbols ... ok
+test only_protected_text_has_no_direction ... ok
 test empty_string ... ok
 test explicit_direction_still_leaves_protected_words_alone ... ok
-test links_emails_and_paths_are_protected ... ok
+test mac_comma_and_pc_comma_differ ... ok
+test ordinary_and_wrongly_typed_words_are_not_protected ... ok
+test parentheses_swap_like_the_keys_do ... ok
 test hello_on_both_layouts ... ok
 test mac_has_no_lam_alef_key ... ok
-test mac_comma_and_pc_comma_differ ... ok
-test only_protected_text_has_no_direction ... ok
-test ordinary_and_wrongly_typed_words_are_not_protected ... ok
-test letters_of_other_scripts_do_not_vote_as_latin ... ok
-test option_layer_is_not_paired ... ok
-test parentheses_swap_like_the_keys_do ... ok
-test pc_b_key_types_lam_alef ... ok
 test paths_are_kept_and_a_lone_slash_still_converts ... ok
+test option_layer_is_not_paired ... ok
+test pc_b_key_types_lam_alef ... ok
+test letters_of_other_scripts_do_not_vote_as_latin ... ok
 test pc_many_ambiguous_sites_fall_back_to_default ... ok
 test pc_shifted_lam_alef_ligature_keys ... ok
 test punctuation_that_stays_punctuation_is_left_alone ... ok
@@ -196,27 +242,27 @@ test return_tab_and_space_are_never_remapped ... ok
 test reversed_direction ... ok
 test salam_on_both_layouts ... ok
 test pc_lam_alef_with_capital ... ok
+test pc_lam_alef_prefers_a_real_word ... ok
+test static_layout_out_of_range_keycode ... ok
+test pc_lam_alef_is_decided_per_word ... ok
 test pc_lam_alef_ignores_surrounding_punctuation ... ok
 test pc_lam_alef_mixed_in_one_word ... ok
-test pc_lam_alef_prefers_a_real_word ... ok
-test pc_lam_alef_is_decided_per_word ... ok
-test static_layout_out_of_range_keycode ... ok
-test every_base_key_roundtrips ... ok
 test sentences_roundtrip ... ok
-test unmapped_characters_pass_through ... ok
-test up_to_six_ambiguous_spots_in_a_word_are_searched ... ok
-test pc_lam_alef_defaults_to_b ... ok
-test whitespace_and_control_keys_are_never_paired ... ok
-test vocalised_arabic_roundtrips ... ok
-test ta_marbuta_key ... ok
-test which_capitals_mark_a_technical_word_depends_on_the_layout ... ok
+test every_base_key_roundtrips ... ok
 test technical_words_are_kept_where_the_vote_goes_latin_to_arabic ... ok
+test up_to_six_ambiguous_spots_in_a_word_are_searched ... ok
+test which_capitals_mark_a_technical_word_depends_on_the_layout ... ok
 test the_literal_conversion_keeps_nothing_back ... ok
+test whitespace_and_control_keys_are_never_paired ... ok
 test word_list_lookup ... ok
+test pc_lam_alef_defaults_to_b ... ok
+test ta_marbuta_key ... ok
+test unmapped_characters_pass_through ... ok
+test vocalised_arabic_roundtrips ... ok
 test whitespace_is_preserved_exactly ... ok
 test word_list_is_sorted_lowercase_ascii ... ok
 
-test result: ok. 64 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 64 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
      Running tests/table.rs (target/debug/deps/table-d92bf0fdb99ad773)
 
@@ -237,15 +283,56 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 1 test
 test crates/baddel-core/src/lib.rs - (line 12) ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
 
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s
+    Checking objc2-exception-helper v0.1.1
+    Checking ring v0.17.14
+    Checking objc2 v0.6.4
+    Checking objc2-core-foundation v0.3.2
+    Checking block2 v0.6.2
+    Checking rustls-webpki v0.103.15
+    Checking dispatch2 v0.3.1
+    Checking rustls v0.23.45
+    Checking objc2-foundation v0.3.2
+    Checking objc2-core-graphics v0.3.2
+    Checking objc2-core-video v0.3.2
+    Checking objc2-core-text v0.3.2
+    Checking tokio-rustls v0.26.5
+    Checking rustls-platform-verifier v0.7.0
+    Checking hyper-rustls v0.27.9
+    Checking reqwest v0.13.5
+    Checking objc2-quartz-core v0.3.2
+    Checking objc2-cloud-kit v0.3.2
+    Checking objc2-core-image v0.3.2
+    Checking objc2-core-data v0.3.2
+    Checking objc2-app-kit v0.3.2
+    Checking objc2-web-kit v0.3.2
+    Checking tao v0.35.3
+    Checking muda v0.19.3
+    Checking window-vibrancy v0.6.0
+    Checking objc2-osa-kit v0.3.2
+    Checking global-hotkey v0.8.0
+    Checking rfd v0.16.0
+    Checking osakit v0.3.1
+    Checking tray-icon v0.24.2
+    Checking tauri-runtime v2.11.3
+    Checking wry v0.55.1
+    Checking tauri-runtime-wry v2.11.4
+    Checking tauri v2.11.6
+    Checking tauri-plugin-fs v2.5.2
+    Checking tauri-plugin-updater v2.12.0
+    Checking tauri-plugin-store v2.4.5
+    Checking tauri-plugin-global-shortcut v2.3.2
+    Checking tauri-plugin-process v2.3.1
+    Checking tauri-plugin-dialog v2.7.3
+    Checking baddel v2.0.2 (/Volumes/iSltanXx/Projects/Baddel/src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.89s
 
 > baddel@2.0.2 check
 > svelte-check --tsconfig ./tsconfig.json
 
-1793051919080 START "/Volumes/iSltanXx/Projects/Baddel"
-1793051919081 COMPLETED 164 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+1793052743804 START "/Volumes/iSltanXx/Projects/Baddel"
+1793052743804 COMPLETED 164 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
 
 > baddel@2.0.2 build
 > vite build
@@ -264,5 +351,5 @@ dist/assets/Cairo-Bold-B-_7TOZF.woff2        50.40 kB
 dist/assets/Almarai-Bold-ByK29-r7.woff2      50.78 kB
 dist/assets/index-DmQnOk1a.css               41.63 kB │ gzip:  6.88 kB
 dist/assets/index-C_rsOvvo.js               154.95 kB │ gzip: 54.82 kB
-✓ built in 468ms
+✓ built in 637ms
 check.sh exit=0

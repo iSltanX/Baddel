@@ -16,8 +16,13 @@
 //!   running. Anything else — the copy and the note are kept and reported, never guessed at.
 //! - **The plugin's own staging** in the temporary folder (`tauri_current_app…`, `tauri_updated_app…`)
 //!   is removed by the plugin when an install ends; one cut short (power, a forced quit) leaves a
-//!   whole old Baddel there. Such a folder is removed at launch only when it holds exactly a bundle
-//!   with Baddel's identifier and has not been touched for an hour. Other apps use the same names.
+//!   whole old Baddel there. Other apps use the same names, so at launch such a folder is removed
+//!   only when all of this holds ([`stale_staging`], [`remove_stale_staging`]): it and everything in
+//!   it belong to this user; it holds nothing but one bundle, which `codesign` verifies against this
+//!   app's own designated requirement (identifier and certificate), not merely a plist naming
+//!   Baddel; nothing anywhere in it changed for an hour; no other Baddel runs; nothing runs from it
+//!   or has a file in it open; no install of this process is under way (the install lock is held);
+//!   and it is exactly as found when looked at again just before the removal.
 //!
 //! What is never removed: anything outside these paths; any app bundle the user put anywhere; and
 //! Application Support, preferences, caches, WebKit data — all of which the running version uses.
@@ -255,32 +260,186 @@ pub fn after_launch(paths: &Paths, running: &str) -> AfterLaunch {
     }
 }
 
-/// The updater plugin's staging folders under `tmp` that a cut-short install of Baddel left: named
-/// as the plugin names them, a real folder (no link), holding nothing but the one bundle (whose
-/// Info.plist gives `identifier`), and untouched for at least `min_age`.
-pub fn stale_staging(tmp: &Path, identifier: &str, now: SystemTime, min_age: Duration) -> Vec<PathBuf> {
+/// One of the updater plugin's staging folders that looks like a cut-short install of Baddel.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Staging {
+    /// The folder, removed whole.
+    pub dir: PathBuf,
+    /// The bundle in it: the folder itself for an extracted update, `current_app` for a backup.
+    pub bundle: PathBuf,
+    inside: &'static str,
+}
+
+/// Why a staging folder was left where it is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Kept {
+    /// Another Baddel — another copy, or another version — runs, and may be installing.
+    AnotherBaddelRuns,
+    /// The bundle in it is not signed as this Baddel is.
+    NotSignedAsBaddel,
+    /// A running app comes from inside it, or a process has a file under it open.
+    InUse,
+    /// Between the first look and the removal it changed: touched, replaced, or no longer ours.
+    ChangedSinceChecked,
+    RemoveFailed,
+}
+
+/// What [`remove_stale_staging`] did with a folder.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StagingOutcome {
+    pub dir: PathBuf,
+    pub kept: Option<Kept>,
+}
+
+/// What the cleanup asks of the system beyond the file system.
+pub trait StagingChecks {
+    fn another_baddel_runs(&self) -> bool;
+    /// Whether `bundle` holds to this app's own designated code requirement.
+    fn signed_as_us(&self, bundle: &Path) -> bool;
+    fn in_use(&self, dir: &Path) -> bool;
+}
+
+/// The plugin's staging folders under `tmp` that may be a cut-short install of Baddel, by what the
+/// file system alone can say: named as the plugin names them; real folders (no link followed) owned
+/// by `uid`, as is everything in them; holding nothing but the one bundle, whose Info.plist gives
+/// `identifier`; and nothing in them changed for `min_age` — the newest time anywhere in the tree,
+/// not the folder's own. Not proof on its own: see [`remove_stale_staging`].
+pub fn stale_staging(tmp: &Path, identifier: &str, uid: u32, now: SystemTime, min_age: Duration) -> Vec<Staging> {
     let Ok(entries) = std::fs::read_dir(tmp) else { return Vec::new() };
     entries
         .flatten()
         .filter_map(|entry| {
             let name = entry.file_name().to_string_lossy().into_owned();
             let (_, inside) = STAGING.iter().find(|(prefix, _)| name.starts_with(prefix))?;
-            let path = entry.path();
-            let metadata = std::fs::symlink_metadata(&path).ok()?;
-            let old = now.duration_since(metadata.modified().ok()?).is_ok_and(|age| age >= min_age);
-            if !metadata.file_type().is_dir() || !old {
-                return None;
-            }
-            let children: Vec<String> =
-                std::fs::read_dir(&path).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
-            if children != [*inside] {
-                return None;
-            }
-            // `current_app` is the whole bundle; the extracted update is the bundle's insides.
-            let bundle = if *inside == "Contents" { path.clone() } else { path.join(inside) };
-            (bundle_value(&bundle, "CFBundleIdentifier").as_deref() == Some(identifier)).then_some(path)
+            check(&entry.path(), inside, identifier, uid, now, min_age)
         })
         .collect()
+}
+
+fn check(dir: &Path, inside: &'static str, identifier: &str, uid: u32, now: SystemTime, min_age: Duration) -> Option<Staging> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = std::fs::symlink_metadata(dir).ok()?;
+    if !metadata.file_type().is_dir() || metadata.uid() != uid {
+        return None;
+    }
+    let children: Vec<String> =
+        std::fs::read_dir(dir).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+    if children != [inside] {
+        return None;
+    }
+    let newest = newest_change(dir, uid)?;
+    if now.duration_since(newest).map_or(true, |age| age < min_age) {
+        return None;
+    }
+    // `current_app` is the whole bundle; the extracted update is the bundle's insides.
+    let bundle = if inside == "Contents" { dir.to_path_buf() } else { dir.join(inside) };
+    (bundle_value(&bundle, "CFBundleIdentifier").as_deref() == Some(identifier))
+        .then(|| Staging { dir: dir.to_path_buf(), bundle, inside })
+}
+
+/// The latest change anywhere under `dir`, links included but never followed; `None` when anything
+/// there cannot be read or belongs to another user.
+fn newest_change(dir: &Path, uid: u32) -> Option<SystemTime> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = std::fs::symlink_metadata(dir).ok()?;
+    if metadata.uid() != uid {
+        return None;
+    }
+    let mut newest = metadata.modified().ok()?;
+    if metadata.file_type().is_dir() {
+        for entry in std::fs::read_dir(dir).ok()? {
+            newest = newest.max(newest_change(&entry.ok()?.path(), uid)?);
+        }
+    }
+    Some(newest)
+}
+
+/// Removes the staging folders that are, beyond doubt, Baddel's and idle. Holds the install lock
+/// throughout, so no install by this process can start meanwhile; touches nothing while another
+/// Baddel runs (it may be installing); and for each folder requires the bundle to be signed as this
+/// app is, nothing to be running from or holding a file in it, and — looked at again just before
+/// the removal — the folder to be exactly as it was found.
+pub fn remove_stale_staging(
+    candidates: Vec<Staging>,
+    checks: &dyn StagingChecks,
+    identifier: &str,
+    uid: u32,
+    now: SystemTime,
+    min_age: Duration,
+) -> Vec<StagingOutcome> {
+    let _busy = exclusive();
+    let another = checks.another_baddel_runs();
+    candidates
+        .into_iter()
+        .map(|staging| {
+            let kept = if another {
+                Some(Kept::AnotherBaddelRuns)
+            } else if !checks.signed_as_us(&staging.bundle) {
+                Some(Kept::NotSignedAsBaddel)
+            } else if checks.in_use(&staging.dir) {
+                Some(Kept::InUse)
+            } else if check(&staging.dir, staging.inside, identifier, uid, now, min_age).as_ref() != Some(&staging) {
+                Some(Kept::ChangedSinceChecked)
+            } else if std::fs::remove_dir_all(&staging.dir).is_err() {
+                Some(Kept::RemoveFailed)
+            } else {
+                None
+            };
+            StagingOutcome { dir: staging.dir, kept }
+        })
+        .collect()
+}
+
+/// The Mac itself, for [`remove_stale_staging`]. `requirement` is this app's own designated code
+/// requirement; without one (an unsigned or ad-hoc build), no bundle passes, and nothing is removed.
+pub struct SystemChecks {
+    pub requirement: Option<String>,
+    pub identifier: String,
+}
+
+impl SystemChecks {
+    /// The designated requirement of the bundle at `ours`, as `codesign` states it.
+    pub fn requirement_of(ours: &Path) -> Option<String> {
+        let output = Command::new("/usr/bin/codesign").args(["-d", "-r-"]).arg(ours).output().ok()?;
+        let text = format!("{}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+        let requirement = text.lines().find_map(|line| line.strip_prefix("designated => "))?.trim().to_string();
+        // An ad-hoc signature's requirement is its own hash: nothing else could ever hold to it.
+        (output.status.success() && !requirement.starts_with("cdhash")).then_some(requirement)
+    }
+}
+
+impl StagingChecks for SystemChecks {
+    fn another_baddel_runs(&self) -> bool {
+        crate::sys::frontmost::running_apps().iter().any(|app| {
+            app.pid != std::process::id() as i32 && app.bundle_id.as_deref() == Some(self.identifier.as_str())
+        })
+    }
+
+    fn signed_as_us(&self, bundle: &Path) -> bool {
+        let Some(requirement) = &self.requirement else { return false };
+        Command::new("/usr/bin/codesign")
+            .args(["--verify", "--deep", "--strict"])
+            .arg(format!("-R={requirement}"))
+            .arg(bundle)
+            .status()
+            .is_ok_and(|status| status.success())
+    }
+
+    fn in_use(&self, dir: &Path) -> bool {
+        let running_from = crate::sys::frontmost::running_apps()
+            .iter()
+            .any(|app| app.bundle.as_deref().is_some_and(|bundle| bundle.starts_with(dir)));
+        // `lsof +D` lists the processes with a file under `dir` open (exit status 0), or none (1).
+        // Anything else — lsof missing, or failing — is no proof of idleness.
+        let open = Command::new("/usr/sbin/lsof")
+            .args(["-t", "+D"])
+            .arg(dir)
+            .output()
+            .map_or(true, |output| output.status.code() != Some(1) || !output.stdout.is_empty());
+        running_from || open
+    }
 }
 
 #[cfg(test)]
@@ -444,11 +603,25 @@ mod tests {
         assert!(!paths.state().exists());
     }
 
-    #[test]
-    fn only_baddels_own_stale_staging_is_found() {
-        let s = Scratch::new("staging");
-        let tmp = s.0.join("T");
-        // A cut-short install of Baddel: the backup of the old app, and the extracted new one.
+    fn uid() -> u32 {
+        crate::sys::system::uid()
+    }
+
+    /// Sets the modification time of everything under `path` (links not followed).
+    fn age(path: &Path, when: SystemTime) {
+        let metadata = std::fs::symlink_metadata(path).unwrap();
+        if metadata.file_type().is_dir() {
+            for entry in std::fs::read_dir(path).unwrap() {
+                age(&entry.unwrap().path(), when);
+            }
+        }
+        if !metadata.file_type().is_symlink() {
+            std::fs::File::open(path).unwrap().set_modified(when).unwrap();
+        }
+    }
+
+    /// The fixtures of the staging tests: Baddel's two kinds, and what must never be taken for them.
+    fn staging_fixtures(tmp: &Path) {
         bundle(&tmp.join("tauri_current_appAb12Cd/current_app"), ID, "2.0.1");
         bundle(&tmp.join("tauri_updated_appEf34Gh"), ID, "2.0.2");
         std::fs::remove_dir_all(tmp.join("tauri_updated_appEf34Gh/Contents/MacOS")).unwrap();
@@ -460,12 +633,139 @@ mod tests {
         // A link by that name, and an unrelated folder of Baddel's.
         std::os::unix::fs::symlink(tmp.join("tauri_current_appAb12Cd"), tmp.join("tauri_current_appLink")).unwrap();
         bundle(&tmp.join("Baddel copy.app"), ID, "2.0.1");
+        age(tmp, SystemTime::now() - Duration::from_secs(2 * 60 * 60));
+    }
 
-        let later = SystemTime::now() + Duration::from_secs(2 * 60 * 60);
-        let mut found = stale_staging(&tmp, ID, later, STAGING_MIN_AGE);
+    #[test]
+    fn only_folders_that_look_like_baddels_own_staging_are_candidates() {
+        let s = Scratch::new("staging");
+        let tmp = s.0.join("T");
+        staging_fixtures(&tmp);
+        let mut found: Vec<PathBuf> =
+            stale_staging(&tmp, ID, uid(), SystemTime::now(), STAGING_MIN_AGE).into_iter().map(|s| s.dir).collect();
         found.sort();
         assert_eq!(found, vec![tmp.join("tauri_current_appAb12Cd"), tmp.join("tauri_updated_appEf34Gh")]);
-        // An install running now (touched a moment ago) is left alone.
-        assert!(stale_staging(&tmp, ID, SystemTime::now(), STAGING_MIN_AGE).is_empty());
+        // Another user's folders are never candidates.
+        assert!(stale_staging(&tmp, ID, uid() + 1, SystemTime::now(), STAGING_MIN_AGE).is_empty());
+    }
+
+    #[test]
+    fn a_change_anywhere_inside_an_old_folder_keeps_it() {
+        // The folder's own time changes only when its entries do: a file written deep inside it a
+        // moment ago (an install running now) leaves the folder looking old. The tree decides.
+        let s = Scratch::new("deep-change");
+        let tmp = s.0.join("T");
+        staging_fixtures(&tmp);
+        std::fs::write(tmp.join("tauri_current_appAb12Cd/current_app/Contents/MacOS/baddel"), b"being written").unwrap();
+        let found: Vec<PathBuf> =
+            stale_staging(&tmp, ID, uid(), SystemTime::now(), STAGING_MIN_AGE).into_iter().map(|s| s.dir).collect();
+        assert_eq!(found, vec![tmp.join("tauri_updated_appEf34Gh")]);
+    }
+
+    struct Checks {
+        another: bool,
+        signed: bool,
+        in_use: bool,
+    }
+
+    impl StagingChecks for Checks {
+        fn another_baddel_runs(&self) -> bool {
+            self.another
+        }
+        fn signed_as_us(&self, _: &Path) -> bool {
+            self.signed
+        }
+        fn in_use(&self, _: &Path) -> bool {
+            self.in_use
+        }
+    }
+
+    #[test]
+    fn staging_is_removed_only_when_ours_beyond_doubt_and_idle() {
+        let ok = Checks { another: false, signed: true, in_use: false };
+        for (checks, kept) in [
+            (Checks { another: true, ..ok }, Some(Kept::AnotherBaddelRuns)),
+            (Checks { signed: false, ..ok }, Some(Kept::NotSignedAsBaddel)),
+            (Checks { in_use: true, ..ok }, Some(Kept::InUse)),
+            (ok, None),
+        ] {
+            let s = Scratch::new("removal");
+            let tmp = s.0.join("T");
+            staging_fixtures(&tmp);
+            let candidates = stale_staging(&tmp, ID, uid(), SystemTime::now(), STAGING_MIN_AGE);
+            let dirs: Vec<PathBuf> = candidates.iter().map(|c| c.dir.clone()).collect();
+            let outcomes = remove_stale_staging(candidates, &checks, ID, uid(), SystemTime::now(), STAGING_MIN_AGE);
+            assert!(outcomes.iter().all(|o| o.kept == kept), "{outcomes:?}");
+            for dir in dirs {
+                assert_eq!(dir.exists(), kept.is_some(), "{dir:?}");
+            }
+            // Never anything else.
+            for other in ["tauri_current_appZz99Yy", "tauri_current_appMixed", "tauri_current_appLink", "Baddel copy.app"] {
+                assert!(std::fs::symlink_metadata(tmp.join(other)).is_ok(), "{other}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_folder_changed_between_the_look_and_the_removal_is_kept() {
+        let s = Scratch::new("changed-staging");
+        let tmp = s.0.join("T");
+        staging_fixtures(&tmp);
+        let candidates = stale_staging(&tmp, ID, uid(), SystemTime::now(), STAGING_MIN_AGE);
+        // An install starts writing into one of them after the first look.
+        std::fs::write(tmp.join("tauri_updated_appEf34Gh/Contents/new"), b"x").unwrap();
+        let ok = Checks { another: false, signed: true, in_use: false };
+        let outcomes = remove_stale_staging(candidates, &ok, ID, uid(), SystemTime::now(), STAGING_MIN_AGE);
+        let kept: Vec<_> = outcomes.iter().filter(|o| o.kept.is_some()).map(|o| (o.dir.clone(), o.kept)).collect();
+        assert_eq!(kept, vec![(tmp.join("tauri_updated_appEf34Gh"), Some(Kept::ChangedSinceChecked))]);
+        assert!(tmp.join("tauri_updated_appEf34Gh/Contents/new").exists());
+    }
+
+    /// Against the real tools: `codesign` with Baddel's own requirement, and `lsof`. Uses the 2.0.2
+    /// release archive when it is on disk (release/ is a local build output), and is skipped without.
+    #[test]
+    fn the_real_checks_tell_a_signed_baddel_and_an_open_file() {
+        let archive = Path::new(env!("CARGO_MANIFEST_DIR")).join("../release/2.0.2/Baddel_2.0.2_universal.app.tar.gz");
+        if !archive.exists() {
+            eprintln!("skipped: no {archive:?}");
+            return;
+        }
+        let s = Scratch::new("real-checks");
+        let status = Command::new("/usr/bin/tar").arg("-xzf").arg(&archive).arg("-C").arg(&s.0).status().unwrap();
+        assert!(status.success());
+        let real = s.0.join("Baddel.app");
+        // The requirement a signed Baddel states for itself, as `requirement_of` reads it.
+        let requirement = SystemChecks::requirement_of(&real).expect("a release states its requirement");
+        assert!(requirement.contains("com.isltanx.baddel") && requirement.contains("certificate leaf"), "{requirement}");
+        let checks = SystemChecks { requirement: Some(requirement), identifier: ID.into() };
+        assert!(checks.signed_as_us(&real));
+        // Its insides at the root of a folder, as the plugin extracts an update.
+        let extracted = s.0.join("tauri_updated_appReal01");
+        std::fs::create_dir(&extracted).unwrap();
+        std::fs::rename(real.join("Contents"), extracted.join("Contents")).unwrap();
+        assert!(checks.signed_as_us(&extracted));
+        // A folder that only says it is Baddel.
+        let fake = s.0.join("Fake.app");
+        bundle(&fake, ID, "2.0.1");
+        assert!(!checks.signed_as_us(&fake));
+        // In use: a file under it held open by another process.
+        assert!(!checks.in_use(&fake));
+        let mut holder = Command::new("/bin/sh")
+            .arg("-c")
+            .arg(format!("exec 3<'{}'; sleep 5", fake.join("Contents/Info.plist").display()))
+            .spawn()
+            .unwrap();
+        std::thread::sleep(Duration::from_millis(300));
+        let in_use = checks.in_use(&fake);
+        holder.kill().unwrap();
+        let _ = holder.wait();
+        assert!(in_use);
+    }
+
+    #[test]
+    fn an_unsigned_or_ad_hoc_build_removes_nothing() {
+        // No requirement to hold staging to: nothing passes as signed by us.
+        let checks = SystemChecks { requirement: None, identifier: ID.into() };
+        assert!(!checks.signed_as_us(Path::new("/Applications/Baddel.app")));
     }
 }

@@ -150,21 +150,28 @@ case "$SCENARIO" in
     cp "$support/settings.json" "$WORK/upgrade/settings.before.json"
     echo "the user's own file" > "$support/notes.txt"
     legacy_plist
-    # A cut-short 2.0.x install: the updater's backup of the old app, an hour and more old.
-    mkdir -p "$T/tauri_current_appQ1w2E3/current_app/Contents/MacOS"
+    # A cut-short 2.0.x install: the updater's backup of the old app — a real, signed Baddel (the
+    # 2.0.2 release, unpacked) — with nothing in it touched for over an hour.
+    mkdir -p "$T/tauri_current_appQ1w2E3"
+    tar -xzf "release/2.0.2/Baddel_2.0.2_universal.app.tar.gz" -C "$T/tauri_current_appQ1w2E3"
+    mv "$T/tauri_current_appQ1w2E3/Baddel.app" "$T/tauri_current_appQ1w2E3/current_app"
+    find "$T/tauri_current_appQ1w2E3" -exec touch -h -t 202610250000 {} +
+    # One that only says it is Baddel: never removed.
+    mkdir -p "$T/tauri_current_appFake22/current_app/Contents"
     printf '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>%s</string><key>CFBundleShortVersionString</key><string>2.0.1</string></dict></plist>' "$ID" \
-      > "$T/tauri_current_appQ1w2E3/current_app/Contents/Info.plist"
-    touch -t 202610250000 "$T/tauri_current_appQ1w2E3"
+      > "$T/tauri_current_appFake22/current_app/Contents/Info.plist"
+    find "$T/tauri_current_appFake22" -exec touch -h -t 202610250000 {} +
     # Not Baddel's, or not stale, or not staging at all: all must stay.
     mkdir -p "$T/tauri_current_appOther9/current_app/Contents"
     printf '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>com.example.other</string></dict></plist>' \
       > "$T/tauri_current_appOther9/current_app/Contents/Info.plist"
     touch -t 202610250000 "$T/tauri_current_appOther9"
     mkdir -p "$T/tauri_updated_appFresh1/Contents"
-    cp "$T/tauri_current_appQ1w2E3/current_app/Contents/Info.plist" "$T/tauri_updated_appFresh1/Contents/Info.plist"
+    cp "$T/tauri_current_appFake22/current_app/Contents/Info.plist" "$T/tauri_updated_appFresh1/Contents/Info.plist"
     mkdir -p "$T/Baddel copy.app/Contents" "$H/Downloads/Baddel.app/Contents"
-    cp "$T/tauri_current_appQ1w2E3/current_app/Contents/Info.plist" "$T/Baddel copy.app/Contents/Info.plist"
-    cp "$T/tauri_current_appQ1w2E3/current_app/Contents/Info.plist" "$H/Downloads/Baddel.app/Contents/Info.plist"
+    cp "$T/tauri_current_appFake22/current_app/Contents/Info.plist" "$T/Baddel copy.app/Contents/Info.plist"
+    cp "$T/tauri_current_appFake22/current_app/Contents/Info.plist" "$H/Downloads/Baddel.app/Contents/Info.plist"
+    show "another Baddel running now (the installed one): $(pgrep -lf '/Applications/Baddel.app/Contents/MacOS/baddel' | wc -l | tr -d ' ')"
     show "before"; (cd "$WORK/upgrade" && find home tmp -mindepth 1 -maxdepth 4 -not -path '*/Contents/*' | sort)
     launch -g
     sleep 5
