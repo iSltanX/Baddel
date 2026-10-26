@@ -68,3 +68,48 @@ designated requirement: identifier "com.isltanx.baddel.acceptance" and certifica
            Identifier: 2.com.isltanx.baddel.acceptance
                   URL: /Users/501/Applications/BaddelAcceptance.app
     Bundle Identifier: com.isltanx.baddel.acceptance
+
+## off — إلغاء التسجيل الحقيقي (2026-10-27، قبل أي خروج ودخول)
+[baddel] at launch: login item StartupStatus { state: Enabled, failure: None, legacy: None } (None); update Nothing; staging removed 0, kept 0
+[baddel] acceptance login-off: StartupStatus { state: Disabled, failure: None, legacy: None }
+── Background Task Management
+                 Name: BaddelAcceptance
+       Developer Name: (null)
+                 Type: app (0x2)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.isltanx.baddel.acceptance
+                  URL: /Users/501/Applications/BaddelAcceptance.app
+    Bundle Identifier: com.isltanx.baddel.acceptance
+## status بعد الإلغاء (إطلاق جديد يقرأ جواب macOS)
+[baddel] at launch: login item StartupStatus { state: Disabled, failure: None, legacy: None } (None); update Nothing; staging removed 0, kept 0
+── running: 1 (73751 )
+── maintenance.json
+{
+ "started": "byHand",
+ "instance": "guarded",
+ "loginItem": {
+  "legacy": "None",
+  "status": {
+   "failure": null,
+   "legacy": null,
+   "state": "disabled"
+  }
+ },
+ "settings": "File"
+}
+── Background Task Management
+                 Name: BaddelAcceptance
+       Developer Name: (null)
+                 Type: app (0x2)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.isltanx.baddel.acceptance
+                  URL: /Users/501/Applications/BaddelAcceptance.app
+    Bundle Identifier: com.isltanx.baddel.acceptance
+
+## التنظيف (قابل للاسترجاع)
+نُقل إلى سلة المهملات عبر Finder («إرجاع» متاح): ~/Applications/BaddelAcceptance.app و~/Library/Application Support/com.isltanx.baddel.acceptance. لم يوجد غيرهما للمعرّف (Caches وWebKit وPreferences وHTTPStorages وSaved Application State غائبة).
+بقي في BTM قيد معطَّل (disabled, allowed) للمسار القديم: سجل نظام لا يُمسح إلا بـ sfltool resetbtm الذي يمسح قيود كل التطبيقات، فتُرك.
+لم يُمسّ /Applications/Baddel.app ولا ~/Library/Application Support/com.isltanx.baddel.
+
+## الدخول الفعلي: غير منفّذ
+لم يُجرَ خروج ودخول قط؛ أُلغي التسجيل قبله بطلب المالك. لا دليل على الإطلاق عند الدخول ولا على started: atLogin.

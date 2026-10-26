@@ -21,8 +21,8 @@ dist/assets/Almarai-Regular-TEKe4XFl.woff2   49.12 kB
 dist/assets/Cairo-Bold-B-_7TOZF.woff2        50.40 kB
 dist/assets/Almarai-Bold-ByK29-r7.woff2      50.78 kB
 dist/assets/index-DmQnOk1a.css               41.63 kB │ gzip:  6.88 kB
-dist/assets/index-C_rsOvvo.js               154.95 kB │ gzip: 54.82 kB
-✓ built in 501ms
+dist/assets/index-ENngWn3S.js               154.70 kB │ gzip: 54.74 kB
+✓ built in 487ms
    Compiling objc2-exception-helper v0.1.1
    Compiling ring v0.17.14
    Compiling baddel v2.0.2 (/Volumes/iSltanXx/Projects/Baddel/src-tauri)
@@ -33,8 +33,8 @@ dist/assets/index-C_rsOvvo.js               154.95 kB │ gzip: 54.82 kB
    Compiling dispatch2 v0.3.1
    Compiling objc2-foundation v0.3.2
    Compiling objc2-core-text v0.3.2
-   Compiling objc2-core-video v0.3.2
    Compiling objc2-core-graphics v0.3.2
+   Compiling objc2-core-video v0.3.2
    Compiling rustls-webpki v0.103.15
    Compiling tokio-rustls v0.26.5
    Compiling rustls-platform-verifier v0.7.0
@@ -42,16 +42,16 @@ dist/assets/index-C_rsOvvo.js               154.95 kB │ gzip: 54.82 kB
    Compiling reqwest v0.13.5
    Compiling objc2-quartz-core v0.3.2
    Compiling objc2-core-data v0.3.2
-   Compiling objc2-cloud-kit v0.3.2
    Compiling objc2-core-image v0.3.2
+   Compiling objc2-cloud-kit v0.3.2
    Compiling objc2-app-kit v0.3.2
    Compiling objc2-web-kit v0.3.2
    Compiling tao v0.35.3
    Compiling muda v0.19.3
    Compiling window-vibrancy v0.6.0
    Compiling objc2-osa-kit v0.3.2
-   Compiling rfd v0.16.0
    Compiling global-hotkey v0.8.0
+   Compiling rfd v0.16.0
    Compiling osakit v0.3.1
    Compiling wry v0.55.1
    Compiling tauri-runtime v2.11.3
@@ -59,12 +59,12 @@ dist/assets/index-C_rsOvvo.js               154.95 kB │ gzip: 54.82 kB
    Compiling tauri-runtime-wry v2.11.4
    Compiling tauri v2.11.6
    Compiling tauri-plugin-fs v2.5.2
-   Compiling tauri-plugin-updater v2.12.0
+   Compiling tauri-plugin-global-shortcut v2.3.2
    Compiling tauri-plugin-process v2.3.1
    Compiling tauri-plugin-store v2.4.5
-   Compiling tauri-plugin-global-shortcut v2.3.2
+   Compiling tauri-plugin-updater v2.12.0
    Compiling tauri-plugin-dialog v2.7.3
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 29.02s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 27.75s
        Built application at: /Volumes/iSltanXx/Projects/Baddel/target/debug/baddel
     Bundling Baddel.app (/Volumes/iSltanXx/Projects/Baddel/target/debug/bundle/macos/Baddel.app)
     Finished 1 bundle at:
@@ -75,5 +75,5 @@ signed with: Baddel Code Signing
 designated requirement: identifier "com.isltanx.baddel" and certificate leaf = H"abeadcf9647763862bc4924c07da7e5a7fd777b0"
 target/debug/bundle/macos/Baddel.app
 build exit=0
-d628d3d
-4739f2afe9151c3af8d64dd7a679d1af691f1234ecf871cc3413a4186ba672d1  target/debug/bundle/macos/Baddel.app/Contents/MacOS/baddel
+d9124e6
+c15e97725cd372afd84a2de2f6c8ce97d1442249126ccade52d9900f27034de7  target/debug/bundle/macos/Baddel.app/Contents/MacOS/baddel
