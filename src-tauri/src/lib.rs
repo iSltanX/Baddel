@@ -186,6 +186,7 @@ pub fn run() {
             {
                 windows::open_requested_window(&handle);
                 windows::close_windows_after(&handle);
+                acceptance(&handle);
             }
 
             if let Some(owner) = owner {
@@ -246,6 +247,27 @@ pub fn run() {
             windows::step_back(app);
         }
         _ => {}
+    });
+}
+
+/// Debug builds only, for `audit/remediation-2026-10/acceptance/`: a step a person would take in
+/// Settings, taken at launch instead, through the same code. `BADDEL_ACCEPT=login-on` or
+/// `login-off` flips the launch-at-login switch; `update` checks for an update and installs it.
+#[cfg(debug_assertions)]
+fn acceptance(app: &tauri::AppHandle) {
+    let Ok(step) = std::env::var("BADDEL_ACCEPT") else { return };
+    let app = app.clone();
+    thread::spawn(move || {
+        // After the launch's own work on the login item (the maintenance thread).
+        thread::sleep(Duration::from_secs(2));
+        match step.as_str() {
+            "login-on" | "login-off" => {
+                let status = commands::set_launch_at_login(app.clone(), step == "login-on");
+                eprintln!("[baddel] acceptance {step}: {status:?}");
+            }
+            "update" => updater::accept_update(&app),
+            _ => eprintln!("[baddel] acceptance: unknown step {step}"),
+        }
     });
 }
 

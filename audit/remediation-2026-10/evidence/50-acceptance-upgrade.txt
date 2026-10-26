@@ -1,0 +1,33 @@
+── reusing the builds of 2.0.90 and 2.0.91 (port 47411)
+── 1. a download whose signature does not hold
+[baddel] acceptance update check: Status { phase: Available, version: Some("2.0.92"), failure: None, last_checked: … }
+[baddel] update download failed: The signature verification failed
+[baddel] acceptance update install: Status { phase: Failed, version: Some("2.0.92"), failure: Some(Download), last_checked: … }
+── version at the app's path: 2.0.90; processes: 1 (57768 )
+── copy kept aside: none; note: none
+── updater staging in TMPDIR: 0
+── 2. an archive signed for 2.0.92 but holding 2.0.91: the updater swaps it in, Baddel finds it wrong
+[baddel] acceptance update check: Status { phase: Available, version: Some("2.0.92"), failure: None, last_checked: … }
+[baddel] acceptance update install: Status { phase: Failed, version: Some("2.0.92"), failure: Some(Install), last_checked: … }
+── version at the app's path: 2.0.90; processes: 1 (57830 )
+── copy kept aside: none; note: none
+── updater staging in TMPDIR: 0
+── the running process's bundle is the restored 2.0.90: yes
+── 3. 2.0.91 offered as 2.0.91
+── launched 2.0.90 as pid 57929
+[baddel] at launch: login item StartupStatus { state: Unavailable, failure: None, legacy: None } (None); update Nothing; staging removed 0, kept 0
+[baddel] acceptance update check: Status { phase: Available, version: Some("2.0.91"), failure: None, last_checked: … }
+[baddel] at launch: login item StartupStatus { state: Unavailable, failure: None, legacy: None } (None); update Completed { from: "2.0.90" }; staging removed 0, kept 0
+[baddel] acceptance update check: Status { phase: UpToDate, version: None, failure: None, last_checked: … }
+── version at the app's path: 2.0.91; processes: 1 (57992 )
+── copy kept aside: none; note: none
+── updater staging in TMPDIR: 0
+── settings: before → after
+changed: nothing the user set
+── the user's own file: the user's own file
+── server requests
+   1 "GET /BaddelAcceptance_2.0.91.app.tar.gz HTTP/1.1"
+   4 "GET /latest.json HTTP/1.1"
+   1 "GET /mislabelled.app.tar.gz HTTP/1.1"
+   1 "GET /tampered.app.tar.gz HTTP/1.1"
+exit=0

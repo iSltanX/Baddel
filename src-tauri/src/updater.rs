@@ -222,6 +222,22 @@ async fn install(app: &AppHandle, trigger: Trigger) {
     }
 }
 
+/// Debug builds only (`BADDEL_ACCEPT=update`, see `lib.rs`): the Settings row's "Check Now", then
+/// "Install Update" if one is found, with the outcome written to stderr.
+#[cfg(debug_assertions)]
+pub fn accept_update(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        check(&app, Trigger::Settings).await;
+        eprintln!("[baddel] acceptance update check: {:?}", status(&app));
+        if status(&app).phase == Phase::Available {
+            // A success restarts into the new version and never comes back here.
+            install(&app, Trigger::Settings).await;
+            eprintln!("[baddel] acceptance update install: {:?}", status(&app));
+        }
+    });
+}
+
 /// The swap itself, between a copy kept of the running version and a check of the new one.
 async fn replace(app: &AppHandle, update: &Update) -> Result<(), Failure> {
     let bytes = update.download(|_, _| {}, || {}).await.map_err(|_error| {

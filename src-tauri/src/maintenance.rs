@@ -45,19 +45,25 @@ pub fn at_launch(app: &AppHandle, saved_launch_at_login: bool, source: Source) {
         };
         upgrade::remove_stale_staging(candidates, &checks, &identifier, uid, now, age)
     };
-    let removed = staging.iter().filter(|s| s.kept.is_none()).count();
-    let failed = staging.len() - removed;
 
     #[cfg(debug_assertions)]
-    eprintln!("[baddel] at launch: login item {:?} ({:?}); update {update}; staging removed {removed}, kept {failed}", done.status, done.legacy);
-    let instance = match &app.state::<Launch>().unguarded {
+    {
+        let removed = staging.iter().filter(|s| s.kept.is_none()).count();
+        let kept = staging.len() - removed;
+        eprintln!("[baddel] at launch: login item {:?} ({:?}); update {update}; staging removed {removed}, kept {kept}", done.status, done.legacy);
+    }
+    let launch = app.state::<Launch>();
+    let instance = match &launch.unguarded {
         None => "guarded".to_string(),
         Some(why) => format!("unguarded: {why}"),
     };
+    // Started at login (as a login item, or by the old LaunchAgent), or by hand.
+    let started = if launch.quiet_until.is_some() { "atLogin" } else { "byHand" };
     let record = json!({
         "at": crate::sys::clock::now_ms(),
         "version": version,
         "instance": instance,
+        "started": started,
         "settings": format!("{source:?}"),
         "loginItem": { "status": done.status, "legacy": format!("{:?}", done.legacy) },
         "update": update,
