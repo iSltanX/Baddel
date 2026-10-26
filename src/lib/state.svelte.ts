@@ -88,7 +88,7 @@ export interface UpdateStatus {
 
 /** Launch at login as macOS reports it (`startup.rs`), not as last saved. */
 export interface StartupStatus {
-  state: 'enabled' | 'disabled' | 'requiresApproval' | 'unavailable'
+  state: 'enabled' | 'disabled' | 'requiresApproval'
   /** Why the last change did not go through. */
   failure: {
     problem: 'deniedByUser' | 'invalidSignature' | 'temporaryLocation' | 'stillEnabled' | 'legacyKept' | 'other'

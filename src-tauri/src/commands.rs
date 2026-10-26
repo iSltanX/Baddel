@@ -11,7 +11,7 @@ use tauri_plugin_dialog::DialogExt;
 use crate::controller;
 use crate::report::{self, Draft, DraftError, ReportState, SendError};
 use crate::settings::{self, AppState, Binding, Settings};
-use crate::startup::{StartupStatus, State as StartupState, Startup};
+use crate::startup::{StartupStatus, Startup};
 use crate::sys::app_icons::AppInfo;
 use crate::sys::image::{self, ImageError};
 use crate::sys::{app_icons, chrome, input_source, login_item, on_main, pasteboard, permissions};
@@ -74,13 +74,9 @@ pub fn startup_status(state: tauri::State<'_, Startup>) -> StartupStatus {
 /// The switch. Answers with what macOS then reports, and remembers that as the preference.
 #[tauri::command]
 pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> StartupStatus {
-    let status = app.state::<Startup>().set_enabled(enabled);
-    let preference = match status.state {
-        StartupState::Enabled | StartupState::RequiresApproval => Some(true),
-        StartupState::Disabled => Some(false),
-        StartupState::Unavailable => None,
-    };
-    sync::remember_launch_at_login(&app, preference);
+    let startup = app.state::<Startup>();
+    let status = startup.set_enabled(enabled);
+    sync::remember_launch_at_login(&app, startup.preference());
     let _ = app.emit("startup", &status);
     status
 }

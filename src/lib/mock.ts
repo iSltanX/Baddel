@@ -12,7 +12,7 @@ import type { AppInfo, KeyboardMap, LayoutEntry, Settings, StartupStatus } from 
  * Query parameters that pick a state to review: `lang=en`, `permission=missing`,
  * `move=1` (the welcome's "move to Applications" note), `report=fail|rate-limited|rejected`,
  * `update=available|checking|installing|failed|install-failed`,
- * `startup=enabled|requiresApproval|unavailable|denied|unverified`, `layout=missing`.
+ * `startup=enabled|requiresApproval|denied|unverified`, `layout=missing`.
  */
 const query = new URLSearchParams(location.search)
 
@@ -70,7 +70,6 @@ if (query.get('layout') === 'missing') {
 const startupStates: Record<string, StartupStatus> = {
   enabled: { state: 'enabled', failure: null, legacy: null },
   requiresApproval: { state: 'requiresApproval', failure: null, legacy: 'kept' },
-  unavailable: { state: 'unavailable', failure: null, legacy: null },
   denied: { state: 'disabled', failure: { problem: 'deniedByUser', code: 11 }, legacy: null },
   unverified: { state: 'disabled', failure: null, legacy: 'unverified' },
 }

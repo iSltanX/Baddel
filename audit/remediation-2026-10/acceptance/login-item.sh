@@ -67,6 +67,10 @@ case "$STEP" in
     ditto "$BUILT" "$APP"
     rm -rf "$BUILT"
     codesign -dr - "$APP" 2>&1 | sed -n 's/^designated => /designated requirement: /p'
+    # Its own settings: no welcome window, no update check, and no shortcut at all — at login it
+    # must not take ⌥⇧Space before the real Baddel does.
+    mkdir -p "$SUPPORT"
+    printf '{"settings":{"welcomed":true,"autoUpdate":false,"showHud":false,"shortcutConvert":"","defaultsVersion":2}}\n' > "$SUPPORT/settings.json"
     ;;
   on)
     stop_ours; launch login-on; show "Background Task Management"; btm ;;

@@ -39,18 +39,28 @@ pub enum State {
     Disabled,
     /// Registered, but waiting for the user in System Settings › Login Items (or switched off there).
     RequiresApproval,
-    /// macOS cannot find Baddel as a login item at all.
-    Unavailable,
 }
 
 impl From<Status> for State {
     fn from(status: Status) -> Self {
         match status {
             Status::Enabled => State::Enabled,
-            Status::NotRegistered => State::Disabled,
             Status::RequiresApproval => State::RequiresApproval,
-            Status::NotFound => State::Unavailable,
+            // macOS answers "not found" for an app it has never had as a login item (seen on macOS
+            // 27 in the acceptance check), not only on an error: the switch shows off, and stays
+            // usable — a registration that then fails says why.
+            Status::NotRegistered | Status::NotFound => State::Disabled,
         }
+    }
+}
+
+/// The launch-at-login preference macOS's answer stands for: `None` for "not found", which says
+/// nothing of what the user chose.
+fn preference_of(status: Status) -> Option<bool> {
+    match status {
+        Status::Enabled | Status::RequiresApproval => Some(true),
+        Status::NotRegistered => Some(false),
+        Status::NotFound => None,
     }
 }
 
@@ -255,13 +265,16 @@ impl Startup {
         // While the old agent is kept, it is what starts Baddel at login, and the user's choice is
         // the one it stands for: what macOS says of the login item meanwhile does not replace it.
         // Nor while an agent of unknown origin by that name may start Baddel too.
-        let preference = match (status.state, outcome) {
-            (_, LegacyOutcome::Kept | LegacyOutcome::Unverified) => None,
-            (State::Enabled | State::RequiresApproval, _) => Some(true),
-            (State::Disabled, _) => Some(false),
-            (State::Unavailable, _) => None,
+        let preference = match outcome {
+            LegacyOutcome::Kept | LegacyOutcome::Unverified => None,
+            _ => self.preference(),
         };
         Reconciled { status, preference, legacy: outcome }
+    }
+
+    /// The preference as macOS has it now ([`preference_of`]).
+    pub fn preference(&self) -> Option<bool> {
+        preference_of(self.system.status())
     }
 
     /// The switch in Settings. Returns the status macOS reports afterwards, which is what the
@@ -768,10 +781,11 @@ mod tests {
         assert_eq!(done.status.state, State::Enabled);
         assert_eq!(done.preference, Some(true));
         assert_eq!(fake.unregisters.load(Ordering::SeqCst), 0);
-        // macOS has no answer: the preference is left as it was.
+        // "Not found" — what macOS says of an app it never had as a login item: shown as off, and
+        // no reason to change the preference either way.
         let (startup, _) = super::tests::startup(&home, Fake::new(Status::NotFound));
         let done = startup.reconcile(true, Source::File);
-        assert_eq!((done.status.state, done.preference), (State::Unavailable, None));
+        assert_eq!((done.status.state, done.preference), (State::Disabled, None));
     }
 
     #[test]
@@ -943,6 +957,17 @@ mod tests {
         let startup = Startup::new(Box::new(fake.clone()), None, ID.into());
         let done = startup.reconcile(false, Source::File);
         assert_eq!((done.legacy, done.status.state), (LegacyOutcome::None, State::Enabled));
+    }
+
+    #[test]
+    fn an_app_macos_never_had_as_a_login_item_can_still_be_switched_on() {
+        // The acceptance check: before its first registration, macOS answered "not found", and the
+        // switch, shown as unavailable, could not be turned on at all.
+        let home = Home::new("never-registered");
+        let (startup, fake) = startup(&home, Fake::new(Status::NotFound));
+        assert_eq!(startup.status().state, State::Disabled);
+        assert_eq!(startup.set_enabled(true), StartupStatus { state: State::Enabled, failure: None, legacy: None });
+        assert_eq!(fake.registers(), 1);
     }
 
     #[test]

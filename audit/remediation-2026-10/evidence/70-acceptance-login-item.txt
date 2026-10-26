@@ -1,0 +1,70 @@
+# الفحص أ — تسجيل دخول حقيقي بهوية الاختبار com.isltanx.baddel.acceptance، 2026-10-27
+## install
+        /Volumes/iSltanXx/Projects/Baddel/target/debug/bundle/macos/BaddelAcceptance.app
+target/debug/bundle/macos/BaddelAcceptance.app: replacing existing signature
+designated requirement: identifier "com.isltanx.baddel.acceptance" and certificate leaf = H"abeadcf9647763862bc4924c07da7e5a7fd777b0"
+exit=
+## on
+[baddel] at launch: login item StartupStatus { state: Unavailable, failure: None, legacy: None } (None); update Nothing; staging removed 0, kept 0
+[baddel] acceptance login-on: StartupStatus { state: Enabled, failure: None, legacy: None }
+── Background Task Management
+                 Name: BaddelAcceptance
+       Developer Name: (null)
+                 Type: app (0x2)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2.com.isltanx.baddel.acceptance
+                  URL: /Users/501/Applications/BaddelAcceptance.app
+    Bundle Identifier: com.isltanx.baddel.acceptance
+## status
+[baddel] at launch: login item StartupStatus { state: Enabled, failure: None, legacy: None } (None); update Nothing; staging removed 0, kept 0
+── running: 1 (69437 )
+── maintenance.json
+{
+ "started": "byHand",
+ "instance": "guarded",
+ "loginItem": {
+  "legacy": "None",
+  "status": {
+   "failure": null,
+   "legacy": null,
+   "state": "enabled"
+  }
+ },
+ "settings": "File"
+}
+── Background Task Management
+                 Name: BaddelAcceptance
+       Developer Name: (null)
+                 Type: app (0x2)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2.com.isltanx.baddel.acceptance
+                  URL: /Users/501/Applications/BaddelAcceptance.app
+    Bundle Identifier: com.isltanx.baddel.acceptance
+
+## إعادة التثبيت بالكود المصحَّح (notFound يُعرض مطفأً ويبقى قابلًا للاستعمال)
+designated requirement: identifier "com.isltanx.baddel.acceptance" and certificate leaf = H"abeadcf9647763862bc4924c07da7e5a7fd777b0"
+## status بعد إعادة التثبيت
+[baddel] at launch: login item StartupStatus { state: Enabled, failure: None, legacy: None } (None); update Nothing; staging removed 0, kept 0
+── running: 1 (71999 )
+── maintenance.json
+{
+ "started": "byHand",
+ "instance": "guarded",
+ "loginItem": {
+  "legacy": "None",
+  "status": {
+   "failure": null,
+   "legacy": null,
+   "state": "enabled"
+  }
+ },
+ "settings": "File"
+}
+── Background Task Management
+                 Name: BaddelAcceptance
+       Developer Name: (null)
+                 Type: app (0x2)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2.com.isltanx.baddel.acceptance
+                  URL: /Users/501/Applications/BaddelAcceptance.app
+    Bundle Identifier: com.isltanx.baddel.acceptance

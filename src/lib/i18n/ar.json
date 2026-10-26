@@ -71,7 +71,6 @@
       },
       "startup": {
         "requiresApproval": "ينتظر موافقتك في إعدادات النظام ← عام ← عناصر تسجيل الدخول",
-        "unavailable": "لا يجد macOS بدّل عنصرًا لتسجيل الدخول",
         "openLoginItems": "افتح عناصر تسجيل الدخول",
         "legacyUnverified": "في LaunchAgents ملف باسم Baddel لم يكتبه بدّل، فتُرك كما هو",
         "problem": {

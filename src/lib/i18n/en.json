@@ -71,7 +71,6 @@
       },
       "startup": {
         "requiresApproval": "Waiting for your approval in System Settings → General → Login Items",
-        "unavailable": "macOS can’t find Baddel as a login item",
         "openLoginItems": "Open Login Items",
         "legacyUnverified": "A LaunchAgent named Baddel that Baddel didn’t write was left as it is",
         "problem": {

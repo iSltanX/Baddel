@@ -29,7 +29,6 @@
     const failure = startup.failure
     if (failure) return t(`settings.general.startup.problem.${failure.problem}`, { code: failure.code ?? '—' })
     if (startup.state === 'requiresApproval') return t('settings.general.startup.requiresApproval')
-    if (startup.state === 'unavailable') return t('settings.general.startup.unavailable')
     if (startup.legacy === 'unverified') return t('settings.general.startup.legacyUnverified')
     return undefined
   })
@@ -106,7 +105,7 @@
     {/if}
     <Switch
       checked={launchesAtLogin}
-      disabled={switching || startup.state === 'unavailable'}
+      disabled={switching}
       label={t('settings.general.launchAtLogin')}
       onchange={(enabled) => void switchLaunchAtLogin(enabled)}
     />
