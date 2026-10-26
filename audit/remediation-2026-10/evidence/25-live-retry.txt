@@ -1,0 +1,48 @@
+── first launch — legacy plist: present; fake: {"status":"notRegistered","refuse":11}
+── maintenance.json
+{
+  "at": 1793052001047,
+  "instance": "guarded",
+  "loginItem": {
+    "legacy": "Kept",
+    "status": {
+      "failure": {
+        "code": 11,
+        "problem": "deniedByUser"
+      },
+      "legacy": "kept",
+      "state": "disabled"
+    }
+  },
+  "settings": "File",
+  "staging": {
+    "failed": 0,
+    "removed": 0
+  },
+  "update": "Nothing",
+  "version": "2.0.2"
+}
+── second launch — legacy plist: removed; fake: {"status":"enabled"}
+── maintenance.json
+{
+  "at": 1793052005178,
+  "instance": "guarded",
+  "loginItem": {
+    "legacy": "Migrated",
+    "status": {
+      "failure": null,
+      "legacy": null,
+      "state": "enabled"
+    }
+  },
+  "settings": "File",
+  "staging": {
+    "failed": 0,
+    "removed": 0
+  },
+  "update": "Nothing",
+  "version": "2.0.2"
+}
+── debug stderr
+[baddel] at launch: login item StartupStatus { state: Disabled, failure: Some(Failure { problem: DeniedByUser, code: Some(11) }), legacy: Some(Kept) } (Kept); update Nothing; staging removed 0, failed 0
+[baddel] at launch: login item StartupStatus { state: Enabled, failure: None, legacy: None } (Migrated); update Nothing; staging removed 0, failed 0

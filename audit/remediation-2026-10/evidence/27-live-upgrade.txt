@@ -1,0 +1,80 @@
+── another Baddel running now (the installed one): 1
+── before
+home/Downloads
+home/Downloads/Baddel.app
+home/Downloads/Baddel.app/Contents
+home/Library
+home/Library/Application Support
+home/Library/Application Support/com.isltanx.baddel
+home/Library/Application Support/com.isltanx.baddel/notes.txt
+home/Library/Application Support/com.isltanx.baddel/settings.json
+home/Library/LaunchAgents
+home/Library/LaunchAgents/Baddel.plist
+tmp/Baddel copy.app
+tmp/Baddel copy.app/Contents
+tmp/tauri_current_appFake22
+tmp/tauri_current_appFake22/current_app
+tmp/tauri_current_appFake22/current_app/Contents
+tmp/tauri_current_appOther9
+tmp/tauri_current_appOther9/current_app
+tmp/tauri_current_appOther9/current_app/Contents
+tmp/tauri_current_appQ1w2E3
+tmp/tauri_current_appQ1w2E3/current_app
+tmp/tauri_current_appQ1w2E3/current_app/Contents
+tmp/tauri_updated_appFresh1
+tmp/tauri_updated_appFresh1/Contents
+── after
+home/Downloads
+home/Downloads/Baddel.app
+home/Downloads/Baddel.app/Contents
+home/Library
+home/Library/Application Support
+home/Library/Application Support/com.isltanx.baddel
+home/Library/Application Support/com.isltanx.baddel/instance.lock
+home/Library/Application Support/com.isltanx.baddel/maintenance.json
+home/Library/Application Support/com.isltanx.baddel/notes.txt
+home/Library/Application Support/com.isltanx.baddel/settings.json
+home/Library/LaunchAgents
+tmp/Baddel copy.app
+tmp/Baddel copy.app/Contents
+tmp/tauri_current_appFake22
+tmp/tauri_current_appFake22/current_app
+tmp/tauri_current_appFake22/current_app/Contents
+tmp/tauri_current_appOther9
+tmp/tauri_current_appOther9/current_app
+tmp/tauri_current_appOther9/current_app/Contents
+tmp/tauri_current_appQ1w2E3
+tmp/tauri_current_appQ1w2E3/current_app
+tmp/tauri_current_appQ1w2E3/current_app/Contents
+tmp/tauri_updated_appFresh1
+tmp/tauri_updated_appFresh1/Contents
+── settings: before → after (only launchAtLogin may follow macOS)
+changed: nothing
+── maintenance.json
+{
+  "at": 1793052663668,
+  "instance": "guarded",
+  "loginItem": {
+    "legacy": "Migrated",
+    "status": {
+      "failure": null,
+      "legacy": null,
+      "state": "enabled"
+    }
+  },
+  "settings": "File",
+  "staging": [
+    {
+      "dir": "/private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/live/upgrade/tmp/tauri_current_appFake22",
+      "kept": "anotherBaddelRuns"
+    },
+    {
+      "dir": "/private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/live/upgrade/tmp/tauri_current_appQ1w2E3",
+      "kept": "anotherBaddelRuns"
+    }
+  ],
+  "update": "Nothing",
+  "version": "2.0.2"
+}
+── debug stderr
+[baddel] at launch: login item StartupStatus { state: Enabled, failure: None, legacy: None } (Migrated); update Nothing; staging removed 0, kept 2

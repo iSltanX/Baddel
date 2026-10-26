@@ -1,0 +1,33 @@
+# الفحص ب — إدخال حقيقي على بناء debug موقَّع (sha256 4739f2afe9151c3a…)، ببيت معزول، 2026-10-27
+
+## الجولة 1: الحالات الأربع المعتادة (بقية حالاتها توقفت قبل أي ضغطة بسبب خطأ في أداة القراءة، أُصلح)
+── regression
+TextEdit         word    PASS clip=ok Converted@42ms text range path
+TextEdit         l2a     PASS clip=ok Converted@35ms text range path
+TextEdit         select  PASS clip=ok Converted@34ms 
+TextEdit         extend  PASS clip=ok Converted@38ms Extended@33ms text range path
+
+## الجولة 3: نافذة بدّل (سياسة Accessory)
+── window (Baddel's report window, an accessory app's window)
+window       PASS copied='accessory typing works' after_paste='accessory typing works + pasted'
+
+## الجولة 4: تبديل التطبيق مع إمساك ⌥⇧ (hold-hotkey.swift)
+── quitting the installed Baddel for the run
+── input source for the run: com.apple.keylayout.ABC (was com.apple.keylayout.Arabic)
+── switch
+             TextEdit ready: front=com.apple.TextEdit keys=com.apple.TextEdit
+             test page ready: front=com.apple.Safari keys=com.apple.Safari
+             back in TextEdit: front=com.apple.TextEdit keys=com.apple.TextEdit
+             after the switch: front=com.apple.Safari keys=com.apple.Safari
+switch       PASS outcomes=['Failed'] textedit='مرحبا اثممخ' test_page_unchanged=True
+── undo-switch
+             TextEdit ready: front=com.apple.TextEdit keys=com.apple.TextEdit
+             test page ready: front=com.apple.Safari keys=com.apple.Safari
+             back in TextEdit: front=com.apple.TextEdit keys=com.apple.TextEdit
+             after the switch: front=com.apple.Safari keys=com.apple.Safari
+undo-switch  PASS outcomes=['Failed'] textedit='مرحبا hello' test_page_unchanged=True
+── debug outcomes
+[baddel] Failed in 692.110417ms reason=Some(FocusMoved)
+[baddel] Converted in 46.306917ms reason=None
+[baddel] Failed in 604.816458ms reason=Some(FocusMoved)
+exit=0

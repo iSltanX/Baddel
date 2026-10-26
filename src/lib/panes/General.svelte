@@ -11,13 +11,44 @@
     checkForUpdates,
     installUpdate,
     language,
+    openLoginItems,
     previewHud,
     save,
+    setLaunchAtLogin,
     t,
     type Settings,
   } from '../state.svelte'
 
   const settings = $derived(app.settings as Settings)
+
+  // Launch at login shows what macOS has, not what was last saved (`startup.rs`).
+  const startup = $derived(app.startup)
+  const launchesAtLogin = $derived(startup.state === 'enabled' || startup.state === 'requiresApproval')
+  let switching = $state(false)
+  const startupLine = $derived.by(() => {
+    const failure = startup.failure
+    if (failure) return t(`settings.general.startup.problem.${failure.problem}`, { code: failure.code ?? '—' })
+    if (startup.state === 'requiresApproval') return t('settings.general.startup.requiresApproval')
+    if (startup.legacy === 'unverified') return t('settings.general.startup.legacyUnverified')
+    return undefined
+  })
+  /** The line is a problem to fix, rather than a note. */
+  const startupWarns = $derived(!!startup.failure || startup.state === 'requiresApproval')
+  /** Where the user can approve, or remove what Baddel could not. */
+  const offersLoginItems = $derived(
+    startup.state === 'requiresApproval' ||
+      startup.failure?.problem === 'deniedByUser' ||
+      startup.failure?.problem === 'stillEnabled',
+  )
+
+  async function switchLaunchAtLogin(enabled: boolean) {
+    switching = true
+    try {
+      await setLaunchAtLogin(enabled)
+    } finally {
+      switching = false
+    }
+  }
 
   let version = $state('')
   $effect(() => {
@@ -43,6 +74,10 @@
       case 'installing':
         return t('settings.general.update.installing', { version: update.version ?? '' })
       case 'failed':
+        // A failed install names the version that did not install, and the one still running.
+        if (update.failure === 'download') return t('settings.general.update.downloadFailed', { version: update.version ?? '' })
+        if (update.failure === 'install') return t('settings.general.update.installFailed', { version: update.version ?? '', current: version })
+        if (update.failure === 'restore') return t('settings.general.update.restoreFailed', { current: version })
         return t('settings.general.update.failed', { version })
       default:
         return update.lastChecked
@@ -58,11 +93,21 @@
 {/if}
 
 <GroupCard title={t('settings.general.groups.startup')}>
-  <FormRow first icon="power" title={t('settings.general.launchAtLogin')}>
+  <FormRow
+    first
+    icon="power"
+    title={t('settings.general.launchAtLogin')}
+    description={startupLine}
+    tone={startupWarns ? 'warning' : 'default'}
+  >
+    {#if offersLoginItems}
+      <Button onclick={() => void openLoginItems()}>{t('settings.general.startup.openLoginItems')}</Button>
+    {/if}
     <Switch
-      checked={settings.launchAtLogin}
+      checked={launchesAtLogin}
+      disabled={switching}
       label={t('settings.general.launchAtLogin')}
-      onchange={(launchAtLogin) => save({ launchAtLogin })}
+      onchange={(enabled) => void switchLaunchAtLogin(enabled)}
     />
   </FormRow>
   <FormRow
@@ -128,7 +173,7 @@
     title={t('settings.general.autoCheckUpdates')}
     description={updateLine}
   >
-    {#if update.phase === 'available' || update.phase === 'installing'}
+    {#if update.phase === 'available' || update.phase === 'installing' || (update.phase === 'failed' && (update.failure === 'download' || update.failure === 'install'))}
       <Button variant="primary" loading={update.phase === 'installing'} onclick={() => void installUpdate()}>
         {t('settings.general.update.install')}
       </Button>

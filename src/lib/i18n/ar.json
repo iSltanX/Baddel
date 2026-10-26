@@ -64,7 +64,23 @@
         "available": "الإصدار {version} متاح",
         "installing": "جارٍ تثبيت الإصدار {version}…",
         "failed": "الإصدار {version} · تعذّر التحقق",
-        "install": "ثبّت التحديث"
+        "install": "ثبّت التحديث",
+        "installFailed": "تعذّر تثبيت الإصدار {version} — ما زال {current} مثبّتًا",
+        "downloadFailed": "تعذّر تنزيل الإصدار {version} — لم يتغيّر شيء",
+        "restoreFailed": "تعذّر التثبيت؛ نسخة من الإصدار {current} محفوظة في ~/Library/Application Support/com.isltanx.baddel/update/previous"
+      },
+      "startup": {
+        "requiresApproval": "ينتظر موافقتك في إعدادات النظام ← عام ← عناصر تسجيل الدخول",
+        "openLoginItems": "افتح عناصر تسجيل الدخول",
+        "legacyUnverified": "في LaunchAgents ملف باسم Baddel لم يكتبه بدّل، فتُرك كما هو",
+        "problem": {
+          "deniedByUser": "رفضه macOS — اسمح لبدّل في عناصر تسجيل الدخول",
+          "invalidSignature": "لم يقبل macOS توقيع بدّل، فلم يتغيّر شيء",
+          "temporaryLocation": "انقل بدّل إلى مجلد التطبيقات أولًا",
+          "stillEnabled": "ما زال بدّل في عناصر تسجيل الدخول — أزله من إعدادات النظام",
+          "legacyKept": "بقي تسجيل الإصدار السابق، وتُعاد المحاولة في التشغيل القادم",
+          "other": "تعذّر التغيير (الرمز {code})"
+        }
       }
     },
     "shortcuts": {
@@ -102,7 +118,10 @@
         "caption": "يستخدم تخطيطيك الفعليين والأمر نفسه الذي يحوّل في تطبيقاتك؛ لا يُحفظ شيء مما تكتبه هنا.",
         "label": "نص للتجربة",
         "result": "النتيجة"
-      }
+      },
+      "followMacos": "كما في macOS",
+      "notEnabled": "{name} — غير مفعّل",
+      "missing": "التخطيط المختار غير مفعّل في macOS، فيُستعمل {using} حتى يعود"
     },
     "exceptions": {
       "description": "لن يعمل بدّل داخل هذه التطبيقات، مثل مديري كلمات المرور والطرفيات.",
@@ -247,7 +266,9 @@
     "checkFailedTitle": "تعذّر التحقق من التحديثات",
     "installFailedTitle": "تعذّر تثبيت التحديث",
     "failedBody": "تحقّق من اتصالك بالإنترنت، ثم حاول مرة أخرى.",
-    "ok": "حسنًا"
+    "ok": "حسنًا",
+    "installFailedBody": "ما زال الإصدار السابق مثبّتًا ويعمل. حاول مرة أخرى لاحقًا.",
+    "restoreFailedBody": "تعذّر وضع أي إصدار في مكان بدّل. نسخة من الإصدار السابق محفوظة في ~/Library/Application Support/com.isltanx.baddel/update/previous."
   },
   "report": {
     "title": "أبلغ عن مشكلة",

@@ -6,12 +6,13 @@
  * Loaded only by a development build running outside Tauri — the production
  * bundle drops it, because `import.meta.env.DEV` is replaced with `false`.
  */
-import type { AppInfo, KeyboardMap, LayoutEntry, Settings } from './state.svelte'
+import type { AppInfo, KeyboardMap, LayoutEntry, Settings, StartupStatus } from './state.svelte'
 
 /**
  * Query parameters that pick a state to review: `lang=en`, `permission=missing`,
  * `move=1` (the welcome's "move to Applications" note), `report=fail|rate-limited|rejected`,
- * `update=available|checking|installing|failed`.
+ * `update=available|checking|installing|failed|install-failed`,
+ * `startup=enabled|requiresApproval|denied|unverified`, `layout=missing`.
  */
 const query = new URLSearchParams(location.search)
 
@@ -56,7 +57,23 @@ const keyboardMap: KeyboardMap = {
   arabicName: 'Arabic',
   latinName: 'ABC',
   hasMultiChar: ROWS.some((row) => row.some(([, arabic]) => arabic.length > 1)),
+  arabicChoice: { value: '', missing: false, using: 'Arabic' },
+  latinChoice: { value: '', missing: false, using: 'ABC' },
 }
+
+if (query.get('layout') === 'missing') {
+  settings.arabicLayout = 'com.apple.keylayout.ArabicQWERTY'
+  keyboardMap.arabicChoice = { value: settings.arabicLayout, missing: true, using: 'Arabic' }
+}
+
+/** Launch at login as the mock's macOS has it. */
+const startupStates: Record<string, StartupStatus> = {
+  enabled: { state: 'enabled', failure: null, legacy: null },
+  requiresApproval: { state: 'requiresApproval', failure: null, legacy: 'kept' },
+  denied: { state: 'disabled', failure: { problem: 'deniedByUser', code: 11 }, legacy: null },
+  unverified: { state: 'disabled', failure: null, legacy: 'unverified' },
+}
+let startup: StartupStatus = startupStates[query.get('startup') ?? ''] ?? { state: 'disabled', failure: null, legacy: null }
 
 const APPS: AppInfo[] = [
   { id: 'com.apple.Terminal', name: 'Terminal', icon: null },
@@ -157,6 +174,22 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
       if (field && !conflict) settings[field] = accelerator
       return answer({ settings: { ...settings }, conflict, conflictWith })
     }
+    case 'restore_default_shortcuts': {
+      // As if another app held the default convert shortcut: that row keeps its own.
+      const refused = query.get('restore') === 'refused' ? ['convert'] : []
+      if (refused.length === 0) settings.shortcutConvert = 'Alt+Shift+Space'
+      for (const field of ['shortcutUndo', 'shortcutPause', 'shortcutConvertLine', 'shortcutToArabic', 'shortcutToLatin'] as const) {
+        settings[field] = ''
+      }
+      return answer({ settings: { ...settings }, refused })
+    }
+    case 'startup_status':
+      return answer(startup)
+    case 'set_launch_at_login':
+      startup = { state: args?.enabled ? 'enabled' : 'disabled', failure: null, legacy: null }
+      return answer(startup)
+    case 'open_login_items':
+      return answer(undefined)
     case 'suspend_shortcuts':
       return answer(null)
     case 'permission_granted':
@@ -204,9 +237,11 @@ export function mockInvoke<T>(command: string, args?: Record<string, unknown>): 
     }
     // `?update=available` (or checking, installing, failed) reviews the other states.
     case 'update_status': {
-      const phase = query.get('update') ?? 'upToDate'
-      const version = phase === 'available' || phase === 'installing' ? '1.1.0' : null
-      return answer({ phase, version, lastChecked: Date.now() - 2 * 60 * 60 * 1000 })
+      const asked = query.get('update') ?? 'upToDate'
+      const phase = asked === 'install-failed' ? 'failed' : asked
+      const version = phase === 'available' || phase === 'installing' || asked === 'install-failed' ? '2.1.0' : null
+      const failure = asked === 'install-failed' ? 'install' : phase === 'failed' ? 'check' : null
+      return answer({ phase, version, failure, lastChecked: Date.now() - 2 * 60 * 60 * 1000 })
     }
     default:
       return answer(undefined)

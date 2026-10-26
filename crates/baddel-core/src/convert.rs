@@ -30,6 +30,7 @@ pub struct Conversion {
 /// Majority vote between Arabic and Latin letters.
 /// `None` when the text has neither (digits, Arabic or Latin, punctuation and whitespace only);
 /// a tie counts as Arabic, since Arabic text legitimately embeds Latin words more often than the reverse.
+/// Letters of other scripts (中文, Привет, שלום) belong to neither side and do not vote.
 ///
 /// Links, email addresses and file paths ([`is_protected`]) do not vote: a URL's dozen Latin
 /// letters would otherwise outvote the short Arabic-typed word beside it. [`LayoutMap::direction`]
@@ -48,7 +49,7 @@ fn vote(text: &str, skip: impl Fn(&str) -> bool) -> Option<Direction> {
         }
         if is_arabic(c) {
             arabic += 1;
-        } else {
+        } else if is_latin_letter(c) {
             latin += 1;
         }
     }
@@ -141,6 +142,36 @@ fn is_arabic_letter_or_mark(c: char) -> bool {
     matches!(c as u32, 0x0621..=0x063A | 0x0641..=0x065F | 0x0670 | 0xFEF5..=0xFEFC)
 }
 
+/// A letter of the Latin script: ASCII, and the accented letters of Latin-1 and the Latin
+/// Extended blocks (café, Ærø, Đặng). Not Greek, Cyrillic, Hebrew or CJK.
+fn is_latin_letter(c: char) -> bool {
+    c.is_alphabetic() && matches!(c as u32, 0x0041..=0x005A | 0x0061..=0x007A | 0x00C0..=0x024F | 0x1E00..=0x1EFF)
+}
+
+/// Whether `text`, converted to `direction`'s script, came out as words of that script and nothing
+/// else: every word at least two characters long, made of the script's letters (and, for Arabic,
+/// its marks, beside at least one letter), and not one character over and over. «[]» typed with
+/// ABC is «جد» on Arabic – PC and passes; «...» there is «ززز», a run of one key, and fails, as do
+/// «؟» or «١٢٣», which are no letters at all.
+fn reads_as_words(converted: &str, direction: Direction) -> bool {
+    type Test = fn(char) -> bool;
+    let (allowed, letter): (Test, Test) = match direction {
+        Direction::LatinToArabic => {
+            (is_arabic_letter_or_mark, |c| matches!(c as u32, 0x0621..=0x063A | 0x0641..=0x064A | 0xFEF5..=0xFEFC))
+        }
+        Direction::ArabicToLatin => (|c| c.is_ascii_alphabetic(), |c| c.is_ascii_alphabetic()),
+    };
+    let mut words = converted.split_whitespace().peekable();
+    words.peek().is_some()
+        && words.all(|word| {
+            let first = word.chars().next();
+            word.chars().count() >= 2
+                && word.chars().all(allowed)
+                && word.chars().any(letter)
+                && word.chars().any(|c| Some(c) != first)
+        })
+}
+
 impl LayoutMap {
     /// Detects the direction and converts. `None` when there is nothing to go on
     /// (no letters of either script) — the caller should leave the text alone.
@@ -149,10 +180,32 @@ impl LayoutMap {
         Some(Conversion { text: self.convert_as(text, direction), direction })
     }
 
+    /// [`convert`](Self::convert), for text typed with a known layout: `implied` is the direction
+    /// that layout implies (typed with the Latin one, Arabic was meant). See
+    /// [`direction_given`](Self::direction_given).
+    pub fn convert_given(&self, text: &str, implied: Direction) -> Option<Conversion> {
+        let direction = self.direction_given(text, implied)?;
+        Some(Conversion { text: self.convert_as(text, direction), direction })
+    }
+
     /// The majority vote of [`detect_direction`], with technical words left out as well as links:
     /// in «اثممخ iPhone» the five Arabic letters decide, not iPhone's six Latin ones.
     pub fn direction(&self, text: &str) -> Option<Direction> {
         vote(text, |word| self.keeps(word))
+    }
+
+    /// [`direction`](Self::direction) for text typed with a known layout. Letters decide whenever
+    /// there are any. Text without a letter of either script is converted only when the layout it
+    /// was typed with makes words of it: «[]» from ABC is «جد» on Arabic – PC, and «×،» from
+    /// Arabic – PC is «OK». The same keys are no guess on their own — `[` is «ج» from ABC and «F»
+    /// from Arabic – PC — so `implied` decides between them, never a vote. Punctuation, digits and
+    /// symbols that stay punctuation, digits and symbols (`?`, `...`, `123`, `١٢٣`) are left as
+    /// they are: `None`.
+    pub fn direction_given(&self, text: &str, implied: Direction) -> Option<Direction> {
+        if let Some(direction) = self.direction(text) {
+            return Some(direction);
+        }
+        reads_as_words(&self.convert_as(text, implied), implied).then_some(implied)
     }
 
     /// Converts in a known direction. Characters outside the map pass through unchanged, and so do

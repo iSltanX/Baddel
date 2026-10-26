@@ -1,0 +1,26 @@
+── legacy plist: removed; fake: {"status":"enabled"}
+── copies kept of the unreadable file:
+settings.unreadable-1793052009276.json
+{corrupted json
+── maintenance.json
+{
+  "at": 1793052009329,
+  "instance": "guarded",
+  "loginItem": {
+    "legacy": "Migrated",
+    "status": {
+      "failure": null,
+      "legacy": null,
+      "state": "enabled"
+    }
+  },
+  "settings": "Unreadable",
+  "staging": {
+    "failed": 0,
+    "removed": 0
+  },
+  "update": "Nothing",
+  "version": "2.0.2"
+}
+── debug stderr
+[baddel] at launch: login item StartupStatus { state: Enabled, failure: None, legacy: None } (Migrated); update Nothing; staging removed 0, failed 0

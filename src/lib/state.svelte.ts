@@ -49,11 +49,23 @@ export interface KeyboardKey {
   multi: boolean
 }
 
+/** One layout picker, as Rust settles it against what macOS has enabled. */
+export interface LayoutChoice {
+  /** The picker's value: the chosen layout's id, or '' for "as in macOS". */
+  value: string
+  /** The chosen layout is no longer enabled in macOS; `using` stands in for it. */
+  missing: boolean
+  /** The layout conversions use now. */
+  using: string | null
+}
+
 export interface KeyboardMap {
   rows: KeyboardKey[][]
   arabicName: string | null
   latinName: string | null
   hasMultiChar: boolean
+  arabicChoice: LayoutChoice
+  latinChoice: LayoutChoice
 }
 
 export interface AppInfo {
@@ -66,10 +78,24 @@ export type UpdatePhase = 'idle' | 'checking' | 'upToDate' | 'available' | 'inst
 
 export interface UpdateStatus {
   phase: UpdatePhase
-  /** The version on offer, while available or installing. */
+  /** The version on offer, while available or installing; with `failed`, the one that did not install. */
   version: string | null
+  /** With `failed`: what failed. */
+  failure: 'check' | 'download' | 'install' | 'restore' | null
   /** Milliseconds since the Unix epoch. */
   lastChecked: number | null
+}
+
+/** Launch at login as macOS reports it (`startup.rs`), not as last saved. */
+export interface StartupStatus {
+  state: 'enabled' | 'disabled' | 'requiresApproval'
+  /** Why the last change did not go through. */
+  failure: {
+    problem: 'deniedByUser' | 'invalidSignature' | 'temporaryLocation' | 'stillEnabled' | 'legacyKept' | 'other'
+    code: number | null
+  } | null
+  /** An older Baddel's LaunchAgent: kept until the login item is confirmed, or not Baddel's. */
+  legacy: 'kept' | 'unverified' | null
 }
 
 /** The problem types of the report window, as `report.rs` names them. */
@@ -133,7 +159,8 @@ let invoke: <T>(command: string, args?: Record<string, unknown>) => Promise<T> =
 export const app = $state({
   settings: null as Settings | null,
   permission: false,
-  update: { phase: 'idle', version: null, lastChecked: null } as UpdateStatus,
+  update: { phase: 'idle', version: null, failure: null, lastChecked: null } as UpdateStatus,
+  startup: { state: 'disabled', failure: null, legacy: null } as StartupStatus,
 })
 
 /**
@@ -154,6 +181,7 @@ export async function start(): Promise<void> {
   app.settings = await invoke<Settings>('get_settings')
   app.permission = await invoke<boolean>('permission_granted')
   app.update = await invoke<UpdateStatus>('update_status')
+  app.startup = await invoke<StartupStatus>('startup_status')
   if (!('__TAURI_INTERNALS__' in window)) return
   await listen<Settings>('settings', (event) => {
     app.settings = event.payload
@@ -163,6 +191,13 @@ export async function start(): Promise<void> {
   })
   await listen<UpdateStatus>('update', (event) => {
     app.update = event.payload
+  })
+  await listen<StartupStatus>('startup', (event) => {
+    app.startup = event.payload
+  })
+  // Back from System Settings, where the login item can be switched off or approved: read macOS again.
+  await getCurrentWindow().onFocusChanged(async ({ payload: focused }) => {
+    if (focused) app.startup = await invoke<StartupStatus>('startup_status')
   })
 }
 
@@ -206,6 +241,23 @@ export async function setShortcut(binding: Binding, accelerator: string): Promis
   app.settings = result.settings
   return result.conflict ? { with: result.conflictWith } : null
 }
+
+/**
+ * Every command back to its default shortcut, in one step in Rust. Returns the commands whose
+ * default macOS refused: each kept the shortcut it had.
+ */
+export async function restoreDefaultShortcuts(): Promise<Binding[]> {
+  const result = await invoke<{ settings: Settings; refused: Binding[] }>('restore_default_shortcuts')
+  app.settings = result.settings
+  return result.refused
+}
+
+/** The launch-at-login switch: answers with what macOS then reports. */
+export async function setLaunchAtLogin(enabled: boolean): Promise<void> {
+  app.startup = await invoke<StartupStatus>('set_launch_at_login', { enabled })
+}
+
+export const openLoginItems = () => invoke<void>('open_login_items')
 
 /** Lets Baddel's own shortcuts go while the recorder listens, so they reach it; `false` rebinds. */
 export const suspendShortcuts = (suspended: boolean) => invoke<void>('suspend_shortcuts', { suspended })

@@ -215,6 +215,75 @@ fn convert_leaves_letterless_text_alone() {
     assert!(mac().convert("").is_none());
 }
 
+/// GEMINI-002: letters of other scripts are neither Arabic nor Latin, and do not vote.
+#[test]
+fn letters_of_other_scripts_do_not_vote_as_latin() {
+    for text in ["中文", "こんにちは", "Привет", "שלום", "αβγ", "中文こんにちはПривет"] {
+        assert_eq!(detect_direction(text), None, "{text:?}");
+        assert!(mac().convert(text).is_none(), "{text:?}");
+    }
+    // Seven CJK characters beside five wrongly typed Arabic letters: the Arabic decides, and the
+    // rest of the text is left exactly as it was.
+    for map in [mac(), pc()] {
+        assert_eq!(map.convert("اثممخ 中文こんにちは").map(|c| c.text), Some("hello 中文こんにちは".into()));
+        assert_eq!(map.convert("sghl Привет").map(|c| c.text), Some("سلام Привет".into()));
+    }
+    // Accented Latin is still Latin.
+    for text in ["café", "Ærø", "Đặng"] {
+        assert_eq!(detect_direction(text), Some(Direction::LatinToArabic), "{text:?}");
+    }
+}
+
+/// GEMINI-001: a word typed entirely on keys that are punctuation on one layout and letters on the
+/// other has no letter to vote with; the layout it was typed with decides.
+#[test]
+fn a_word_typed_on_punctuation_keys_converts_by_the_layout_it_was_typed_with() {
+    let typed_on_abc = Direction::LatinToArabic;
+    let typed_on_arabic = Direction::ArabicToLatin;
+    let given = |map: &LayoutMap, text: &str, implied| map.convert_given(text, implied).map(|c| c.text);
+    assert_eq!(given(&pc(), "[]", typed_on_abc), Some("جد".into()));
+    assert_eq!(given(&pc(), ",]", typed_on_abc), Some("ود".into()));
+    assert_eq!(given(&pc(), ";'", typed_on_abc), Some("كط".into()));
+    assert_eq!(given(&pc(), "],]", typed_on_abc), Some("دود".into()));
+    assert_eq!(given(&pc(), "[] ;'", typed_on_abc), Some("جد كط".into()));
+    assert_eq!(given(&mac(), "[]", typed_on_abc), Some("جة".into()));
+    assert_eq!(given(&pc(), "×،", typed_on_arabic), Some("OK".into()));
+    assert_eq!(given(&pc(), "÷]", typed_on_arabic), Some("ID".into()));
+    assert_eq!(given(&pc(), "؛][", typed_on_arabic), Some("PDF".into()));
+}
+
+/// GEMINI-001: the same keys are no guess without the layout — `[` is «ج» from ABC and «F» from
+/// Arabic – PC — so the context-free vote stays `None`, and the layout picks the reading.
+#[test]
+fn ambiguous_keys_follow_the_layout_not_a_guess() {
+    assert_eq!(pc().direction("[]"), None);
+    assert!(pc().convert("[]").is_none());
+    assert_eq!(pc().convert_given("[]", Direction::ArabicToLatin).map(|c| c.text), Some("FD".into()));
+    assert_eq!(pc().convert_given("[]", Direction::LatinToArabic).map(|c| c.text), Some("جد".into()));
+    // With letters in the text, the letters decide whatever the layout.
+    assert_eq!(pc().direction_given("sghl", Direction::ArabicToLatin), Some(Direction::LatinToArabic));
+    assert_eq!(pc().direction_given("اثممخ", Direction::LatinToArabic), Some(Direction::ArabicToLatin));
+}
+
+/// GEMINI-001: punctuation, digits and symbols that stay punctuation, digits and symbols on the
+/// other layout are left exactly as typed, from either layout. Before, the hotkey turned `123` into
+/// `١٢٣`, `?` into `؟`, and (Arabic – PC) `...` into `ززز`.
+#[test]
+fn punctuation_that_stays_punctuation_is_left_alone() {
+    for map in [mac(), pc()] {
+        for implied in [Direction::LatinToArabic, Direction::ArabicToLatin] {
+            for text in ["?", "!?", "...", "..", "123", "١٢٣", "؟؟", ",", ",,", "-", ":)", "1. 2.", "  ", ""] {
+                assert_eq!(map.direction_given(text, implied), None, "{text:?} {implied:?}");
+                assert!(map.convert_given(text, implied).is_none(), "{text:?} {implied:?}");
+            }
+            // A word the keys make letters of, beside punctuation that stays punctuation: not words.
+            assert_eq!(map.direction_given("[] ?", implied), None);
+            // Other scripts are not letters of either side, wherever they were typed.
+            assert_eq!(map.direction_given("中文", implied), None);
+        }
+    }
+}
+
 #[test]
 fn reversed_direction() {
     assert_eq!(Direction::ArabicToLatin.reversed(), Direction::LatinToArabic);

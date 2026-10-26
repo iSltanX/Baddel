@@ -1,0 +1,18 @@
+{"event":"found","pid":44576,"t_ms":155}
+{"active":false,"front":887,"ordinary":0,"policy":1,"t_ms":201,"windows":0}
+{"active":false,"front":44576,"ordinary":0,"policy":1,"t_ms":927,"windows":0}
+{"active":true,"front":44576,"ordinary":0,"policy":1,"t_ms":934,"windows":0}
+{"active":true,"front":44576,"ordinary":0,"policy":1,"t_ms":953,"windows":1}
+{"active":true,"front":887,"ordinary":0,"policy":1,"t_ms":1040,"windows":1}
+{"active":false,"front":887,"ordinary":0,"policy":1,"t_ms":1049,"windows":1}
+{"active":false,"front":887,"ordinary":0,"policy":1,"t_ms":4319,"windows":0}
+{"active_samples":13,"event":"summary","max_gap_ms":44,"max_ordinary_windows":0,"median_gap_ms":8,"pid":44576,"regular_samples":0,"samples":663}
+── lsappinfo
+[ NULL ]  ASN:0x0-0x215215: 
+    bundleID=[ NULL ] 
+    bundle path=[ NULL ] 
+    executable path=[ NULL ] 
+ !cgsConnection !signalled type="UIElement" flavor=[ NULL ]  Version=[ NULL ]  Arch=!!none 
+
+── debug stderr
+[baddel] at launch: login item StartupStatus { state: Disabled, failure: None, legacy: None } (None); update Nothing; staging removed 0, failed 0

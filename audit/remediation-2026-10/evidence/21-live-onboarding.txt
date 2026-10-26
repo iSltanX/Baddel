@@ -1,0 +1,13 @@
+{"event":"found","pid":44617,"t_ms":43}
+{"active":false,"front":887,"ordinary":0,"policy":1,"t_ms":84,"windows":0}
+{"active":true,"front":44617,"ordinary":0,"policy":1,"t_ms":212,"windows":0}
+{"active":true,"front":44617,"ordinary":0,"policy":1,"t_ms":455,"windows":1}
+{"active":true,"front":887,"ordinary":0,"policy":1,"t_ms":479,"windows":1}
+{"active":false,"front":887,"ordinary":0,"policy":1,"t_ms":489,"windows":1}
+{"active":true,"front":44617,"ordinary":0,"policy":1,"t_ms":3097,"windows":1}
+{"active":true,"front":44617,"ordinary":1,"policy":1,"t_ms":3113,"windows":2}
+{"active":true,"front":44617,"ordinary":1,"policy":1,"t_ms":3744,"windows":1}
+{"active":true,"front":6128,"ordinary":1,"policy":1,"t_ms":8004,"windows":1}
+{"active_samples":537,"event":"summary","max_gap_ms":46,"max_ordinary_windows":1,"median_gap_ms":8,"pid":44617,"regular_samples":0,"samples":826}
+── debug stderr
+[baddel] at launch: login item StartupStatus { state: Disabled, failure: None, legacy: None } (None); update Nothing; staging removed 0, failed 0

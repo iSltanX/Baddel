@@ -3,17 +3,18 @@
 //! The pages hold no state and no logic: they render what these commands return
 //! and call back when the user changes something.
 
-use baddel_core::{Layer, LayoutProvider};
+use baddel_core::{Direction, Layer, LayoutProvider};
 use serde::Serialize;
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::controller;
 use crate::report::{self, Draft, DraftError, ReportState, SendError};
 use crate::settings::{self, AppState, Binding, Settings};
+use crate::startup::{StartupStatus, Startup};
 use crate::sys::app_icons::AppInfo;
 use crate::sys::image::{self, ImageError};
-use crate::sys::{app_icons, chrome, input_source, on_main, pasteboard, permissions};
+use crate::sys::{app_icons, chrome, input_source, login_item, on_main, pasteboard, permissions};
 use crate::{diagnostics, hud, shortcuts, sync, updater, windows};
 
 /// The three letter rows of a Mac keyboard, by virtual keycode. The keyboard is a
@@ -46,11 +47,10 @@ pub fn set_settings(app: AppHandle, patch: serde_json::Value) -> Result<Settings
 }
 
 /// The fields `set_settings` changes: the settings window's switches and pickers. The rest have
-/// commands that check them (shortcuts, exceptions) or are Baddel's own (pause, update check).
-const PATCHABLE: [&str; 9] = [
-    "launchAtLogin", "showTrayIcon", "language", "switchInputSource", "showHud", "sound", "autoUpdate",
-    "arabicLayout", "latinLayout",
-];
+/// commands that check them (shortcuts, exceptions, the login item) or are Baddel's own (pause,
+/// update check).
+const PATCHABLE: [&str; 8] =
+    ["showTrayIcon", "language", "switchInputSource", "showHud", "sound", "autoUpdate", "arabicLayout", "latinLayout"];
 
 /// `current` with `patch` merged in.
 fn patched(current: &Settings, patch: &serde_json::Value) -> Result<Settings, String> {
@@ -61,6 +61,30 @@ fn patched(current: &Settings, patch: &serde_json::Value) -> Result<Settings, St
     let mut merged = serde_json::to_value(current).map_err(|e| e.to_string())?;
     merged.as_object_mut().ok_or("settings are not an object")?.extend(patch.clone());
     serde_json::from_value(merged).map_err(|e| e.to_string())
+}
+
+// ── Launch at login ──────────────────────────────────────────────────────────
+
+/// What the switch shows: macOS's own answer, read now (see [`crate::startup`]).
+#[tauri::command]
+pub fn startup_status(state: tauri::State<'_, Startup>) -> StartupStatus {
+    state.status()
+}
+
+/// The switch. Answers with what macOS then reports, and remembers that as the preference.
+#[tauri::command]
+pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> StartupStatus {
+    let startup = app.state::<Startup>();
+    let status = startup.set_enabled(enabled);
+    sync::remember_launch_at_login(&app, startup.preference());
+    let _ = app.emit("startup", &status);
+    status
+}
+
+/// System Settings › General › Login Items, where a login item waiting for approval is allowed.
+#[tauri::command]
+pub fn open_login_items() {
+    login_item::open_settings();
 }
 
 #[derive(Serialize)]
@@ -111,6 +135,49 @@ pub fn set_shortcut(app: AppHandle, binding: Binding, accelerator: String) -> Sh
     ShortcutResult { settings: next, conflict: false, conflict_with: None }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreResult {
+    pub settings: Settings,
+    /// The commands whose default macOS would not give: each kept the shortcut it had.
+    pub refused: Vec<Binding>,
+}
+
+/// "Restore Defaults": every command to its default shortcut at once (GEMINI-005). A default that
+/// macOS refuses — another app holds it — leaves that command with the shortcut it had, never
+/// with none, and is named in the answer for the row to say so.
+#[tauri::command]
+pub fn restore_default_shortcuts(app: AppHandle) -> RestoreResult {
+    let previous = app.state::<AppState>().get();
+    let defaults = settings::update(&app, |s| *s = with_default_shortcuts(s));
+    let refused = sync::apply(&app, &previous, &defaults);
+    if refused.is_empty() {
+        return RestoreResult { settings: defaults, refused };
+    }
+    let kept = settings::update(&app, |s| *s = keeping(s, &previous, &refused));
+    sync::apply(&app, &defaults, &kept);
+    RestoreResult { settings: kept, refused }
+}
+
+/// `current` with every command at its default shortcut.
+fn with_default_shortcuts(current: &Settings) -> Settings {
+    let defaults = Settings::default();
+    let mut next = current.clone();
+    for binding in Binding::ALL {
+        next.set_binding(binding, defaults.binding(binding).to_string());
+    }
+    next
+}
+
+/// `current`, with the `refused` commands back on the shortcuts they had in `previous`.
+fn keeping(current: &Settings, previous: &Settings, refused: &[Binding]) -> Settings {
+    let mut next = current.clone();
+    for &binding in refused {
+        next.set_binding(binding, previous.binding(binding).to_string());
+    }
+    next
+}
+
 // ── Permission ───────────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -157,6 +224,29 @@ pub struct KeyboardMap {
     /// highlight on that key, appear only when it does — the stock macOS "Arabic"
     /// layout has none.
     pub has_multi_char: bool,
+    /// What each picker shows (GEMINI-004).
+    pub arabic_choice: Choice,
+    pub latin_choice: Choice,
+}
+
+/// One layout picker: the choice saved, as it stands against what macOS has enabled now.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Choice {
+    /// The picker's value: the chosen layout's id, or empty for "as in macOS".
+    pub value: String,
+    /// The chosen layout is no longer enabled in macOS: conversions use `using` meanwhile, and
+    /// the choice is kept for when it comes back.
+    pub missing: bool,
+    /// The name of the layout conversions use now.
+    pub using: Option<String>,
+}
+
+/// How a saved layout choice stands: `enabled` are the ids macOS has enabled for that script, and
+/// `used` the name of the layout the conversion actually uses.
+fn choice(saved: &str, enabled: &[&str], used: Option<String>) -> Choice {
+    let missing = !saved.is_empty() && !enabled.contains(&saved);
+    Choice { value: saved.to_string(), missing, using: used }
 }
 
 /// The key map as the two live layouts actually define it. Nothing here is
@@ -170,10 +260,15 @@ pub fn keyboard_map(app: AppHandle) -> KeyboardMap {
     else {
         return KeyboardMap::default();
     };
-    let (Some(arabic), Some(latin)) = (&snapshot.arabic, &snapshot.latin) else {
-        return KeyboardMap::default();
-    };
     let name_of = |id: &str| names.iter().find(|e| e.id == id).map(|e| e.name.clone());
+    let enabled = |arabic: bool| names.iter().filter(|e| e.arabic == arabic).map(|e| e.id.as_str()).collect::<Vec<_>>();
+    let arabic_choice =
+        choice(&settings.arabic_layout, &enabled(true), snapshot.arabic.as_ref().and_then(|l| name_of(&l.id)));
+    let latin_choice =
+        choice(&settings.latin_layout, &enabled(false), snapshot.latin.as_ref().and_then(|l| name_of(&l.id)));
+    let (Some(arabic), Some(latin)) = (&snapshot.arabic, &snapshot.latin) else {
+        return KeyboardMap { arabic_choice, latin_choice, ..KeyboardMap::default() };
+    };
 
     let mut rows = Vec::with_capacity(MAP_ROWS.len());
     let mut has_multi_char = false;
@@ -193,7 +288,14 @@ pub fn keyboard_map(app: AppHandle) -> KeyboardMap {
                 .collect(),
         );
     }
-    KeyboardMap { rows, arabic_name: name_of(&arabic.id), latin_name: name_of(&latin.id), has_multi_char }
+    KeyboardMap {
+        rows,
+        arabic_name: name_of(&arabic.id),
+        latin_name: name_of(&latin.id),
+        has_multi_char,
+        arabic_choice,
+        latin_choice,
+    }
 }
 
 /// Converts `text` the way the shortcut would, without touching any other app.
@@ -207,7 +309,9 @@ pub fn convert_text(app: AppHandle, text: String) -> Option<String> {
     let settings = app.state::<AppState>().get();
     let (arabic, latin) = (settings.arabic_layout.clone(), settings.latin_layout.clone());
     let snapshot = on_main(&app, move || input_source::snapshot(&arabic, &latin))?;
-    controller::build_map(&snapshot).convert(&text).map(|converted| converted.text)
+    // As the shortcut does: the layout active while typing it decides text that has no letters.
+    let implied = if snapshot.current_is_arabic { Direction::ArabicToLatin } else { Direction::LatinToArabic };
+    controller::build_map(&snapshot).convert_given(&text, implied).map(|converted| converted.text)
 }
 
 // ── Exceptions ───────────────────────────────────────────────────────────────
@@ -275,9 +379,10 @@ pub fn check_for_updates(app: AppHandle) {
     updater::check_in_background(&app, updater::Trigger::Settings);
 }
 
+/// The Settings button. A failure shows in the row, as the `update` event; no dialog.
 #[tauri::command]
 pub fn install_update(app: AppHandle) {
-    updater::install_in_background(&app);
+    updater::install_in_background(&app, updater::Trigger::Settings);
 }
 
 // ── Diagnostics and problem reports ──────────────────────────────────────────
@@ -568,11 +673,43 @@ mod tests {
         assert!(next.sound);
         assert_eq!(next.excluded_apps, current.excluded_apps);
         // BAD-303: shortcuts go through set_shortcut, which checks them; the rest have their own.
-        for field in ["shortcutConvert", "excludedApps", "paused", "welcomed", "lastUpdateCheck"] {
+        // Launch at login goes through the login item, whose answer decides it.
+        for field in ["shortcutConvert", "excludedApps", "paused", "welcomed", "lastUpdateCheck", "launchAtLogin"] {
             assert!(patched(&current, &serde_json::json!({ field: serde_json::Value::Null })).is_err(), "{field}");
         }
         assert!(patched(&current, &serde_json::json!(["sound"])).is_err());
         assert!(patched(&current, &serde_json::json!({ "sound": "yes" })).is_err());
+    }
+
+    #[test]
+    fn restoring_defaults_never_leaves_a_command_without_the_shortcut_it_had() {
+        // GEMINI-005: the convert shortcut had been moved off its default because another app
+        // holds Alt+Shift+Space; Restore Defaults cleared it, then failed to bind the default.
+        let mut previous = Settings::default();
+        previous.set_binding(Binding::Convert, "Control+Alt+Space".into());
+        previous.set_binding(Binding::Undo, "Alt+Shift+U".into());
+        let defaults = with_default_shortcuts(&previous);
+        assert_eq!(defaults.binding(Binding::Convert), settings::DEFAULT_SHORTCUT);
+        assert_eq!(defaults.binding(Binding::Undo), "");
+        // macOS refused the default: convert keeps what it had; undo's default (none) took.
+        let kept = keeping(&defaults, &previous, &[Binding::Convert]);
+        assert_eq!(kept.binding(Binding::Convert), "Control+Alt+Space");
+        assert_eq!(kept.binding(Binding::Undo), "");
+        // Nothing else about the settings changes.
+        assert_eq!(kept.excluded_apps, previous.excluded_apps);
+        assert_eq!(keeping(&defaults, &previous, &[]).binding(Binding::Convert), settings::DEFAULT_SHORTCUT);
+    }
+
+    #[test]
+    fn a_saved_layout_macos_no_longer_has_is_shown_as_missing_not_as_nothing() {
+        // GEMINI-004: chosen, then disabled in System Settings › Keyboard.
+        let enabled = ["com.apple.keylayout.Arabic"];
+        let gone = choice("com.apple.keylayout.ArabicPC", &enabled, Some("Arabic".into()));
+        assert_eq!(gone, Choice { value: "com.apple.keylayout.ArabicPC".into(), missing: true, using: Some("Arabic".into()) });
+        // Following macOS, and a choice still enabled, are no such thing.
+        assert!(!choice("", &enabled, Some("Arabic".into())).missing);
+        assert_eq!(choice("", &enabled, None).value, "");
+        assert!(!choice("com.apple.keylayout.Arabic", &enabled, Some("Arabic".into())).missing);
     }
 
     #[test]

@@ -9,11 +9,9 @@
 # Anything else the run opened (a note, a draft, an app) is closed by hand: see docs/test-matrix.md.
 set -uo pipefail
 
-osascript -e 'tell application "Safari" to repeat with w in (every window)
-  close (every tab of w whose URL contains "device-test/page.html")
-end repeat' >/dev/null 2>&1
-for browser in "Google Chrome" "Brave Browser"; do
-  osascript -e "tell application \"$browser\" to repeat with w in (every window)
+# Only browsers already running: `tell application` would otherwise launch one.
+for browser in "Safari" "Google Chrome" "Brave Browser"; do
+  osascript -e "if application \"$browser\" is running then tell application \"$browser\" to repeat with w in (every window)
   close (every tab of w whose URL contains \"device-test/page.html\")
 end repeat" >/dev/null 2>&1
 done

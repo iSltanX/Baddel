@@ -1,0 +1,8 @@
+── running: 1
+[baddel] another Baddel runs; request handed over: true
+[baddel] another Baddel runs; request handed over: true
+[baddel] another Baddel runs; request handed over: true
+── windows on screen of the owner
+{"active_samples":0,"event":"summary","max_gap_ms":30,"max_ordinary_windows":0,"median_gap_ms":7,"pid":44829,"regular_samples":0,"samples":123}
+./audit/remediation-2026-10/tools/live-checks.sh: line 185: 44829 Terminated: 15          HOME="$H" TMPDIR="$T/" BADDEL_LOGIN_ITEM_FAKE="$FAKE" XPC_SERVICE_NAME=Baddel "$EXE" > "$WORK/race/launch-$i.log" 2>&1
+── debug stderr

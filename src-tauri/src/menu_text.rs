@@ -72,6 +72,10 @@ pub struct Strings {
     pub check_failed_title: &'static str,
     pub install_failed_title: &'static str,
     pub update_failed_body: &'static str,
+    /// The swap failed and the previous version is back (or never left).
+    pub install_failed_body: &'static str,
+    /// Neither version could be put in place: where the copy of the previous one is.
+    pub restore_failed_body: &'static str,
     pub ok: &'static str,
 }
 
@@ -128,6 +132,8 @@ const AR: Strings = Strings {
     check_failed_title: "تعذّر التحقق من التحديثات",
     install_failed_title: "تعذّر تثبيت التحديث",
     update_failed_body: "تحقّق من اتصالك بالإنترنت، ثم حاول مرة أخرى.",
+    install_failed_body: "ما زال الإصدار السابق مثبّتًا ويعمل. حاول مرة أخرى لاحقًا.",
+    restore_failed_body: "تعذّر وضع أي إصدار في مكان بدّل. نسخة من الإصدار السابق محفوظة في ~/Library/Application Support/com.isltanx.baddel/update/previous.",
     ok: "حسنًا",
 };
 
@@ -184,6 +190,8 @@ const EN: Strings = Strings {
     check_failed_title: "Couldn’t Check for Updates",
     install_failed_title: "Couldn’t Install the Update",
     update_failed_body: "Check your internet connection, then try again.",
+    install_failed_body: "The previous version is still installed and running. Try again later.",
+    restore_failed_body: "No version of Baddel could be put in its place. A copy of the previous version is kept in ~/Library/Application Support/com.isltanx.baddel/update/previous.",
     ok: "OK",
 };
 
@@ -278,6 +286,8 @@ mod tests {
                 ("updateDialog.checkFailedTitle", s.check_failed_title),
                 ("updateDialog.installFailedTitle", s.install_failed_title),
                 ("updateDialog.failedBody", s.update_failed_body),
+                ("updateDialog.installFailedBody", s.install_failed_body),
+                ("updateDialog.restoreFailedBody", s.restore_failed_body),
                 ("updateDialog.ok", s.ok),
             ];
             for (path, rust) in pairs {

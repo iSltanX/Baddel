@@ -80,13 +80,18 @@ pub struct LastConversion {
 pub fn build(app: &AppHandle) -> tauri::Result<TrayIcon> {
     let glyph = current_glyph(app);
     app.state::<TrayState>().glyph.store(glyph as u8, Ordering::SeqCst);
+    let settings = app.state::<AppState>().get();
     let tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(Image::from_bytes(glyph.bytes())?)
         .icon_as_template(true)
-        .tooltip(menu_text::strings(app.state::<AppState>().get().language).name)
+        .tooltip(menu_text::strings(settings.language).name)
         .menu(&menu(app)?)
         .on_menu_event(on_event)
         .build(app)?;
+    // Hidden from the start when the user hid it, as every later redraw keeps it (GEMINI-006). The
+    // way back is opening Baddel again, which shows Settings; a missing permission is said there
+    // and by the notice at the shortcut.
+    tray.set_visible(settings.show_tray_icon)?;
     Ok(tray)
 }
 
@@ -121,7 +126,10 @@ pub fn rebuild(app: &AppHandle) {
                 let _ = tray.set_icon_as_template(true);
             }
         }
-        let _ = tray.set_visible(handle.state::<AppState>().get().show_tray_icon);
+        let settings = handle.state::<AppState>().get();
+        // The tooltip speaks the interface language too, switched while running (GEMINI-006).
+        let _ = tray.set_tooltip(Some(menu_text::strings(settings.language).name));
+        let _ = tray.set_visible(settings.show_tray_icon);
     });
 }
 
@@ -286,7 +294,7 @@ fn on_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
             let _ = windows::open_report(app);
         }
         "updates" => updater::check_in_background(app, updater::Trigger::Menu),
-        "install-update" => updater::install_in_background(app),
+        "install-update" => updater::install_in_background(app, updater::Trigger::Menu),
         _ => {}
     }
 }

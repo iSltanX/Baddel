@@ -70,6 +70,72 @@ pub fn reveal_in_finder(path: &Path) {
     let _ = Command::new("/usr/bin/open").arg("-R").arg(path).spawn();
 }
 
+/// This user's own temporary folder (`/var/folders/…/T/`, readable by them alone), as the system
+/// knows it — not `$TMPDIR`, which the process may have been given otherwise.
+pub fn user_temp_dir() -> Option<PathBuf> {
+    extern "C" {
+        fn confstr(name: i32, buf: *mut std::ffi::c_char, len: usize) -> usize;
+    }
+    /// `_CS_DARWIN_USER_TEMP_DIR`.
+    const USER_TEMP_DIR: i32 = 65537;
+    let mut buf = vec![0u8; 1024];
+    // SAFETY: the buffer is writable for its whole length; confstr NUL-terminates within it.
+    let len = unsafe { confstr(USER_TEMP_DIR, buf.as_mut_ptr().cast(), buf.len()) };
+    if len == 0 || len > buf.len() {
+        return None;
+    }
+    buf.truncate(len - 1);
+    String::from_utf8(buf).ok().map(PathBuf::from)
+}
+
+/// The user this process runs as, for launchd's `gui/<uid>` domain.
+pub fn uid() -> u32 {
+    extern "C" {
+        fn getuid() -> u32;
+    }
+    // SAFETY: no preconditions, cannot fail.
+    unsafe { getuid() }
+}
+
+/// One key of a bundle's `Contents/Info.plist`, read from disk each time (an `NSBundle` would
+/// answer from its cache, which an update has replaced the bundle under).
+pub fn bundle_value(bundle: &Path, key: &str) -> Option<String> {
+    let output = Command::new("/usr/bin/plutil")
+        .args(["-extract", key, "raw", "-o", "-"])
+        .arg(bundle.join("Contents/Info.plist"))
+        .output()
+        .ok()?;
+    let value = String::from_utf8(output.stdout).ok()?;
+    (output.status.success() && !value.trim().is_empty()).then(|| value.trim().to_string())
+}
+
+/// Whether macOS opened Baddel as a login item, from the open-application event it sent: only
+/// meaningful while that event is being handled, which is during setup. **Main thread.**
+pub fn launched_as_login_item() -> bool {
+    use objc2_foundation::NSAppleEventManager;
+    /// `kAEOpenApplication`, `keyAEPropData` and `keyAELaunchedAsLogInItem` (four-char codes).
+    const OPEN_APPLICATION: u32 = u32::from_be_bytes(*b"oapp");
+    const PROP_DATA: u32 = u32::from_be_bytes(*b"prdt");
+    const AS_LOGIN_ITEM: u32 = u32::from_be_bytes(*b"lgit");
+    use objc2::msg_send;
+    use objc2::rc::Retained;
+    use objc2_foundation::NSAppleEventDescriptor;
+    let Some(event) = NSAppleEventManager::sharedAppleEventManager().currentAppleEvent() else { return false };
+    // Sent directly: objc2-foundation types these through a crate Baddel does not otherwise need.
+    // SAFETY: `eventID` returns a FourCharCode (UInt32) of a live descriptor.
+    let id: u32 = unsafe { msg_send![&*event, eventID] };
+    if id != OPEN_APPLICATION {
+        return false;
+    }
+    // SAFETY: a keyword lookup (AEKeyword is a UInt32) that returns a descriptor or nil.
+    let property: Option<Retained<NSAppleEventDescriptor>> = unsafe { msg_send![&*event, paramDescriptorForKeyword: PROP_DATA] };
+    property.is_some_and(|p| {
+        // SAFETY: `enumCodeValue` returns an OSType (UInt32).
+        let code: u32 = unsafe { msg_send![&*p, enumCodeValue] };
+        code == AS_LOGIN_ITEM
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

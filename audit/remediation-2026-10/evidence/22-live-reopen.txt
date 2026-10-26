@@ -1,0 +1,18 @@
+{"event":"found","pid":44700,"t_ms":66}
+{"active":false,"front":6128,"ordinary":0,"policy":1,"t_ms":119,"windows":0}
+{"active":true,"front":44700,"ordinary":0,"policy":1,"t_ms":177,"windows":0}
+{"active":true,"front":44700,"ordinary":0,"policy":1,"t_ms":197,"windows":1}
+{"active":true,"front":6128,"ordinary":0,"policy":1,"t_ms":288,"windows":1}
+{"active":false,"front":6128,"ordinary":0,"policy":1,"t_ms":295,"windows":1}
+── second launch (the executable itself, by hand)
+[baddel] another Baddel runs; request handed over: true
+── running after the second launch: 1 (owner 44700, now 44700 )
+{"active":true,"front":44700,"ordinary":0,"policy":1,"t_ms":3336,"windows":1}
+{"active":true,"front":44700,"ordinary":1,"policy":1,"t_ms":3362,"windows":2}
+{"active":true,"front":44700,"ordinary":1,"policy":1,"t_ms":3580,"windows":1}
+{"active":false,"front":6128,"ordinary":1,"policy":1,"t_ms":4220,"windows":1}
+{"active":false,"front":6128,"ordinary":0,"policy":1,"t_ms":11463,"windows":0}
+{"active":false,"front":2104,"ordinary":0,"policy":1,"t_ms":14493,"windows":0}
+{"active_samples":123,"event":"summary","max_gap_ms":48,"max_ordinary_windows":1,"median_gap_ms":7,"pid":44700,"regular_samples":0,"samples":2006}
+── debug stderr
+[baddel] at launch: login item StartupStatus { state: Disabled, failure: None, legacy: None } (None); update Nothing; staging removed 0, failed 0

@@ -6,7 +6,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_autostart::ManagerExt;
 
 use crate::settings::{AppState, Binding, Settings};
 use crate::sys::clock;
@@ -27,10 +26,6 @@ pub fn apply(app: &AppHandle, previous: &Settings, next: &Settings) -> Vec<Bindi
     if previous.paused != next.paused || previous.paused_until != next.paused_until {
         PAUSE_EPOCH.fetch_add(1, Ordering::SeqCst);
     }
-    if previous.launch_at_login != next.launch_at_login {
-        let autostart = app.autolaunch();
-        let _ = if next.launch_at_login { autostart.enable() } else { autostart.disable() };
-    }
 
     let rebind = Binding::ALL.iter().any(|&b| previous.binding(b) != next.binding(b));
     let refused = if rebind { shortcuts::apply(app, next) } else { Vec::new() };
@@ -38,6 +33,18 @@ pub fn apply(app: &AppHandle, previous: &Settings, next: &Settings) -> Vec<Bindi
     tray::rebuild(app);
     let _ = app.emit("settings", next);
     refused
+}
+
+/// Keeps the launch-at-login preference in step with the login item as macOS reports it, so the
+/// last choice made — here or in System Settings — is the one remembered. `None` (macOS gave no
+/// answer) changes nothing. The login item itself is only ever changed by [`crate::startup`].
+pub fn remember_launch_at_login(app: &AppHandle, preference: Option<bool>) {
+    let Some(preference) = preference else { return };
+    let previous = app.state::<AppState>().get();
+    if previous.launch_at_login != preference {
+        let next = settings::update(app, |s| s.launch_at_login = preference);
+        apply(app, &previous, &next);
+    }
 }
 
 /// The pause toggle, shared by the "Resume" item and the global shortcut. A pause it starts

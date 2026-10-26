@@ -42,6 +42,17 @@ pub fn resign_activation() {
     }
 }
 
+/// Puts a window of ours in front of every app's, whether or not macOS lets Baddel become the
+/// active app at this moment (macOS 14 may defer an activation nobody asked for): shown, at least,
+/// rather than behind what the user was using.
+pub fn order_front(ns_window: *mut c_void) {
+    let Some(window) = NonNull::new(ns_window.cast::<NSWindow>()) else { return };
+    // SAFETY: as in `title_bar_height`: Tauri's own live window, used on the main thread.
+    let window = unsafe { window.as_ref() };
+    window.orderFrontRegardless();
+    window.makeKeyWindow();
+}
+
 /// Brings the app forward for a dialog it shows with no window of its own (the update
 /// prompts), so the alert does not open behind the app the user was in.
 pub fn activate() {
