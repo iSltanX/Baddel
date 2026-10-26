@@ -14,6 +14,7 @@ pub mod frontmost;
 pub mod image;
 pub mod input_source;
 pub mod keysynth;
+pub mod login_item;
 pub mod pasteboard;
 pub mod permissions;
 pub mod sound;

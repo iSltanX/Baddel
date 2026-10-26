@@ -1,0 +1,34 @@
+── 1. replacing an existing Baddel
+Baddel 2.0.2 → /private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/install/ok/Baddel.app
+✓ SHA-256
+✓ signed by Baddel
+✓ installed
+To uninstall: quit Baddel from its menu, then move /private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/install/ok/Baddel.app to the Trash.
+installed version: 2.0.2
+old one gone (marker absent): yes
+copies left aside: 0
+signature: valid
+── 2. the copy fails
+Baddel 2.0.2 → /private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/install/fail/Baddel.app
+✓ SHA-256
+✓ signed by Baddel
+ditto: refused for the test
+install.sh: could not copy Baddel.app into /private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/install/fail.
+install.sh: the previous Baddel was put back.
+install.sh exit status: 1
+previous app back, byte for byte: yes
+copies left aside: 0
+── 3. stopped halfway through the copy (SIGTERM while ditto runs)
+Baddel 2.0.2 → /private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/install/interrupted/Baddel.app
+✓ SHA-256
+✓ signed by Baddel
+install.sh: the previous Baddel was put back.
+install.sh exit status: 143
+previous app back, byte for byte: yes
+copies left aside: 0
+── 4. something else named Baddel.app
+Baddel 2.0.2 → /private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/install/other/Baddel.app
+✓ SHA-256
+✓ signed by Baddel
+install.sh: /private/tmp/claude-501/-Volumes-iSltanXx-Projects-Baddel/f773360d-4cfe-4aaa-b860-12e119753263/scratchpad/install/other/Baddel.app exists and is not Baddel (com.example.other) — leaving it alone.
+install.sh exit status: 1; left alone: com.example.other

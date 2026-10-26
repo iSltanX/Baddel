@@ -3,7 +3,15 @@
   import FormRow from '../components/FormRow.svelte'
   import GroupCard from '../components/GroupCard.svelte'
   import ShortcutRecorder from '../components/ShortcutRecorder.svelte'
-  import { app, setShortcut, t, type Binding, type Settings, type ShortcutConflict } from '../state.svelte'
+  import {
+    app,
+    restoreDefaultShortcuts,
+    setShortcut,
+    t,
+    type Binding,
+    type Settings,
+    type ShortcutConflict,
+  } from '../state.svelte'
 
   const settings = $derived(app.settings as Settings)
 
@@ -39,12 +47,14 @@
     return t('shortcut.recorder.conflictInternal', { command: t(`settings.shortcuts.rows.${reason.with}`) })
   }
 
+  /**
+   * One step in Rust, all rows at once. A default macOS refuses (another app holds it) leaves that
+   * row on the shortcut it had, and the row says why — never a row left with none (GEMINI-005).
+   */
   async function restoreDefaults() {
     conflict = null
-    // Unbinding first, so a default is never refused for a shortcut another row still holds.
-    const changed = rows.filter((row) => settings[row.key] !== row.fallback)
-    for (const row of changed) if (settings[row.key] !== '') await setShortcut(row.binding, '')
-    for (const row of changed) if (row.fallback !== '') await setShortcut(row.binding, row.fallback)
+    const refused = await restoreDefaultShortcuts()
+    if (refused.length > 0) conflict = { row: refused[0], reason: { with: null } }
   }
 </script>
 

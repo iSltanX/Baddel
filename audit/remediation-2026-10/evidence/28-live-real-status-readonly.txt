@@ -1,0 +1,4 @@
+── real SMAppService, read only (isolated home, no old agent, launchAtLogin saved false)
+[baddel] at launch: login item StartupStatus { state: Enabled, failure: None, legacy: None } (None); update Nothing; staging removed 0, failed 0
+── saved preference afterwards:
+True

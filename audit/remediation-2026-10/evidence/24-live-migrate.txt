@@ -1,0 +1,24 @@
+── legacy plist: removed
+── login item (fake): {"status":"enabled"}
+── maintenance.json
+{
+  "at": 1793051996859,
+  "instance": "guarded",
+  "loginItem": {
+    "legacy": "Migrated",
+    "status": {
+      "failure": null,
+      "legacy": null,
+      "state": "enabled"
+    }
+  },
+  "settings": "File",
+  "staging": {
+    "failed": 0,
+    "removed": 0
+  },
+  "update": "Nothing",
+  "version": "2.0.2"
+}
+── debug stderr
+[baddel] at launch: login item StartupStatus { state: Enabled, failure: None, legacy: None } (Migrated); update Nothing; staging removed 0, failed 0

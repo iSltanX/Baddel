@@ -13,7 +13,9 @@
 #   1. reads the release's latest.json for its version and archive (the updater's own archive);
 #   2. downloads the archive and SHA256SUMS, and checks the archive's SHA-256;
 #   3. unpacks it and checks the app is signed by Baddel's own certificate (pinned below);
-#   4. replaces an existing Baddel.app only if it really is Baddel, quitting it first;
+#   4. replaces an existing Baddel.app only if it really is Baddel, quitting it first. The old one
+#      is moved aside (beside it, on the same disk) and comes back if anything fails; it is removed
+#      only once the new one is in place and checked;
 #   5. opens it. `curl` sets no quarantine flag, so macOS shows no warning, and nothing in
 #      Gatekeeper or your security settings is touched.
 #
@@ -58,7 +60,26 @@ done
 
 # ── The release ──────────────────────────────────────────────────────────────
 WORK="$(mktemp -d -t baddel-install)"
-trap 'rm -rf "$WORK"' EXIT
+# The folder the old Baddel waits in until the new one is in place and checked; empty once it is.
+PREVIOUS=""
+# On any exit before that — a failure, Ctrl-C, the terminal closing — whatever is at the app's place
+# (nothing, or a half-copied new app) gives way to the old Baddel, which comes back. The download goes.
+cleanup() {
+  if [ -n "$PREVIOUS" ] && [ -d "$PREVIOUS/Baddel.app" ]; then
+    rm -rf "$APP" 2>/dev/null || true
+    if mv "$PREVIOUS/Baddel.app" "$APP" 2>/dev/null; then
+      rmdir "$PREVIOUS" 2>/dev/null || true
+      printf 'install.sh: the previous Baddel was put back.\n' >&2
+    else
+      printf 'install.sh: could not put the previous Baddel back — it is at %s/Baddel.app\n' "$PREVIOUS" >&2
+    fi
+  fi
+  rm -rf "$WORK" 2>/dev/null || true
+}
+trap cleanup EXIT
+# A signal ends the script through `exit`, so `cleanup` runs for it too.
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
 
 fetch() { # <url> <file>
   curl -fsL --retry 2 --connect-timeout 15 -o "$2" "$1" \
@@ -128,9 +149,30 @@ if [ -e "$APP" ]; then
     say "quit the running Baddel"
     sleep 1
   fi
-  rm -rf "$APP"
+  # Aside, not deleted: a rename on the same disk into a folder of its own, put back by `cleanup`
+  # if anything below fails or the script is stopped.
+  aside="$(mktemp -d "$DEST/.Baddel.app.previous.XXXXXX")" || fail "cannot write to $DEST — nothing was changed."
+  if ! mv "$APP" "$aside/Baddel.app"; then
+    rmdir "$aside" 2>/dev/null || true
+    fail "could not move the old Baddel.app aside — nothing was changed."
+  fi
+  PREVIOUS="$aside"
 fi
-ditto "$NEW" "$APP" || fail "could not copy Baddel.app into $DEST."
+if ! ditto "$NEW" "$APP"; then
+  rm -rf "$APP"
+  fail "could not copy Baddel.app into $DEST."
+fi
+installed="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" 2>/dev/null || true)"
+if [ "$installed" != "$version" ] || ! codesign --verify --deep --strict "$APP" 2>/dev/null; then
+  rm -rf "$APP"
+  fail "the copied Baddel.app is not whole."
+fi
+# Committed: the old one is no longer needed.
+if [ -n "$PREVIOUS" ]; then
+  done_with="$PREVIOUS"
+  PREVIOUS=""
+  rm -rf "$done_with"
+fi
 say "✓ installed"
 
 if [ "$OPEN" -eq 1 ]; then

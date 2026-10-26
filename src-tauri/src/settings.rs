@@ -184,18 +184,63 @@ impl AppState {
     }
 }
 
+/// Where the preferences [`load`] returned came from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Source {
+    /// The user's own `settings.json`.
+    File,
+    /// There was none yet: a first launch.
+    Missing,
+    /// There was one that could not be read. The defaults stand in for it, so nothing may be
+    /// concluded from them about what the user chose — least of all that a login item should go.
+    /// A copy of the file is kept beside it ([`keep_unreadable`]) before anything is saved over it.
+    Unreadable,
+}
+
 /// Reads the stored preferences, falling back to the defaults for anything missing
 /// or unreadable. A corrupt store must never stop the app from starting.
-pub fn load<R: Runtime>(app: &AppHandle<R>) -> Settings {
-    let Ok(store) = app.store(STORE_FILE) else { return Settings::default() };
+pub fn load<R: Runtime>(app: &AppHandle<R>) -> (Settings, Source) {
+    let file = app.path().app_data_dir().ok().map(|dir| dir.join(STORE_FILE));
+    let source = match file.as_deref().map(std::fs::read) {
+        None => Source::Unreadable,
+        Some(Err(error)) if error.kind() == std::io::ErrorKind::NotFound => Source::Missing,
+        Some(Err(_)) => Source::Unreadable,
+        Some(Ok(bytes)) => classify(&bytes),
+    };
+    if source == Source::Unreadable {
+        if let Some(file) = &file {
+            keep_unreadable(file);
+        }
+    }
+    let Ok(store) = app.store(STORE_FILE) else { return (Settings::default(), source) };
     let Some(mut settings) = store.get(STORE_KEY).and_then(|value| serde_json::from_value::<Settings>(value).ok())
     else {
-        return Settings::default();
+        return (Settings::default(), source);
     };
     if settings.adopt_new_defaults() {
         save(app, &settings);
     }
-    settings
+    (settings, source)
+}
+
+/// What a `settings.json` holds: settings Baddel can read, none yet (`{}`), or neither.
+fn classify(bytes: &[u8]) -> Source {
+    let Ok(serde_json::Value::Object(store)) = serde_json::from_slice::<serde_json::Value>(bytes) else {
+        return Source::Unreadable;
+    };
+    match store.get(STORE_KEY) {
+        None => Source::Missing,
+        Some(value) if serde_json::from_value::<Settings>(value.clone()).is_ok() => Source::File,
+        Some(_) => Source::Unreadable,
+    }
+}
+
+/// Copies an unreadable `settings.json` to `settings.unreadable-<ms>.json` beside it, so the next
+/// save (of the defaults) does not destroy what the user had. Best effort: a copy that fails is
+/// no reason not to start.
+fn keep_unreadable(file: &std::path::Path) {
+    let copy = file.with_file_name(format!("settings.unreadable-{}.json", crate::sys::clock::now_ms()));
+    let _ = std::fs::copy(file, copy);
 }
 
 impl Settings {
@@ -281,6 +326,33 @@ mod tests {
             assert_eq!(settings.binding(binding), "");
         }
         assert_eq!((settings.paused, settings.paused_until), (true, None));
+    }
+
+    #[test]
+    fn an_unreadable_file_is_told_from_a_missing_one() {
+        assert_eq!(classify(br#"{"settings":{"launchAtLogin":true}}"#), Source::File);
+        assert_eq!(classify(b"{}"), Source::Missing);
+        // Not JSON, not an object, or settings Baddel cannot read: the defaults stand in, and say so.
+        for bytes in [&b"{corrupted json"[..], b"[]", br#"{"settings":{"launchAtLogin":"yes"}}"#, b""] {
+            assert_eq!(classify(bytes), Source::Unreadable, "{}", String::from_utf8_lossy(bytes));
+        }
+    }
+
+    #[test]
+    fn an_unreadable_file_is_copied_before_anything_is_saved_over_it() {
+        let dir = std::env::temp_dir().join(format!("baddel-settings-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join(STORE_FILE);
+        std::fs::write(&file, b"{corrupted json").unwrap();
+        keep_unreadable(&file);
+        let copies: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with("settings.unreadable-"))
+            .collect();
+        assert_eq!(copies.len(), 1);
+        assert_eq!(std::fs::read(copies[0].path()).unwrap(), b"{corrupted json");
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

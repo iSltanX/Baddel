@@ -177,17 +177,58 @@ enum Halt {
     Secure,
 }
 
+/// Who had the keyboard, by each account we can read. Taken at the press, before waiting for the
+/// hotkey to be let go, and compared again before anything is sent or written: whatever has the
+/// keyboard by then gets the keys, and it must still be what had it at the press (GEMINI-003).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct Presence {
+    /// The app macOS names frontmost. Read off the main thread it can lag a switch by a second
+    /// (device test S2), so at the press it is kept only when the window server agrees.
+    app: Option<i32>,
+    /// The owner of the front ordinary window, as the window server has it now.
+    window: Option<i32>,
+    /// The owner of the focused element. A panel that takes the keyboard without an ordinary
+    /// window (Spotlight, a launcher, a password manager's quick access) shows here alone.
+    focus: Option<i32>,
+}
+
+impl Presence {
+    fn now(focused: Option<&Focused>) -> Self {
+        Presence { app: frontmost::pid(), window: frontmost::front_window_pid(), focus: focused.and_then(Focused::pid) }
+    }
+
+    /// At the press: as [`now`](Self::now), read through [`as_press`](Self::as_press).
+    fn at_press() -> Self {
+        Self::as_press(Self::now(Focused::get().as_ref()))
+    }
+
+    /// `read` without a frontmost app the window server contradicts: one that lags a switch.
+    fn as_press(read: Presence) -> Self {
+        Presence { app: read.app.filter(|&app| read.window.is_none_or(|window| window == app)), ..read }
+    }
+
+    /// Whether the keyboard has gone elsewhere between `then` and `self`: another app in front,
+    /// another front window, or focus in another process. A focused element that cannot be read
+    /// now is no sign of a move (accessibility comes and goes in some apps); one that appears where
+    /// none could be read at the press must belong to the app that was in front then.
+    fn moved_since(&self, then: &Presence) -> bool {
+        let focus_moved = match (then.focus, self.focus) {
+            (Some(before), Some(now)) => before != now,
+            (None, Some(now)) => Some(now) != then.window && Some(now) != then.app,
+            _ => false,
+        };
+        (then.app.is_some() && self.app != then.app) || self.window != then.window || focus_moved
+    }
+}
+
 /// Whether the next synthetic keys may be sent: they go to whatever has focus now, so only while
-/// that is still the app the command began in (`started_in`), and not a password (`secure`).
-/// Checked before each batch.
-fn halt(started_in: Option<i32>, in_front: Option<i32>, secure: bool) -> Option<Halt> {
+/// that is still where the command began (`then`), and not a password (`secure`). Checked before
+/// the first side effect and before each batch of keys.
+fn halt(then: &Presence, now: &Presence, secure: bool) -> Option<Halt> {
     if secure {
         return Some(Halt::Secure);
     }
-    match started_in {
-        Some(pid) if in_front != Some(pid) => Some(Halt::OtherApp),
-        _ => None,
-    }
+    now.moved_since(then).then_some(Halt::OtherApp)
 }
 
 #[derive(Clone)]
@@ -370,8 +411,8 @@ struct Controller {
 struct Target {
     focused: Option<Focused>,
     method: Method,
-    /// The app whose window was in front when the command began: synthetic keys go only to it.
-    pid: Option<i32>,
+    /// Who had the keyboard when the command began: synthetic keys go only while it still does.
+    presence: Presence,
     /// Set when a check before a key press stopped the command ([`Target::may_type`]).
     halted: Option<Halt>,
     /// Pasteboard contents to put back, taken before our first ⌘C.
@@ -441,13 +482,16 @@ struct Context<'a> {
 impl Context<'_> {
     /// Converts `text` the way the running command does: in the forced direction and literally,
     /// or in the direction the text votes for, keeping links and technical words as they are.
+    /// Text with no letter to vote with follows the active layout only where that makes words of
+    /// it ([`LayoutMap::direction_given`]); punctuation and digits come back as they were, which
+    /// the caller reports as unchanged.
     fn convert(&self, text: &str) -> (String, Direction) {
         match self.forced {
             Some(direction) => (self.map.convert_literal(text, direction), direction),
-            None => {
-                let direction = self.map.direction(text).unwrap_or(self.expected);
-                (self.map.convert_as(text, direction), direction)
-            }
+            None => match self.map.direction_given(text, self.expected) {
+                Some(direction) => (self.map.convert_as(text, direction), direction),
+                None => (text.to_string(), self.expected),
+            },
         }
     }
 
@@ -490,6 +534,8 @@ impl Controller {
         if front.bundle_id.as_ref().is_some_and(|id| settings.excluded_apps.contains(id)) {
             return Outcome::Excluded;
         }
+        // Before the waits below: where the keyboard is now is where the command was given.
+        let at_press = Presence::at_press();
         let (arabic, latin) = (settings.arabic_layout.clone(), settings.latin_layout.clone());
         let Some(layouts) = on_main(&self.app, move || input_source::snapshot(&arabic, &latin)) else {
             return Outcome::NoLayouts;
@@ -515,17 +561,28 @@ impl Controller {
             first_arrow: route.arrow,
             switch_input_source: settings.switch_input_source,
         };
-        let mut target = Target::new(self.focused_element(front.pid), frontmost::front_window_pid());
+        let mut target = Target::new(self.focused_element(front.pid), at_press);
         target.copy_timeout = route.copy_timeout();
         trace!("route: arrow {:?}, copy wait {:?} over {} answers", route.arrow, target.copy_timeout, route.copies);
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
         }
-        // The focused element can belong to another app than the one in front: focus moved since
-        // the press, or a panel took the keyboard without coming to the front. The exceptions hold
-        // for that app too.
-        let owner = target.focused.as_ref().and_then(Focused::pid).filter(|&pid| Some(pid) != front.pid);
-        if owner.and_then(frontmost::bundle_id_of).is_some_and(|id| settings.excluded_apps.contains(&id)) {
+        // Nothing has been sent or written yet. If the keyboard went elsewhere during the waits
+        // (another app, a panel such as Spotlight), stop: it is not where the command was given.
+        if !target.may_type() {
+            return self.halted(&target).unwrap_or(Outcome::Blocked);
+        }
+        // The keyboard can be with another app than the one macOS names frontmost: a panel that
+        // took it without coming to the front, or a switch that app has not caught up with yet.
+        // The exceptions hold for each of them.
+        let owners = [at_press.window, target.focused.as_ref().and_then(Focused::pid)];
+        let excluded = owners
+            .into_iter()
+            .flatten()
+            .filter(|&pid| Some(pid) != front.pid)
+            .filter_map(frontmost::bundle_id_of)
+            .any(|id| settings.excluded_apps.contains(&id));
+        if excluded {
             return self.fail(Reason::FocusMoved);
         }
         // A stand-in says "caret at 0, nothing selected" whatever is really there (Figma's
@@ -855,10 +912,18 @@ impl Controller {
         if last.app.pid.is_some() && front.pid != last.app.pid {
             return self.undo_failed(Reason::OtherApp);
         }
+        let at_press = Presence::at_press();
         keysynth::wait_for_modifiers_released(MODIFIER_RELEASE_TIMEOUT);
-        let mut target = Target::new(Focused::get(), frontmost::front_window_pid());
+        let mut target = Target::new(Focused::get(), at_press);
         if target.focused.as_ref().is_some_and(Focused::is_secure) {
             return Outcome::Blocked;
+        }
+        // As in a conversion: nothing is touched once the keyboard has gone elsewhere since the press.
+        if !target.may_type() {
+            return match target.halted {
+                Some(Halt::Secure) => Outcome::Blocked,
+                _ => self.undo_failed(Reason::FocusMoved),
+            };
         }
         // As in a conversion: a stand-in element knows nothing of the text; the keyboard does.
         if target.focused.as_ref().is_some_and(Focused::is_stand_in) {
@@ -1131,11 +1196,11 @@ impl LastOp {
 }
 
 impl Target {
-    fn new(focused: Option<Focused>, pid: Option<i32>) -> Self {
+    fn new(focused: Option<Focused>, presence: Presence) -> Self {
         Target {
             focused,
             method: Method::Accessibility,
-            pid,
+            presence,
             halted: None,
             saved: None,
             ours: 0,
@@ -1149,13 +1214,19 @@ impl Target {
         }
     }
 
-    /// Checked before each batch of synthetic keys, which land wherever focus is by then: `false`,
-    /// for good, once the app the command began in is no longer in front, or Secure Input or a
-    /// password field has taken the keyboard since the press.
+    /// Checked before the first side effect and before each batch of synthetic keys, which land
+    /// wherever focus is by then: `false`, for good, once the keyboard is no longer where the
+    /// command began ([`Presence`]), or Secure Input or a password field has taken it since.
     fn may_type(&mut self) -> bool {
         if self.halted.is_none() {
-            let secure = permissions::secure_input_enabled() || Focused::get().is_some_and(|f| f.is_secure());
-            self.halted = halt(self.pid, frontmost::front_window_pid(), secure);
+            let focused = Focused::get();
+            let secure = permissions::secure_input_enabled() || focused.as_ref().is_some_and(Focused::is_secure);
+            let now = Presence::now(focused.as_ref());
+            self.halted = halt(&self.presence, &now, secure);
+            // A tree woken since the press (Chromium) names its element from now on.
+            if self.halted.is_none() && self.presence.focus.is_none() {
+                self.presence.focus = now.focus;
+            }
         }
         self.halted.is_none()
     }
@@ -1544,7 +1615,7 @@ mod tests {
     fn a_route_waits_for_copies_no_longer_than_the_app_needs() {
         let mut route = Route::default();
         assert_eq!(route.copy_timeout(), COPY_TIMEOUT);
-        let mut target = Target::new(None, None);
+        let mut target = Target::new(None, Presence::default());
         target.copy_times = vec![Duration::from_millis(12), Duration::from_millis(30)];
         target.arrow = Some(KEY_RIGHT);
         route.learn(&target);
@@ -1574,21 +1645,77 @@ mod tests {
         assert!(!within_limit(&"a".repeat(5_000_000)));
     }
 
+    fn presence(app: Option<i32>, window: Option<i32>, focus: Option<i32>) -> Presence {
+        Presence { app, window, focus }
+    }
+
     #[test]
     fn keys_go_only_to_the_app_the_command_began_in() {
+        let mail = presence(Some(501), Some(501), Some(501));
         // BAD-201: the user switched apps while the keys were being sent.
-        assert_eq!(halt(Some(501), Some(501), false), None);
-        assert_eq!(halt(Some(501), Some(733), false), Some(Halt::OtherApp));
-        assert_eq!(halt(Some(501), None, false), Some(Halt::OtherApp));
-        // No app was known to be in front at the press: nothing to compare with.
-        assert_eq!(halt(None, Some(733), false), None);
+        assert_eq!(halt(&mail, &mail, false), None);
+        assert_eq!(halt(&mail, &presence(Some(733), Some(733), Some(733)), false), Some(Halt::OtherApp));
+        assert_eq!(halt(&mail, &presence(Some(501), None, Some(501)), false), Some(Halt::OtherApp));
+        // No ordinary window at the press (an empty desktop), and one has come up since: a move.
+        let desktop = presence(Some(80), None, None);
+        assert_eq!(halt(&desktop, &presence(Some(80), Some(733), None), false), Some(Halt::OtherApp));
+        assert_eq!(halt(&desktop, &desktop, false), None);
+    }
+
+    #[test]
+    fn a_switch_during_the_hotkey_wait_sends_nothing_anywhere() {
+        // GEMINI-003: the hotkey was held, and Terminal (733) came to the front before it was let
+        // go. What is in front after the wait is not where the command was given.
+        let at_press = presence(Some(501), Some(501), None);
+        assert_eq!(halt(&at_press, &presence(Some(733), Some(733), Some(733)), false), Some(Halt::OtherApp));
+        // The front window changed even though macOS still names the old app frontmost.
+        assert_eq!(halt(&at_press, &presence(Some(501), Some(733), None), false), Some(Halt::OtherApp));
+    }
+
+    #[test]
+    fn a_panel_that_takes_the_keyboard_stops_the_keys() {
+        // GEMINI-003: Spotlight (900) opened over Mail during the wait. Its panel is not an ordinary
+        // window, so the front window is still Mail's: the focused element is what tells.
+        let mail = presence(Some(501), Some(501), Some(501));
+        assert_eq!(halt(&mail, &presence(Some(501), Some(501), Some(900)), false), Some(Halt::OtherApp));
+        // Opened with no element readable at the press: an element of another process is a move.
+        let unread = presence(Some(501), Some(501), None);
+        assert_eq!(halt(&unread, &presence(Some(501), Some(501), Some(900)), false), Some(Halt::OtherApp));
+        // Activating apps change the frontmost app too.
+        assert_eq!(halt(&mail, &presence(Some(900), Some(501), None), false), Some(Halt::OtherApp));
+    }
+
+    #[test]
+    fn the_keyboard_staying_put_is_not_mistaken_for_a_move() {
+        let mail = presence(Some(501), Some(501), Some(501));
+        // Accessibility that cannot be read for a moment is no sign of a move.
+        assert_eq!(halt(&mail, &presence(Some(501), Some(501), None), false), None);
+        // A Chromium tree woken after the press names an element of the app that was in front.
+        let asleep = presence(Some(501), Some(501), None);
+        assert_eq!(halt(&asleep, &mail, false), None);
+        // Typing into a panel that had the keyboard at the press (Spotlight over Mail) goes on.
+        let spotlight = presence(Some(900), Some(501), Some(900));
+        assert_eq!(halt(&spotlight, &spotlight, false), None);
+    }
+
+    #[test]
+    fn a_lagging_frontmost_app_is_not_taken_for_the_one_in_front() {
+        // Right after a switch, the app read off the main thread can still name the previous one
+        // (device test S2) while the window server already has the new one in front.
+        let at_press = Presence::as_press(presence(Some(300), Some(501), None));
+        assert_eq!(at_press.app, None);
+        // An app with no ordinary window (Finder over an empty desktop) is kept.
+        assert_eq!(Presence::as_press(presence(Some(80), None, None)).app, Some(80));
+        // Its catching up during the command is then not a move.
+        assert_eq!(halt(&at_press, &presence(Some(501), Some(501), None), false), None);
     }
 
     #[test]
     fn keys_stop_once_a_password_has_the_keyboard() {
         // BAD-206: Secure Input came on, or Tab moved focus into a password field, mid-command.
-        assert_eq!(halt(Some(501), Some(501), true), Some(Halt::Secure));
-        assert_eq!(halt(None, None, true), Some(Halt::Secure));
+        let mail = presence(Some(501), Some(501), Some(501));
+        assert_eq!(halt(&mail, &mail, true), Some(Halt::Secure));
+        assert_eq!(halt(&Presence::default(), &Presence::default(), true), Some(Halt::Secure));
     }
 
     #[test]

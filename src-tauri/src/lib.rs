@@ -4,24 +4,29 @@ mod commands;
 mod controller;
 mod diagnostics;
 mod hud;
+mod instance;
+mod maintenance;
 mod menu_text;
 mod report;
 mod settings;
 mod shortcuts;
+mod startup;
 mod sync;
 // All `unsafe` lives in `sys`, behind safe functions; the compiler holds the rest to that.
 #[allow(unsafe_code)]
 mod sys;
 mod tray;
 mod updater;
+mod upgrade;
 mod windows;
 
+use std::path::PathBuf;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
-use tauri_plugin_autostart::MacosLauncher;
 
+use instance::{Claim, Request};
 use settings::AppState;
 use sys::permissions;
 use tray::TrayState;
@@ -30,10 +35,58 @@ use tray::TrayState;
 /// it in System Settings, where nothing notifies us.
 const PERMISSION_POLL: Duration = Duration::from_secs(2);
 
+/// After a launch at login, how long a request to open Baddel is taken for the same login (a
+/// second login mechanism, or an older one not yet moved over) rather than for the user.
+const LOGIN_QUIET: Duration = Duration::from_secs(10);
+
+/// How this run of Baddel began, for telling a request to show Settings from a second launch at
+/// login that only happens to look like one.
+pub struct Launch {
+    /// Until when requests to open Baddel are taken for that same login and show nothing.
+    quiet_until: Option<Instant>,
+    /// Why this run has no single-instance lock, when it has none (see `run`).
+    pub unguarded: Option<String>,
+}
+
+impl Launch {
+    fn quiet(&self) -> bool {
+        self.quiet_until.is_some_and(|until| Instant::now() < until)
+    }
+}
+
+/// What a request to open Baddel again shows: Settings, unless it is part of a launch at login.
+fn reopened(app: &tauri::AppHandle, request: Request) {
+    if request == Request::Reopen && !app.state::<Launch>().quiet() {
+        let _ = windows::open_settings(app);
+    }
+}
+
+fn home() -> Option<PathBuf> {
+    std::env::var_os("HOME").filter(|home| !home.is_empty()).map(PathBuf::from)
+}
+
 pub fn run() {
-    let app = tauri::Builder::default()
+    let context = tauri::generate_context!();
+    // First of all, before the menu bar icon, the shortcuts, the login item or any setting is
+    // touched: one Baddel per user. A second launch hands its request over and ends here.
+    let identifier = context.config().identifier.clone();
+    let (owner, unguarded) =
+        match home().map(|home| instance::claim(&instance::folder(&home, &identifier), Request::of_this_launch())) {
+            Some(Ok(Claim::Running { delivered })) => {
+                #[cfg(debug_assertions)]
+                eprintln!("[baddel] another Baddel runs; request handed over: {delivered}");
+                let _ = delivered;
+                return;
+            }
+            Some(Ok(Claim::Owner(owner))) => (Some(owner), None),
+            // No home folder, or no way to the lock in it: run unguarded, as before 2.1, and say so
+            // in maintenance.json rather than not at all.
+            Some(Err(error)) => (None, Some(error.to_string())),
+            None => (None, Some("no home folder".into())),
+        };
+
+    let mut app = tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None::<Vec<&str>>))
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
@@ -46,6 +99,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::set_settings,
+            commands::startup_status,
+            commands::set_launch_at_login,
+            commands::open_login_items,
+            commands::restore_default_shortcuts,
             commands::set_shortcut,
             commands::suspend_shortcuts,
             commands::permission_granted,
@@ -80,15 +137,14 @@ pub fn run() {
             commands::report_copy,
             commands::report_copy_number,
         ])
-        .setup(|app| {
-            // Menu bar utility: no Dock icon, no app menu, until a window opens.
-            #[cfg(target_os = "macos")]
-            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-            #[cfg(target_os = "macos")]
-            sys::chrome::resign_activation();
-
+        .setup(move |app| {
             let handle = app.handle().clone();
-            let mut stored = settings::load(&handle);
+            // Started at login by an older LaunchAgent, or by macOS as a login item: a request to
+            // open Baddel in the next few seconds is that same login, not the user.
+            let at_login = Request::of_this_launch() == Request::Background || sys::system::launched_as_login_item();
+            app.manage(Launch { quiet_until: at_login.then(|| Instant::now() + LOGIN_QUIET), unguarded });
+
+            let (mut stored, source) = settings::load(&handle);
             // A timed pause that ran out while Baddel was not running is over.
             if stored.pause_expired(sys::clock::now_ms()) {
                 stored.set_paused(false, None);
@@ -96,24 +152,32 @@ pub fn run() {
             }
             *app.state::<AppState>().settings.lock().unwrap() = stored.clone();
 
+            // Menu bar utility: no Dock icon and no app menu, windows or not (the policy itself is
+            // set before the event loop starts, below). tao asks for activation as the app finishes
+            // launching; with no window to show, give it back to the app the user is in. The
+            // welcome window, opening now, keeps it: the user just opened Baddel for it.
+            #[cfg(target_os = "macos")]
+            if stored.welcomed && !windows::opens_at_launch() {
+                sys::chrome::resign_activation();
+            }
+
             app.manage(controller::spawn(handle.clone()));
             tray::build(&handle)?;
             hud::prime(&handle);
-            // Asks macOS to show its permission dialog on first run.
-            let mut trusted = permissions::is_trusted(true);
+            // Checked without asking: the welcome window explains the permission and asks for it
+            // when the user gets there, and the menu offers it after that (GEMINI-006).
+            let mut trusted = permissions::is_trusted(false);
             tray::set_trusted(&handle, trusted);
             shortcuts::apply(&handle, &stored);
-            // The login item follows the preference both ways: one left from an earlier install,
-            // or from a failed switch, would otherwise start Baddel with the option shown off.
-            {
-                use tauri_plugin_autostart::ManagerExt;
-                let autostart = handle.autolaunch();
-                if stored.launch_at_login {
-                    let _ = autostart.enable();
-                } else if autostart.is_enabled().unwrap_or(false) {
-                    let _ = autostart.disable();
-                }
-            }
+
+            app.manage(startup::Startup::new(startup_system(), home(), identifier.clone()));
+            // The login item and what an older Baddel or an update left behind: off the main thread,
+            // since they wait on launchd, ServiceManagement and the disk.
+            let cleaner = handle.clone();
+            thread::Builder::new().name("baddel-maintenance".into()).spawn(move || {
+                maintenance::at_launch(&cleaner, stored.launch_at_login, source);
+            })?;
+
             updater::start(&handle);
             if !stored.welcomed {
                 windows::open_onboarding(&handle)?;
@@ -122,6 +186,14 @@ pub fn run() {
             {
                 windows::open_requested_window(&handle);
                 windows::close_windows_after(&handle);
+            }
+
+            if let Some(owner) = owner {
+                let reopen = handle.clone();
+                app.manage(owner.serve(move |request| {
+                    let app = reopen.clone();
+                    let _ = reopen.run_on_main_thread(move || reopened(&app, request));
+                }));
             }
 
             let watcher = handle.clone();
@@ -139,22 +211,29 @@ pub fn run() {
 
             Ok(())
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("failed to build Baddel");
+    // Set before the event loop starts, so the app is an accessory from its first moment: tao would
+    // otherwise make it a regular app as it finishes launching, with a Dock icon until setup ran.
+    #[cfg(target_os = "macos")]
+    app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
     app.run(|app, event| match event {
         // The app lives in the menu bar: closing the last window must not quit it.
         // `code` is only set for explicit exits (the Quit item).
         RunEvent::ExitRequested { api, code, .. } if code.is_none() => api.prevent_exit(),
         // Opening Baddel again from Applications (or Spotlight) while it runs is the way back
-        // to its settings when the menu bar icon is hidden. With a window already up (the Dock
-        // icon is only there while one is), macOS brings that one forward on its own.
+        // to its settings when the menu bar icon is hidden. With a window already up, macOS
+        // brings that one forward on its own.
         #[cfg(target_os = "macos")]
-        RunEvent::Reopen { has_visible_windows: false, .. } => {
-            let _ = windows::open_settings(app);
+        RunEvent::Reopen { has_visible_windows: false, .. } => reopened(app, Request::Reopen),
+        RunEvent::Exit => {
+            if let Some(held) = app.try_state::<instance::Held>() {
+                held.release();
+            }
         }
-        // Windows are destroyed on close, so nothing of theirs survives; drop the
-        // Dock icon again once the last one is gone.
+        // Windows are destroyed on close, so nothing of theirs survives; once the last one is
+        // gone, the keyboard goes back to the app the user was in.
         RunEvent::WindowEvent { label, event: WindowEvent::Destroyed, .. } => {
             // A report not sent is dropped with its window: image, preview and all.
             if label == windows::REPORT {
@@ -164,8 +243,17 @@ pub fn run() {
             if label == windows::SETTINGS {
                 shortcuts::suspend(app, false);
             }
-            windows::restore_activation_policy(app);
+            windows::step_back(app);
         }
         _ => {}
     });
+}
+
+/// macOS, or in a debug build `BADDEL_LOGIN_ITEM_FAKE` standing in for it (see [`startup::fake`]).
+fn startup_system() -> Box<dyn startup::System> {
+    #[cfg(debug_assertions)]
+    if let Some(file) = std::env::var_os("BADDEL_LOGIN_ITEM_FAKE") {
+        return Box::new(startup::fake::FileBacked(file.into()));
+    }
+    Box::new(startup::MacOs)
 }

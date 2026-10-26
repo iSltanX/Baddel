@@ -18,7 +18,6 @@ tauri-build = { version = "2", features = [] }
 baddel-core = { path = "../crates/baddel-core" }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-global-shortcut = "2"
-tauri-plugin-autostart = "2"
 tauri-plugin-store = "2"
 tauri-plugin-process = "2"
 tauri-plugin-dialog = "2"
@@ -47,6 +46,10 @@ objc2-foundation = { version = "0.3", features = [
     "NSValue",
     # The macOS version in diagnostics (src/sys/system.rs).
     "NSProcessInfo",
+    # Login item errors (src/sys/login_item.rs), and telling a launch at login from one by hand.
+    "NSError",
+    "NSAppleEventManager",
+    "NSAppleEventDescriptor",
 ] }
 objc2-app-kit = { version = "0.3", features = [
     "NSPasteboard",

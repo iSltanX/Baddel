@@ -14,6 +14,7 @@
     save,
     t,
     type KeyboardMap,
+    type LayoutChoice,
     type LayoutEntry,
     type Settings,
   } from '../state.svelte'
@@ -43,7 +44,25 @@
   const missingArabic = $derived(map !== null && map.rows.length === 0)
   const pairName = $derived(map?.arabicName && map?.latinName ? `${map.arabicName}  ⇄  ${map.latinName}` : '')
 
-  const options = (entries: LayoutEntry[]) => entries.map((entry) => ({ value: entry.id, label: entry.name }))
+  /**
+   * "As in macOS" first, always there to go back to; then the enabled layouts; then a chosen layout
+   * macOS no longer has, so the picker shows the choice that is kept rather than a blank.
+   */
+  function options(entries: LayoutEntry[], choice: LayoutChoice | undefined) {
+    const list = [
+      { value: '', label: t('settings.layouts.followMacos') },
+      ...entries.map((entry) => ({ value: entry.id, label: entry.name })),
+    ]
+    if (choice?.missing) {
+      const name = choice.value.split('.').pop() ?? choice.value
+      list.push({ value: choice.value, label: t('settings.layouts.notEnabled', { name }) })
+    }
+    return list
+  }
+
+  /** Under a picker whose layout macOS no longer has: what is used meanwhile. */
+  const missingLine = (choice: LayoutChoice | undefined) =>
+    choice?.missing ? t('settings.layouts.missing', { using: choice.using ?? t('settings.layouts.unavailable') }) : undefined
 
   // «جرّبها هنا» (ج4): the text goes through the very command the shortcut uses, with the layouts
   // in use, and lives in this field alone — nothing typed here is kept or sent anywhere.
@@ -89,21 +108,34 @@
       <Badge tone="success" label={t('settings.layouts.syncedBadge')} />
     {/if}
   {/snippet}
-  <FormRow first icon="layouts" title={t('settings.layouts.arabicLayout')} labelFor="arabic-layout">
+  <FormRow
+    first
+    icon="layouts"
+    title={t('settings.layouts.arabicLayout')}
+    labelFor="arabic-layout"
+    description={missingLine(map?.arabicChoice)}
+    tone="warning"
+  >
     <Select
       id="arabic-layout"
-      value={settings.arabicLayout || (map?.arabicName ? arabic[0]?.id : '') || ''}
-      options={options(arabic)}
+      value={settings.arabicLayout}
+      options={arabic.length === 0 ? [] : options(arabic, map?.arabicChoice)}
       placeholder={t('settings.layouts.unavailable')}
       disabled={arabic.length === 0}
       onchange={(arabicLayout) => save({ arabicLayout })}
     />
   </FormRow>
-  <FormRow icon="keyboard" title={t('settings.layouts.latinLayout')} labelFor="latin-layout">
+  <FormRow
+    icon="keyboard"
+    title={t('settings.layouts.latinLayout')}
+    labelFor="latin-layout"
+    description={missingLine(map?.latinChoice)}
+    tone="warning"
+  >
     <Select
       id="latin-layout"
-      value={settings.latinLayout || latin[0]?.id || ''}
-      options={options(latin)}
+      value={settings.latinLayout}
+      options={latin.length === 0 ? [] : options(latin, map?.latinChoice)}
       placeholder={t('settings.layouts.unavailable')}
       disabled={latin.length === 0}
       onchange={(latinLayout) => save({ latinLayout })}

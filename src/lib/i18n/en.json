@@ -64,7 +64,24 @@
         "available": "Version {version} is available",
         "installing": "Installing version {version}…",
         "failed": "Version {version} · Couldn’t check",
-        "install": "Install Update"
+        "install": "Install Update",
+        "installFailed": "Couldn’t install version {version} — {current} is still installed",
+        "downloadFailed": "Couldn’t download version {version} — nothing changed",
+        "restoreFailed": "Couldn’t install; a copy of version {current} is kept in ~/Library/Application Support/com.isltanx.baddel/update/previous"
+      },
+      "startup": {
+        "requiresApproval": "Waiting for your approval in System Settings → General → Login Items",
+        "unavailable": "macOS can’t find Baddel as a login item",
+        "openLoginItems": "Open Login Items",
+        "legacyUnverified": "A LaunchAgent named Baddel that Baddel didn’t write was left as it is",
+        "problem": {
+          "deniedByUser": "macOS refused — allow Baddel in Login Items",
+          "invalidSignature": "macOS didn’t accept Baddel’s signature, so nothing changed",
+          "temporaryLocation": "Move Baddel to Applications first",
+          "stillEnabled": "Baddel is still in Login Items — remove it in System Settings",
+          "legacyKept": "The previous version’s login entry is still there; Baddel tries again at next launch",
+          "other": "Couldn’t change it (code {code})"
+        }
       }
     },
     "shortcuts": {
@@ -102,7 +119,10 @@
         "caption": "Uses your actual layouts and the same conversion as in your apps; nothing you type here is kept.",
         "label": "Text to try",
         "result": "Result"
-      }
+      },
+      "followMacos": "As in macOS",
+      "notEnabled": "{name} — not enabled",
+      "missing": "The chosen layout isn’t enabled in macOS — using {using} until it’s back"
     },
     "exceptions": {
       "description": "Baddel stays out of these apps — password managers, terminals and the like.",
@@ -247,7 +267,9 @@
     "checkFailedTitle": "Couldn’t Check for Updates",
     "installFailedTitle": "Couldn’t Install the Update",
     "failedBody": "Check your internet connection, then try again.",
-    "ok": "OK"
+    "ok": "OK",
+    "installFailedBody": "The previous version is still installed and running. Try again later.",
+    "restoreFailedBody": "No version of Baddel could be put in its place. A copy of the previous version is kept in ~/Library/Application Support/com.isltanx.baddel/update/previous."
   },
   "report": {
     "title": "Report a Problem",

@@ -118,10 +118,22 @@ pub fn reveal(window: &tauri::WebviewWindow) -> tauri::Result<()> {
 }
 
 fn focus(window: &tauri::WebviewWindow) -> tauri::Result<()> {
-    // A menu bar app is an accessory: it has to ask for activation explicitly,
-    // or its window opens behind whatever the user was using.
-    let _ = window.app_handle().set_activation_policy(tauri::ActivationPolicy::Regular);
-    window.set_focus()
+    // A menu bar app stays an accessory with a window open: no Dock icon, and no app menu in the
+    // menu bar (its Edit shortcuts still work in the page). It has to ask for activation, or its
+    // window opens behind whatever the user was using: tao's `set_focus` makes the window key and
+    // activates the app. A window still hidden (built, not yet laid out) is left alone until
+    // `reveal` shows it.
+    window.set_focus()?;
+    if window.is_visible().unwrap_or(false) {
+        let ns_window = window.ns_window()? as usize;
+        window.run_on_main_thread(move || crate::sys::chrome::order_front(ns_window as *mut _))?;
+    }
+    Ok(())
+}
+
+/// Whether a debug aid opens a window at launch ([`open_requested_window`]); never in a release.
+pub fn opens_at_launch() -> bool {
+    cfg!(debug_assertions) && std::env::var_os("BADDEL_WINDOW").is_some()
 }
 
 /// Debug aid for the documentation screenshots: opens a window at launch that the
@@ -217,10 +229,11 @@ fn show_notice_repeatedly(app: &AppHandle, kind: String) {
     });
 }
 
-/// Back to accessory once no window is left, so no Dock icon lingers.
-pub fn restore_activation_policy(app: &AppHandle) {
+/// Once no window of Baddel's is left on screen, gives the keyboard back to the app the user was
+/// in: an accessory app stays active with nothing to type in otherwise. **Main thread.**
+pub fn step_back(app: &AppHandle) {
     let open = app.webview_windows().values().any(|w| w.is_visible().unwrap_or(false));
     if !open {
-        let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+        crate::sys::chrome::resign_activation();
     }
 }

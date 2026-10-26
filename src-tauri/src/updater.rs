@@ -5,9 +5,15 @@
 //!
 //! - **Automatic** (when enabled): a check shortly after launch, then daily. It never
 //!   interrupts: a found update becomes a menu item and a line in Settings.
-//! - **From the menu**: a native dialog answers — install, up to date, or failed.
+//! - **From the menu**: a native dialog answers — install, up to date, or failed. Asked while
+//!   another check runs, that check's answer is the one the dialog gives (GEMINI-007).
 //! - **From Settings**: the row itself shows the state, with a button to install.
+//!
+//! Installing goes through [`crate::upgrade`]: a copy of the running version is kept until the new
+//! one has started, and put back if the swap fails. A failed install says so — in the row, and in
+//! a dialog when the menu started it — and the update stays on offer to try again.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -18,8 +24,8 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 use crate::settings::{self, AppState};
-use crate::sys::{chrome, on_main};
-use crate::{menu_text, tray, windows};
+use crate::sys::{chrome, on_main, system};
+use crate::{menu_text, tray, upgrade, windows};
 
 /// The first automatic check waits for the app to settle after login.
 const FIRST_CHECK_DELAY: Duration = Duration::from_secs(20);
@@ -50,13 +56,30 @@ pub enum Phase {
     Failed,
 }
 
+/// What failed, with `Phase::Failed`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Failure {
+    /// The check got no answer.
+    Check,
+    /// The update could not be downloaded, or its signature did not hold. Nothing was changed.
+    Download,
+    /// The app could not be replaced; the version running is still the one installed.
+    Install,
+    /// Neither version could be put in place; a copy of the previous one is kept in Baddel's folder.
+    Restore,
+}
+
 /// What Settings shows. Sent with the `update` event and by `update_status`.
 #[derive(Clone, Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
     pub phase: Phase,
-    /// The version on offer, while `phase` is `Available` or `Installing`.
+    /// The version on offer, while `phase` is `Available` or `Installing` — and with `Failed`, the
+    /// version that did not install.
     pub version: Option<String>,
+    /// With `Failed`: what failed.
+    pub failure: Option<Failure>,
     /// Milliseconds since the Unix epoch.
     pub last_checked: Option<u64>,
 }
@@ -66,6 +89,9 @@ pub struct UpdateState {
     status: Mutex<Status>,
     /// The update found by the last check, ready to install.
     pending: Mutex<Option<Update>>,
+    /// "Check for Updates…" was chosen in the menu while a check or an install ran: that one's
+    /// outcome is told in a dialog when it ends.
+    menu_waiting: AtomicBool,
 }
 
 pub fn status(app: &AppHandle) -> Status {
@@ -74,10 +100,13 @@ pub fn status(app: &AppHandle) -> Status {
     status
 }
 
-/// The version on offer, for the menu.
+/// The version on offer, for the menu: found by a check, or found and not yet installed.
 pub fn available_version(app: &AppHandle) -> Option<String> {
-    let status = app.state::<UpdateState>().status.lock().unwrap().clone();
-    (status.phase == Phase::Available).then_some(status.version).flatten()
+    let state = app.state::<UpdateState>();
+    let status = state.status.lock().unwrap().clone();
+    let on_offer = status.phase == Phase::Available
+        || (status.phase == Phase::Failed && state.pending.lock().unwrap().is_some());
+    on_offer.then_some(status.version).flatten()
 }
 
 /// Starts the automatic checks. They only run while the preference is on.
@@ -104,7 +133,8 @@ pub fn check_in_background(app: &AppHandle, trigger: Trigger) {
 }
 
 async fn check(app: &AppHandle, trigger: Trigger) {
-    if !claim(&mut app.state::<UpdateState>().status.lock().unwrap()) {
+    let state = app.state::<UpdateState>();
+    if !claim(&mut state.status.lock().unwrap(), trigger, &state.menu_waiting) {
         return;
     }
     set_status(app, Phase::Checking, None);
@@ -119,6 +149,8 @@ async fn check(app: &AppHandle, trigger: Trigger) {
         let checked = now_ms();
         settings::update(app, |s| s.last_update_check = Some(checked));
     }
+    // Asked from the menu, now or while this check ran: the menu's dialog answers.
+    let tell = (trigger == Trigger::Menu) | app.state::<UpdateState>().menu_waiting.swap(false, Ordering::SeqCst);
 
     match result {
         Ok(Some(update)) => {
@@ -126,13 +158,13 @@ async fn check(app: &AppHandle, trigger: Trigger) {
             let current = update.current_version.clone();
             *app.state::<UpdateState>().pending.lock().unwrap() = Some(update);
             set_status(app, Phase::Available, Some(version.clone()));
-            if trigger == Trigger::Menu {
+            if tell {
                 ask_to_install(app, &version, &current);
             }
         }
         Ok(None) => {
             set_status(app, Phase::UpToDate, None);
-            if trigger == Trigger::Menu {
+            if tell {
                 let text = strings(app);
                 let current = app.package_info().version.to_string();
                 inform(app, MessageDialogKind::Info, text.up_to_date_title, &text.up_to_date_body.replace("{current}", &current));
@@ -141,8 +173,8 @@ async fn check(app: &AppHandle, trigger: Trigger) {
         Err(_error) => {
             #[cfg(debug_assertions)]
             eprintln!("[baddel] update check failed: {_error}");
-            set_status(app, Phase::Failed, None);
-            if trigger == Trigger::Menu {
+            set_failed(app, None, Failure::Check);
+            if tell {
                 let text = strings(app);
                 inform(app, MessageDialogKind::Warning, text.check_failed_title, text.update_failed_body);
             }
@@ -150,27 +182,70 @@ async fn check(app: &AppHandle, trigger: Trigger) {
     }
 }
 
-/// Downloads and installs the update found by the last check, then relaunches.
-pub fn install_in_background(app: &AppHandle) {
+/// Downloads and installs the update found by the last check, then relaunches. `trigger` says
+/// where it was asked for: from the menu (or its dialog), a failure is told in a dialog too.
+pub fn install_in_background(app: &AppHandle, trigger: Trigger) {
     let app = app.clone();
-    tauri::async_runtime::spawn(async move { install(&app).await });
+    tauri::async_runtime::spawn(async move { install(&app, trigger).await });
 }
 
-async fn install(app: &AppHandle) {
+async fn install(app: &AppHandle, trigger: Trigger) {
     let Some(update) = app.state::<UpdateState>().pending.lock().unwrap().take() else { return };
-    set_status(app, Phase::Installing, Some(update.version.clone()));
-    match update.download_and_install(|_, _| {}, || {}).await {
-        // macOS: the new bundle is in place; it runs from the next launch.
-        Ok(()) => app.restart(),
-        Err(_error) => {
-            #[cfg(debug_assertions)]
-            eprintln!("[baddel] update install failed: {_error}");
-            let version = update.version.clone();
-            *app.state::<UpdateState>().pending.lock().unwrap() = Some(update);
-            set_status(app, Phase::Available, Some(version));
-            let text = strings(app);
-            inform(app, MessageDialogKind::Error, text.install_failed_title, text.update_failed_body);
+    let version = update.version.clone();
+    set_status(app, Phase::Installing, Some(version.clone()));
+    match replace(app, &update).await {
+        // macOS: the new bundle is in place and checked; it runs from the next launch. The new
+        // process starts before this one has gone, so this one lets it be Baddel first.
+        Ok(()) => {
+            if let Some(held) = app.try_state::<crate::instance::Held>() {
+                held.step_aside();
+            }
+            app.restart()
         }
+        Err(failure) => {
+            // Still on offer: the previous version runs as before, and the install can be tried again.
+            if failure != Failure::Restore {
+                *app.state::<UpdateState>().pending.lock().unwrap() = Some(update);
+            }
+            set_failed(app, Some(version), failure);
+            let tell = (trigger == Trigger::Menu) | app.state::<UpdateState>().menu_waiting.swap(false, Ordering::SeqCst);
+            if tell {
+                let text = strings(app);
+                let body = match failure {
+                    Failure::Check | Failure::Download => text.update_failed_body,
+                    Failure::Install => text.install_failed_body,
+                    Failure::Restore => text.restore_failed_body,
+                };
+                inform(app, MessageDialogKind::Error, text.install_failed_title, body);
+            }
+        }
+    }
+}
+
+/// The swap itself, between a copy kept of the running version and a check of the new one.
+async fn replace(app: &AppHandle, update: &Update) -> Result<(), Failure> {
+    let bytes = update.download(|_, _| {}, || {}).await.map_err(|_error| {
+        #[cfg(debug_assertions)]
+        eprintln!("[baddel] update download failed: {_error}");
+        Failure::Download
+    })?;
+    let bundle = system::bundle_path()
+        .filter(|bundle| !system::is_temporary_location(bundle, &system::mounts()))
+        .ok_or(Failure::Install)?;
+    let paths = upgrade::Paths::new(&app.path().app_data_dir().map_err(|_| Failure::Install)?);
+    let identifier = app.config().identifier.clone();
+    let from = app.package_info().version.to_string();
+    let _busy = upgrade::exclusive();
+    upgrade::prepare(&paths, &bundle, &identifier, &from, &update.version).map_err(|_| Failure::Install)?;
+    let _installed = update.install(&bytes);
+    #[cfg(debug_assertions)]
+    if let Err(error) = &_installed {
+        eprintln!("[baddel] update install failed: {error}");
+    }
+    match upgrade::finish(&paths, &identifier) {
+        upgrade::Finished::Installed => Ok(()),
+        upgrade::Finished::Failed => Err(Failure::Install),
+        upgrade::Finished::Unrecoverable { .. } => Err(Failure::Restore),
     }
 }
 
@@ -186,7 +261,7 @@ fn ask_to_install(app: &AppHandle, version: &str, current: &str) {
         .buttons(MessageDialogButtons::OkCancelCustom(text.install_and_restart.into(), text.later.into()))
         .show(move |install| {
             if install {
-                install_in_background(&handle);
+                install_in_background(&handle, Trigger::Menu);
             } else {
                 step_back(&handle);
             }
@@ -209,17 +284,18 @@ fn inform(app: &AppHandle, kind: MessageDialogKind, title: &str, body: &str) {
 /// After a dialog: with no window of our own open, hand activation back to the app the
 /// user was in.
 fn step_back(app: &AppHandle) {
-    let open = app.webview_windows().values().any(|w| w.is_visible().unwrap_or(false));
-    if !open {
-        on_main(app, chrome::resign_activation);
-        windows::restore_activation_policy(app);
-    }
+    let handle = app.clone();
+    on_main(app, move || windows::step_back(&handle));
 }
 
 /// Takes the check for the caller, unless one is running or an update is being installed. The
-/// test and the claim are one step under the lock: two checks started together run once.
-fn claim(status: &mut Status) -> bool {
+/// test and the claim are one step under the lock: two checks started together run once. A menu
+/// check turned away is not lost: the one running answers it ([`UpdateState::menu_waiting`]).
+fn claim(status: &mut Status, trigger: Trigger, menu_waiting: &AtomicBool) -> bool {
     if matches!(status.phase, Phase::Checking | Phase::Installing) {
+        if trigger == Trigger::Menu {
+            menu_waiting.store(true, Ordering::SeqCst);
+        }
         return false;
     }
     status.phase = Phase::Checking;
@@ -227,12 +303,21 @@ fn claim(status: &mut Status) -> bool {
 }
 
 fn set_status(app: &AppHandle, phase: Phase, version: Option<String>) {
+    set(app, phase, version, None);
+}
+
+fn set_failed(app: &AppHandle, version: Option<String>, failure: Failure) {
+    set(app, Phase::Failed, version, Some(failure));
+}
+
+fn set(app: &AppHandle, phase: Phase, version: Option<String>, failure: Option<Failure>) {
     let last_checked = app.state::<AppState>().get().last_update_check;
     {
         let state = app.state::<UpdateState>();
         let mut status = state.status.lock().unwrap();
         status.phase = phase;
         status.version = version;
+        status.failure = failure;
         status.last_checked = last_checked;
     }
     tray::rebuild(app);
@@ -253,16 +338,44 @@ mod tests {
 
     #[test]
     fn only_one_check_runs_at_a_time() {
+        let waiting = AtomicBool::new(false);
         let mut status = Status::default();
-        assert!(claim(&mut status));
+        assert!(claim(&mut status, Trigger::Automatic, &waiting));
         assert_eq!(status.phase, Phase::Checking);
         // BAD-304: the second of two checks started together is turned away.
-        assert!(!claim(&mut status));
+        assert!(!claim(&mut status, Trigger::Settings, &waiting));
         status.phase = Phase::Installing;
-        assert!(!claim(&mut status));
+        assert!(!claim(&mut status, Trigger::Automatic, &waiting));
         for phase in [Phase::Idle, Phase::UpToDate, Phase::Available, Phase::Failed] {
             let mut status = Status { phase, ..Status::default() };
-            assert!(claim(&mut status));
+            assert!(claim(&mut status, Trigger::Automatic, &waiting));
         }
+        // Neither of those was asked for from the menu: nothing waits for a dialog.
+        assert!(!waiting.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn a_menu_check_during_another_is_answered_by_that_one() {
+        // GEMINI-007: "Check for Updates…" while the automatic check runs was dropped without a word.
+        let waiting = AtomicBool::new(false);
+        let mut status = Status { phase: Phase::Checking, ..Status::default() };
+        assert!(!claim(&mut status, Trigger::Menu, &waiting));
+        assert!(waiting.load(Ordering::SeqCst));
+        let mut status = Status { phase: Phase::Installing, ..Status::default() };
+        let waiting = AtomicBool::new(false);
+        assert!(!claim(&mut status, Trigger::Menu, &waiting));
+        assert!(waiting.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn a_failed_install_is_failed_with_its_version_not_available() {
+        // GEMINI-007: the row went back to "available" and its "failed" text was never shown.
+        let status = Status { phase: Phase::Failed, version: Some("2.1.0".into()), failure: Some(Failure::Install), last_checked: None };
+        let json = serde_json::to_value(&status).unwrap();
+        assert_eq!(json["phase"], "failed");
+        assert_eq!(json["failure"], "install");
+        assert_eq!(json["version"], "2.1.0");
+        let check = serde_json::to_value(Status { phase: Phase::Failed, failure: Some(Failure::Check), ..Status::default() }).unwrap();
+        assert_eq!((check["failure"].as_str(), check["version"].is_null()), (Some("check"), true));
     }
 }
