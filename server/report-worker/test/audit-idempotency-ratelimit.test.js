@@ -1,7 +1,6 @@
 // Audit (Copilot, 2026): idempotency, rate-limit and upstream-failure behaviour of the Worker.
 // In-memory KV and a stand-in GitHub API, as in worker.test.js; no network.
-// Tests named "BAD-xxx" are FAILING BY DESIGN: each demonstrates a defect listed in
-// BADDEL-COPILOT-AUDIT.md and should pass once that defect is fixed.
+// Tests named "BAD-xxx" each guard against a defect found in that review, fixed since.
 import assert from 'node:assert/strict'
 import { beforeEach, test } from 'node:test'
 

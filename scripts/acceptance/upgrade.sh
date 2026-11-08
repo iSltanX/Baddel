@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Acceptance C: a real update through the app's own updater, isolated from the real Baddel.
 #
-#   audit/remediation-2026-10/acceptance/upgrade.sh <work-dir>
+#   scripts/acceptance/upgrade.sh <work-dir>
 #
 # Builds two versions under the test identity (build.sh), installs the older one in <work-dir>,
 # serves updates from 127.0.0.1 only, and lets the app check and install them itself
@@ -16,9 +16,9 @@
 #   3. the right archive → installed, the copy kept until the new version runs, Baddel restarted
 #      into it (one process), and the copy and note cleared by the new version
 set -euo pipefail
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 WORK="$1"
-HERE="audit/remediation-2026-10/acceptance"
+HERE="scripts/acceptance"
 OLD="2.0.90"
 NEW="2.0.91"
 # The builds have the port baked in: reused, with their port, when they are already there.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds a debug Baddel under a test identity, for the acceptance checks in this folder.
 #
-#   audit/remediation-2026-10/acceptance/build.sh <work-dir> <version> <port>
+#   scripts/acceptance/build.sh <work-dir> <version> <port>
 #
 # The test identity keeps it apart from the real Baddel everywhere macOS keys things by app:
 # bundle identifier com.isltanx.baddel.acceptance, name BaddelAcceptance, its own Application
@@ -11,7 +11,7 @@
 #
 # Leaves in <work-dir>/<version>/: BaddelAcceptance.app, its updater archive and signature.
 set -euo pipefail
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 source scripts/env.sh
 
 WORK="$1"

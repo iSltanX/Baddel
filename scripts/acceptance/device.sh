@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Acceptance B: conversion, undo, copy and paste, and focus switches, with real key presses.
 #
-#   audit/remediation-2026-10/acceptance/device.sh <work-dir> [case…]
+#   scripts/acceptance/device.sh <work-dir> [case…]
 #
 # Cases: regression switch undo-switch window (all four when none is named).
 #
@@ -13,9 +13,9 @@
 # ends up in a new TextEdit document and the test page in Safari (closed by cleanup.sh) and in the history of a clipboard
 # manager, if one runs; the clipboard itself is put back.
 set -euo pipefail
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 WORK="$1"
-HERE="audit/remediation-2026-10/acceptance"
+HERE="scripts/acceptance"
 APP="target/debug/bundle/macos/Baddel.app"
 EXE="$PWD/$APP/Contents/MacOS/baddel"
 H="$WORK/home"

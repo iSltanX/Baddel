@@ -1,5 +1,5 @@
 // Audit (Copilot, 2026): input validation edges and issue rendering of the Worker.
-// Tests named "BAD-xxx" are FAILING BY DESIGN (see BADDEL-COPILOT-AUDIT.md).
+// Tests named "BAD-xxx" each guard against a defect found in that review, fixed since.
 import assert from 'node:assert/strict'
 import { beforeEach, test } from 'node:test'
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Acceptance A: the real login item, under the test identity — never the real Baddel's.
 #
-#   audit/remediation-2026-10/acceptance/login-item.sh <work-dir> install|on|status|off|remove
+#   scripts/acceptance/login-item.sh <work-dir> install|on|status|off|remove
 #
 # ⚠️ Changes the Mac: puts BaddelAcceptance.app in ~/Applications and registers it as a real
 # login item (System Settings › General › Login Items lists it). Only with the owner's approval.
@@ -16,7 +16,7 @@
 #   off      switch it off again
 #   remove   quit it, switch it off if it is on, remove the app and its data folder
 set -euo pipefail
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 WORK="$1"
 STEP="$2"
 ID="com.isltanx.baddel.acceptance"
@@ -50,7 +50,7 @@ record() { show "maintenance.json"; python3 -c 'import json,sys; r=json.load(ope
 # Never next to an old LaunchAgent of the real Baddel: the test identity leaves it alone (another
 # app's), but its presence would make this no clean test of the login item alone.
 if [ -e "$HOME/Library/LaunchAgents/Baddel.plist" ]; then
-  echo "~/Library/LaunchAgents/Baddel.plist exists: stopping, see acceptance/README.md" >&2
+  echo "~/Library/LaunchAgents/Baddel.plist exists: stopping, this checks the login item alone" >&2
   exit 1
 fi
 

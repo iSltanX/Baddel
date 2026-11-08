@@ -8,19 +8,19 @@
 #                                           its top-left corner)
 #   settings.sh <work> type <text>          type into the focused field; read it back with ⌘A ⌘C;
 #                                           then paste " + pasted" at its end and read it back
-#   settings.sh <work> capture <name>       the Settings window alone, into the evidence folder
+#   settings.sh <work> capture <name>       the Settings window alone, into <work>
 #   settings.sh <work> finish               ⌘W, then put everything back
 #
 # ⚠️ Real clicks and key presses: only with the owner's approval in the session. Every click and
 # key first checks that the debug Baddel is in front and holds the keyboard, and stops otherwise.
 # Captures take Baddel's window only (`screencapture -l`), never the rest of the screen.
 set -euo pipefail
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 WORK="$1"
 STEP="$2"
 shift 2
-HERE="audit/remediation-2026-10/acceptance"
-EVIDENCE="audit/remediation-2026-10/evidence"
+HERE="scripts/acceptance"
+EVIDENCE="$WORK"
 APP="target/debug/bundle/macos/Baddel.app"
 EXE="$PWD/$APP/Contents/MacOS/baddel"
 H="$WORK/home"
@@ -84,7 +84,7 @@ case "$STEP" in
     click $((mx + mw / 2)) $((my + mh / 2))
     sleep 3
     show "after the click: front=$(front) keys=$(keys_owner)"
-    swift audit/remediation-2026-10/tools/ax-windows.swift "$PID"
+    swift scripts/acceptance/ax-windows.swift "$PID"
     show "Settings window (id x y w h): $(window_info)"
     ;;
   click)

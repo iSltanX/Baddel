@@ -1,4 +1,4 @@
-// Read-only observer for the 2026-10 remediation checks. Sends no input and changes nothing.
+// Read-only observer for live-checks.sh. Sends no input and changes nothing.
 //
 //   swiftc -O observe.swift -o observe
 //   ./observe --bundle <path/to/Baddel.app> --seconds 8 [--interval-ms 5]

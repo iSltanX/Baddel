@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # scripts/install.sh against a local copy of a published release, into a folder of its own.
 #
-#   audit/remediation-2026-10/tools/install-check.sh <work-dir> [version]
+#   scripts/acceptance/install-check.sh <work-dir> [version]
 #
 # Serves release/<version>/ through file:// (BADDEL_RELEASES_URL), installs with --dest inside
 # <work-dir> and --no-open, so /Applications and any running Baddel are never touched. Cases: a
 # replacement that works, and one whose copy fails (a `ditto` that refuses), after which the
 # previous app must be back exactly as it was.
 set -euo pipefail
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 WORK="$1"
 VERSION="${2:-2.0.2}"
 REL="$PWD/release/$VERSION"

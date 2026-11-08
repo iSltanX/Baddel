@@ -137,10 +137,9 @@ fn pc_thirty_two_sites_in_one_word() {
     assert_eq!(pc().convert_as(&"لا".repeat(32), A2L), "b".repeat(32));
 }
 
-/// FAILING BY DESIGN — demonstrates BAD-001. With 33+ sites in one word, `render(0)` evaluates
-/// `mask >> bit` with bit >= 32 on a u32 (disambiguate.rs:40): "attempt to shift right with
-/// overflow" in any build with overflow checks (debug / `tauri dev` / tests). Release builds have
-/// overflow checks off and happen to return the right text. Passes under `--release`.
+/// BAD-001 (fixed in 2.0.2): with 33+ sites in one word, `render` once evaluated `mask >> bit`
+/// with bit >= 32 on a u32, "attempt to shift right with overflow" in any build with overflow
+/// checks (debug / `tauri dev` / tests). Sites past the mask's bits now read as the single key.
 #[test]
 fn bad_001_thirty_three_sites_in_one_word_must_not_panic() {
     let long = "لا".repeat(5_000); // one 10k-char word

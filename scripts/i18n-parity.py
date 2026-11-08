@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Audit helper: ar/en key parity, placeholder parity, and t('…') keys used in src/ vs defined.
+"""ar/en key parity, placeholder parity, and t('…') keys used in src/ vs defined.
 
-Read-only. Usage: python3 audit/scripts/i18n-parity.py  (from the repository root). Exit 1 on a mismatch.
+Read-only. Usage: python3 scripts/i18n-parity.py  (from the repository root). Exit 1 on a mismatch.
 Keys built dynamically (t(`x.${y}`)) cannot be resolved statically; they are listed as prefixes.
 """
 import json, pathlib, re, sys
 
-root = pathlib.Path(__file__).resolve().parents[2]
+root = pathlib.Path(__file__).resolve().parents[1]
 def flat(d, p=""):
     for k, v in d.items():
         key = f"{p}{k}"

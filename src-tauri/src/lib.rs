@@ -250,7 +250,7 @@ pub fn run() {
     });
 }
 
-/// Debug builds only, for `audit/remediation-2026-10/acceptance/`: a step a person would take in
+/// Debug builds only, for `scripts/acceptance/`: a step a person would take in
 /// Settings, taken at launch instead, through the same code. `BADDEL_ACCEPT=login-on` or
 /// `login-off` flips the launch-at-login switch; `update` checks for an update and installs it.
 #[cfg(debug_assertions)]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acceptance B: what only real key presses can show, after the 2026-10 fixes.
+"""Acceptance B: what only real key presses can show.
 
 ⚠️ Sends real key presses. Run only with the owner's approval in the session and the owner away
 from the machine, as scripts/device-test/ requires; the runner needs Accessibility (granted to
@@ -22,7 +22,7 @@ else: the second app is the repository's own test page, never a note or document
 """
 import os, subprocess, sys, time
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../scripts/device-test"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../device-test"))
 import matrix  # noqa: E402
 from matrix import KEY_A, KEY_C, KEY_V, KEY_SPACE, NotFront, ensure_front, get_clip, key, log_since, osa, outcomes_in, set_clip  # noqa: E402
 

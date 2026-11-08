@@ -4,7 +4,7 @@
 
 ## v2.1.0 — 2026-10-27
 
-إصلاحات تدقيقَي Gemini وCodex (2026-10-26). التفصيل والأدلة في `audit/remediation-2026-10/README.md`.
+إصلاحات تدقيقَي Gemini وCodex (2026-10-26). التفصيل والأدلة في [`audit/remediation-2026-10/`](https://github.com/iSltanX/Baddel/blob/v2.1.0/audit/remediation-2026-10/README.md) (الوسم `v2.1.0`).
 
 ### التشغيل عند الدخول
 
@@ -42,12 +42,12 @@
   - فتح الإعدادات من أيقونة شريط القوائم والكتابة فيها.
   - macOS 13–15 وأجهزة Intel.
 
-  ما اختُبر وما لم يُختبر مفصّل في `audit/remediation-2026-10/`.
+  ما اختُبر وما لم يُختبر مفصّل في [`audit/remediation-2026-10/`](https://github.com/iSltanX/Baddel/tree/v2.1.0/audit/remediation-2026-10) (الوسم `v2.1.0`).
 - **Chrome 155:** في `textarea` و`contenteditable` قد يقول بدّل «تم التحويل» ويبقى النص كما هو. **لم يُصلح بعد.**
 
 ## v2.0.2 — 2026-10-13
 
-إصدار تصحيحي من نتائج تدقيق الشيفرة (`BADDEL-COPILOT-AUDIT.md`، القسم 11).
+إصدار تصحيحي من نتائج تدقيق الشيفرة ([`BADDEL-COPILOT-AUDIT.md`](https://github.com/iSltanX/Baddel/blob/v2.1.0/BADDEL-COPILOT-AUDIT.md)، القسم 11، في الوسم `v2.1.0`).
 
 ### إصلاحات
 
@@ -77,10 +77,10 @@
   - تخطيط Arabic – PC.
   - حالات التدقيق S3 وS6–S13 وM7 وM10 وM12–M15.
 
-  التفصيل في `audit/evidence/04-device-test.txt`.
+  التفصيل في [`audit/evidence/04-device-test.txt`](https://github.com/iSltanX/Baddel/blob/v2.1.0/audit/evidence/04-device-test.txt) (الوسم `v2.1.0`).
 - **التراجع بمسار المفاتيح** فشل في تجربة TextEdit بمسار المفاتيح المفروض للاختبار، وفي 2.0.1 كذلك. لم يُختبر بعد في Mail وFigma.
 - **إصلاحات خادم البلاغات** (عدم تكرار البلاغ، وحدّ المعدل، والعنوان) موجودة في المستودع، **ولم تُنشر على الخادم بعد**.
-- **مقترحات لم تُنفَّذ** (`audit/fix-proposals.md`):
+- **مقترحات لم تُنفَّذ** ([`audit/fix-proposals.md`](https://github.com/iSltanX/Baddel/blob/v2.1.0/audit/fix-proposals.md) في الوسم `v2.1.0`):
   - التراجع في حقل آخر فيه النص نفسه.
   - توقيت اللصق في التطبيقات البطيئة.
   - نسخة المستخدم أثناء التحويل.

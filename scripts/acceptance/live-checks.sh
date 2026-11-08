@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Live checks of the debug build for the 2026-10 remediation, each in a throwaway home.
+# Live checks of the debug build (launch, onboarding, reopen, migration…), each in a throwaway home.
 #
-#   audit/remediation-2026-10/tools/live-checks.sh <work-dir> <observer> <scenario>
+#   scripts/acceptance/live-checks.sh <work-dir> <observer> <scenario>
 #
 # Every scenario runs target/debug/bundle/macos/Baddel.app with HOME and TMPDIR inside <work-dir>,
 # so the user's own settings, LaunchAgents and temporary folder are never read or written;
@@ -10,7 +10,7 @@
 # Only processes running from the debug bundle's own path are ever stopped — never an installed
 # Baddel.
 set -euo pipefail
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 
 WORK="$1"
 OBSERVE="$2"
