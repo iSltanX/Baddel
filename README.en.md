@@ -7,8 +7,6 @@
 
 [![Release](https://img.shields.io/github/v/release/iSltanX/Baddel?label=release&color=12A191&style=flat-square)](https://github.com/iSltanX/Baddel/releases/latest)
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Universal-0F2A28?style=flat-square)](#requirements)
-[![Local only](https://img.shields.io/badge/local--only-no%20tracking-0D786C?style=flat-square)](#privacy)
-[![UI](https://img.shields.io/badge/UI-Arabic%20%C2%B7%20English-12A191?style=flat-square)](#features)
 [![License: MIT](https://img.shields.io/badge/license-MIT-4A6764?style=flat-square)](LICENSE)
 
 ### [⬇︎ Download the latest release](https://github.com/iSltanX/Baddel/releases/latest)
